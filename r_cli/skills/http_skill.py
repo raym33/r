@@ -1,18 +1,17 @@
 """
-Skill HTTP para R CLI.
+HTTP Skill for R CLI.
 
-Cliente REST API:
+REST API client:
 - GET, POST, PUT, DELETE
-- Headers personalizados
-- Autenticación
-- Manejo de JSON
+- Custom headers
+- Authentication
+- JSON handling
 """
 
 import json
 import logging
-from pathlib import Path
 from typing import Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class HTTPSkill(Skill):
-    """Skill para operaciones HTTP/REST."""
+    """Skill for HTTP/REST operations."""
 
     name = "http"
     description = "HTTP/REST client: GET, POST, PUT, DELETE with JSON support"
@@ -33,21 +32,21 @@ class HTTPSkill(Skill):
         return [
             Tool(
                 name="http_get",
-                description="Realiza una petición GET",
+                description="Make a GET request",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL del endpoint",
+                            "description": "Endpoint URL",
                         },
                         "headers": {
                             "type": "string",
-                            "description": "Headers en formato KEY:value,KEY2:value2",
+                            "description": "Headers in KEY:value,KEY2:value2 format",
                         },
                         "auth": {
                             "type": "string",
-                            "description": "Autenticación Bearer token o user:password",
+                            "description": "Bearer token or user:password authentication",
                         },
                     },
                     "required": ["url"],
@@ -56,25 +55,25 @@ class HTTPSkill(Skill):
             ),
             Tool(
                 name="http_post",
-                description="Realiza una petición POST",
+                description="Make a POST request",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL del endpoint",
+                            "description": "Endpoint URL",
                         },
                         "data": {
                             "type": "string",
-                            "description": "Datos a enviar (JSON string)",
+                            "description": "Data to send (JSON string)",
                         },
                         "headers": {
                             "type": "string",
-                            "description": "Headers adicionales",
+                            "description": "Additional headers",
                         },
                         "auth": {
                             "type": "string",
-                            "description": "Autenticación",
+                            "description": "Authentication",
                         },
                     },
                     "required": ["url"],
@@ -83,25 +82,25 @@ class HTTPSkill(Skill):
             ),
             Tool(
                 name="http_put",
-                description="Realiza una petición PUT",
+                description="Make a PUT request",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL del endpoint",
+                            "description": "Endpoint URL",
                         },
                         "data": {
                             "type": "string",
-                            "description": "Datos a enviar (JSON string)",
+                            "description": "Data to send (JSON string)",
                         },
                         "headers": {
                             "type": "string",
-                            "description": "Headers adicionales",
+                            "description": "Additional headers",
                         },
                         "auth": {
                             "type": "string",
-                            "description": "Autenticación",
+                            "description": "Authentication",
                         },
                     },
                     "required": ["url"],
@@ -110,21 +109,21 @@ class HTTPSkill(Skill):
             ),
             Tool(
                 name="http_delete",
-                description="Realiza una petición DELETE",
+                description="Make a DELETE request",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL del endpoint",
+                            "description": "Endpoint URL",
                         },
                         "headers": {
                             "type": "string",
-                            "description": "Headers adicionales",
+                            "description": "Additional headers",
                         },
                         "auth": {
                             "type": "string",
-                            "description": "Autenticación",
+                            "description": "Authentication",
                         },
                     },
                     "required": ["url"],
@@ -133,22 +132,22 @@ class HTTPSkill(Skill):
             ),
             Tool(
                 name="http_request",
-                description="Realiza una petición HTTP personalizada",
+                description="Make a custom HTTP request",
                 parameters={
                     "type": "object",
                     "properties": {
                         "method": {
                             "type": "string",
                             "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
-                            "description": "Método HTTP",
+                            "description": "HTTP method",
                         },
                         "url": {
                             "type": "string",
-                            "description": "URL del endpoint",
+                            "description": "Endpoint URL",
                         },
                         "data": {
                             "type": "string",
-                            "description": "Cuerpo de la petición",
+                            "description": "Request body",
                         },
                         "headers": {
                             "type": "string",
@@ -156,7 +155,7 @@ class HTTPSkill(Skill):
                         },
                         "auth": {
                             "type": "string",
-                            "description": "Autenticación",
+                            "description": "Authentication",
                         },
                     },
                     "required": ["method", "url"],
@@ -166,16 +165,16 @@ class HTTPSkill(Skill):
         ]
 
     def _validate_url(self, url: str) -> tuple[bool, str]:
-        """Valida la URL."""
+        """Validate the URL."""
         try:
             parsed = urlparse(url)
             if parsed.scheme not in ("http", "https"):
-                return False, "Solo se permiten URLs HTTP/HTTPS"
+                return False, "Only HTTP/HTTPS URLs are allowed"
 
-            # Bloquear localhost/IPs privadas en producción
+            # Block localhost/private IPs in production
             hostname = parsed.hostname or ""
             if hostname in ("localhost", "127.0.0.1", "0.0.0.0"):
-                # Permitir localhost para desarrollo
+                # Allow localhost for development
                 pass
 
             return True, ""
@@ -183,7 +182,7 @@ class HTTPSkill(Skill):
             return False, str(e)
 
     def _parse_headers(self, headers_str: Optional[str]) -> dict:
-        """Parsea string de headers a diccionario."""
+        """Parse headers string to dictionary."""
         headers = {"User-Agent": self.USER_AGENT}
 
         if headers_str:
@@ -195,7 +194,7 @@ class HTTPSkill(Skill):
         return headers
 
     def _parse_auth(self, auth_str: Optional[str]) -> Optional[tuple]:
-        """Parsea autenticación."""
+        """Parse authentication."""
         if not auth_str:
             return None
 
@@ -203,18 +202,18 @@ class HTTPSkill(Skill):
             # Basic auth: user:password
             return tuple(auth_str.split(":", 1))
         else:
-            # Bearer token - se manejará en headers
+            # Bearer token - will be handled in headers
             return None
 
     def _get_auth_header(self, auth_str: Optional[str]) -> Optional[dict]:
-        """Obtiene header de autenticación."""
+        """Get authentication header."""
         if auth_str and ":" not in auth_str:
             # Bearer token
             return {"Authorization": f"Bearer {auth_str}"}
         return None
 
     def _format_response(self, response, include_headers: bool = False) -> str:
-        """Formatea la respuesta HTTP."""
+        """Format HTTP response."""
         result = [f"HTTP {response.status_code}"]
 
         if include_headers:
@@ -226,16 +225,16 @@ class HTTPSkill(Skill):
 
         content = response.text
 
-        # Intentar formatear JSON
+        # Try to format JSON
         try:
             data = response.json()
             content = json.dumps(data, indent=2, ensure_ascii=False)
         except (json.JSONDecodeError, Exception) as e:
             logger.debug(f"Response is not valid JSON: {e}")
 
-        # Limitar tamaño
+        # Limit size
         if len(content) > 10000:
-            content = content[:10000] + "\n\n... (respuesta truncada)"
+            content = content[:10000] + "\n\n... (response truncated)"
 
         result.append(content)
 
@@ -249,27 +248,27 @@ class HTTPSkill(Skill):
         headers: Optional[str] = None,
         auth: Optional[str] = None,
     ) -> str:
-        """Realiza una petición HTTP."""
+        """Make an HTTP request."""
         try:
             import httpx
 
-            # Validar URL
+            # Validate URL
             valid, error = self._validate_url(url)
             if not valid:
                 return f"Error: {error}"
 
-            # Preparar headers
+            # Prepare headers
             req_headers = self._parse_headers(headers)
 
-            # Agregar auth header si es Bearer
+            # Add auth header if Bearer
             auth_header = self._get_auth_header(auth)
             if auth_header:
                 req_headers.update(auth_header)
 
-            # Preparar auth tuple si es Basic
+            # Prepare auth tuple if Basic
             auth_tuple = self._parse_auth(auth) if auth and ":" in auth else None
 
-            # Preparar data
+            # Prepare data
             json_data = None
             if data:
                 try:
@@ -277,10 +276,10 @@ class HTTPSkill(Skill):
                     if "Content-Type" not in req_headers:
                         req_headers["Content-Type"] = "application/json"
                 except json.JSONDecodeError:
-                    # Enviar como texto plano
+                    # Send as plain text
                     pass
 
-            # Realizar petición
+            # Make request
             with httpx.Client(timeout=self.TIMEOUT, follow_redirects=True) as client:
                 if json_data:
                     response = client.request(
@@ -309,9 +308,9 @@ class HTTPSkill(Skill):
             return self._format_response(response)
 
         except ImportError:
-            return "Error: httpx no instalado. Ejecuta: pip install httpx"
+            return "Error: httpx not installed. Run: pip install httpx"
         except httpx.TimeoutException:
-            return f"Error: Timeout conectando a {url}"
+            return f"Error: Timeout connecting to {url}"
         except httpx.ConnectError as e:
             return f"Connection error: {e}"
         except Exception as e:
@@ -323,7 +322,7 @@ class HTTPSkill(Skill):
         headers: Optional[str] = None,
         auth: Optional[str] = None,
     ) -> str:
-        """Petición GET."""
+        """GET request."""
         return self._make_request("GET", url, headers=headers, auth=auth)
 
     def http_post(
@@ -333,7 +332,7 @@ class HTTPSkill(Skill):
         headers: Optional[str] = None,
         auth: Optional[str] = None,
     ) -> str:
-        """Petición POST."""
+        """POST request."""
         return self._make_request("POST", url, data=data, headers=headers, auth=auth)
 
     def http_put(
@@ -343,7 +342,7 @@ class HTTPSkill(Skill):
         headers: Optional[str] = None,
         auth: Optional[str] = None,
     ) -> str:
-        """Petición PUT."""
+        """PUT request."""
         return self._make_request("PUT", url, data=data, headers=headers, auth=auth)
 
     def http_delete(
@@ -352,7 +351,7 @@ class HTTPSkill(Skill):
         headers: Optional[str] = None,
         auth: Optional[str] = None,
     ) -> str:
-        """Petición DELETE."""
+        """DELETE request."""
         return self._make_request("DELETE", url, headers=headers, auth=auth)
 
     def http_request(
@@ -363,16 +362,16 @@ class HTTPSkill(Skill):
         headers: Optional[str] = None,
         auth: Optional[str] = None,
     ) -> str:
-        """Petición HTTP personalizada."""
+        """Custom HTTP request."""
         return self._make_request(method.upper(), url, data=data, headers=headers, auth=auth)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         method = kwargs.get("method", "GET").upper()
         url = kwargs.get("url", "")
 
         if not url:
-            return "Error: Se requiere una URL"
+            return "Error: URL is required"
 
         return self._make_request(
             method,

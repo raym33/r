@@ -1,15 +1,14 @@
 """
-Skill de Archivos Comprimidos para R CLI.
+Archive Skill for R CLI.
 
-Operaciones con files comprimidos:
-- Crear ZIP, TAR, TAR.GZ
-- Extraer files
-- Listar contenido
-- Agregar files
+Compressed file operations:
+- Create ZIP, TAR, TAR.GZ
+- Extract files
+- List contents
+- Add files
 """
 
 import os
-import shutil
 import tarfile
 import zipfile
 from datetime import datetime
@@ -21,34 +20,34 @@ from r_cli.core.llm import Tool
 
 
 class ArchiveSkill(Skill):
-    """Skill para operaciones con files comprimidos."""
+    """Skill for compressed file operations."""
 
     name = "archive"
     description = "Compressed files: create, extract and list ZIP, TAR, TAR.GZ"
 
-    # Límite de tamaño para extracción (100MB)
+    # Size limit for extraction (100MB)
     MAX_EXTRACT_SIZE = 100 * 1024 * 1024
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
                 name="create_archive",
-                description="Crea un archivo comprimido (ZIP, TAR, TAR.GZ)",
+                description="Create a compressed archive (ZIP, TAR, TAR.GZ)",
                 parameters={
                     "type": "object",
                     "properties": {
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta del archivo a crear (extensión determina formato)",
+                            "description": "Output file path (extension determines format)",
                         },
                         "source_paths": {
                             "type": "string",
-                            "description": "Rutas de files/carpetas a comprimir (separadas por coma)",
+                            "description": "Paths of files/folders to compress (comma-separated)",
                         },
                         "format": {
                             "type": "string",
                             "enum": ["zip", "tar", "tar.gz", "tgz"],
-                            "description": "Formato de compresión (default: inferido de extensión)",
+                            "description": "Compression format (default: inferred from extension)",
                         },
                     },
                     "required": ["output_path", "source_paths"],
@@ -57,17 +56,17 @@ class ArchiveSkill(Skill):
             ),
             Tool(
                 name="extract_archive",
-                description="Extrae un archivo comprimido",
+                description="Extract a compressed archive",
                 parameters={
                     "type": "object",
                     "properties": {
                         "archive_path": {
                             "type": "string",
-                            "description": "Ruta del archivo comprimido",
+                            "description": "Compressed archive path",
                         },
                         "output_dir": {
                             "type": "string",
-                            "description": "Directorio de destino (default: directorio actual)",
+                            "description": "Destination directory (default: current directory)",
                         },
                     },
                     "required": ["archive_path"],
@@ -76,13 +75,13 @@ class ArchiveSkill(Skill):
             ),
             Tool(
                 name="list_archive",
-                description="Lista el contenido de un archivo comprimido",
+                description="List contents of a compressed archive",
                 parameters={
                     "type": "object",
                     "properties": {
                         "archive_path": {
                             "type": "string",
-                            "description": "Ruta del archivo comprimido",
+                            "description": "Compressed archive path",
                         },
                     },
                     "required": ["archive_path"],
@@ -91,17 +90,17 @@ class ArchiveSkill(Skill):
             ),
             Tool(
                 name="add_to_archive",
-                description="Agrega files a un ZIP existente",
+                description="Add files to an existing ZIP",
                 parameters={
                     "type": "object",
                     "properties": {
                         "archive_path": {
                             "type": "string",
-                            "description": "Ruta del archivo ZIP",
+                            "description": "ZIP archive path",
                         },
                         "source_paths": {
                             "type": "string",
-                            "description": "Rutas de files a agregar (separadas por coma)",
+                            "description": "Paths of files to add (comma-separated)",
                         },
                     },
                     "required": ["archive_path", "source_paths"],
@@ -110,13 +109,13 @@ class ArchiveSkill(Skill):
             ),
             Tool(
                 name="archive_info",
-                description="Muestra información detallada de un archivo comprimido",
+                description="Show detailed archive information",
                 parameters={
                     "type": "object",
                     "properties": {
                         "archive_path": {
                             "type": "string",
-                            "description": "Ruta del archivo comprimido",
+                            "description": "Compressed archive path",
                         },
                     },
                     "required": ["archive_path"],
@@ -126,7 +125,7 @@ class ArchiveSkill(Skill):
         ]
 
     def _get_format(self, path: Path, format_hint: Optional[str] = None) -> str:
-        """Determina el formato basado en la extensión o hint."""
+        """Determine format based on extension or hint."""
         if format_hint:
             return format_hint.lower()
 
@@ -141,7 +140,7 @@ class ArchiveSkill(Skill):
             return "zip"  # Default
 
     def _format_size(self, size: int) -> str:
-        """Formatea tamaño en bytes."""
+        """Format size in bytes."""
         for unit in ["B", "KB", "MB", "GB"]:
             if size < 1024:
                 return f"{size:.1f} {unit}"
@@ -154,20 +153,20 @@ class ArchiveSkill(Skill):
         source_paths: str,
         format: Optional[str] = None,
     ) -> str:
-        """Crea un archivo comprimido."""
+        """Create a compressed archive."""
         try:
             out_path = Path(output_path).expanduser()
             archive_format = self._get_format(out_path, format)
 
-            # Parsear rutas fuente
+            # Parse source paths
             sources = [Path(p.strip()).expanduser() for p in source_paths.split(",")]
 
-            # Validar que existen
+            # Validate existence
             for src in sources:
                 if not src.exists():
-                    return f"Error: No existe: {src}"
+                    return f"Error: Does not exist: {src}"
 
-            # Crear directorio padre si no existe
+            # Create parent directory if it doesn't exist
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
             if archive_format == "zip":
@@ -175,13 +174,13 @@ class ArchiveSkill(Skill):
             elif archive_format in ("tar", "tar.gz", "tgz"):
                 return self._create_tar(out_path, sources, compress=(archive_format != "tar"))
             else:
-                return f"Formato no soportado: {archive_format}"
+                return f"Unsupported format: {archive_format}"
 
         except Exception as e:
-            return f"Error creando archivo: {e}"
+            return f"Error creating archive: {e}"
 
     def _create_zip(self, output: Path, sources: list[Path]) -> str:
-        """Crea un archivo ZIP."""
+        """Create a ZIP archive."""
         count = 0
         total_size = 0
 
@@ -203,10 +202,10 @@ class ArchiveSkill(Skill):
         compressed_size = output.stat().st_size
         ratio = (1 - compressed_size / total_size) * 100 if total_size > 0 else 0
 
-        return f"✅ ZIP creado: {output}\n   {count} files, {self._format_size(compressed_size)} ({ratio:.1f}% comprimido)"
+        return f"ZIP created: {output}\n   {count} files, {self._format_size(compressed_size)} ({ratio:.1f}% compressed)"
 
     def _create_tar(self, output: Path, sources: list[Path], compress: bool = True) -> str:
-        """Crea un archivo TAR/TAR.GZ."""
+        """Create a TAR/TAR.GZ archive."""
         mode = "w:gz" if compress else "w"
         count = 0
         total_size = 0
@@ -227,21 +226,21 @@ class ArchiveSkill(Skill):
         ratio = (1 - compressed_size / total_size) * 100 if total_size > 0 else 0
 
         format_name = "TAR.GZ" if compress else "TAR"
-        return f"✅ {format_name} creado: {output}\n   {count} files, {self._format_size(compressed_size)} ({ratio:.1f}% comprimido)"
+        return f"{format_name} created: {output}\n   {count} files, {self._format_size(compressed_size)} ({ratio:.1f}% compressed)"
 
     def extract_archive(
         self,
         archive_path: str,
         output_dir: Optional[str] = None,
     ) -> str:
-        """Extrae un archivo comprimido."""
+        """Extract a compressed archive."""
         try:
             arc_path = Path(archive_path).expanduser()
 
             if not arc_path.exists():
-                return f"Error: Archivo no encontrado: {archive_path}"
+                return f"Error: Archive not found: {archive_path}"
 
-            # Determinar directorio de salida
+            # Determine output directory
             if output_dir:
                 out_dir = Path(output_dir).expanduser()
             else:
@@ -256,62 +255,62 @@ class ArchiveSkill(Skill):
             elif archive_format in ("tar", "tar.gz", "tgz"):
                 return self._extract_tar(arc_path, out_dir)
             else:
-                return f"Formato no soportado: {archive_format}"
+                return f"Unsupported format: {archive_format}"
 
         except Exception as e:
-            return f"Error extrayendo archivo: {e}"
+            return f"Error extracting archive: {e}"
 
     def _extract_zip(self, archive: Path, output_dir: Path) -> str:
-        """Extrae un archivo ZIP."""
+        """Extract a ZIP archive."""
         with zipfile.ZipFile(archive, "r") as zf:
-            # Verificar tamaño total antes de extraer
+            # Verify total size before extracting
             total_size = sum(info.file_size for info in zf.infolist())
             if total_size > self.MAX_EXTRACT_SIZE:
-                return f"Error: Archivo demasiado grande ({self._format_size(total_size)})"
+                return f"Error: Archive too large ({self._format_size(total_size)})"
 
-            # Verificar path traversal
+            # Check for path traversal
             for info in zf.infolist():
                 target_path = output_dir / info.filename
                 if not str(target_path.resolve()).startswith(str(output_dir.resolve())):
-                    return "Error: Archivo contiene rutas peligrosas (path traversal)"
+                    return "Error: Archive contains dangerous paths (path traversal)"
 
             zf.extractall(output_dir)
             count = len(zf.namelist())
 
-        return f"✅ Extracted to: {output_dir}\n   {count} files, {self._format_size(total_size)}"
+        return f"Extracted to: {output_dir}\n   {count} files, {self._format_size(total_size)}"
 
     def _extract_tar(self, archive: Path, output_dir: Path) -> str:
-        """Extrae un archivo TAR/TAR.GZ."""
-        # Determinar modo
+        """Extract a TAR/TAR.GZ archive."""
+        # Determine mode
         if str(archive).endswith(".gz") or str(archive).endswith(".tgz"):
             mode = "r:gz"
         else:
             mode = "r"
 
         with tarfile.open(archive, mode) as tf:
-            # Verificar path traversal
+            # Check for path traversal
             for member in tf.getmembers():
                 target_path = output_dir / member.name
                 if not str(target_path.resolve()).startswith(str(output_dir.resolve())):
-                    return "Error: Archivo contiene rutas peligrosas (path traversal)"
+                    return "Error: Archive contains dangerous paths (path traversal)"
 
-            # Verificar tamaño total
+            # Verify total size
             total_size = sum(m.size for m in tf.getmembers() if m.isfile())
             if total_size > self.MAX_EXTRACT_SIZE:
-                return f"Error: Archivo demasiado grande ({self._format_size(total_size)})"
+                return f"Error: Archive too large ({self._format_size(total_size)})"
 
             tf.extractall(output_dir)
             count = len([m for m in tf.getmembers() if m.isfile()])
 
-        return f"✅ Extracted to: {output_dir}\n   {count} files, {self._format_size(total_size)}"
+        return f"Extracted to: {output_dir}\n   {count} files, {self._format_size(total_size)}"
 
     def list_archive(self, archive_path: str) -> str:
-        """Lista el contenido de un archivo comprimido."""
+        """List contents of a compressed archive."""
         try:
             arc_path = Path(archive_path).expanduser()
 
             if not arc_path.exists():
-                return f"Error: Archivo no encontrado: {archive_path}"
+                return f"Error: Archive not found: {archive_path}"
 
             archive_format = self._get_format(arc_path)
 
@@ -320,15 +319,15 @@ class ArchiveSkill(Skill):
             elif archive_format in ("tar", "tar.gz", "tgz"):
                 return self._list_tar(arc_path)
             else:
-                return f"Formato no soportado: {archive_format}"
+                return f"Unsupported format: {archive_format}"
 
         except Exception as e:
-            return f"Error listando archivo: {e}"
+            return f"Error listing archive: {e}"
 
     def _list_zip(self, archive: Path) -> str:
-        """Lista contenido de un ZIP."""
+        """List contents of a ZIP."""
         with zipfile.ZipFile(archive, "r") as zf:
-            result = [f"📦 Contenido de {archive.name}:\n"]
+            result = [f"Contents of {archive.name}:\n"]
 
             for info in sorted(zf.infolist(), key=lambda x: x.filename)[:50]:
                 size = self._format_size(info.file_size)
@@ -337,7 +336,7 @@ class ArchiveSkill(Skill):
 
             total = len(zf.namelist())
             if total > 50:
-                result.append(f"\n  ... y {total - 50} files más")
+                result.append(f"\n  ... and {total - 50} more files")
 
             total_size = sum(i.file_size for i in zf.infolist())
             result.append(f"\n  Total: {total} files, {self._format_size(total_size)}")
@@ -345,11 +344,11 @@ class ArchiveSkill(Skill):
         return "\n".join(result)
 
     def _list_tar(self, archive: Path) -> str:
-        """Lista contenido de un TAR/TAR.GZ."""
+        """List contents of a TAR/TAR.GZ."""
         mode = "r:gz" if str(archive).endswith((".gz", ".tgz")) else "r"
 
         with tarfile.open(archive, mode) as tf:
-            result = [f"📦 Contenido de {archive.name}:\n"]
+            result = [f"Contents of {archive.name}:\n"]
 
             members = sorted(tf.getmembers(), key=lambda x: x.name)[:50]
             for member in members:
@@ -363,32 +362,32 @@ class ArchiveSkill(Skill):
             all_members = tf.getmembers()
             total = len(all_members)
             if total > 50:
-                result.append(f"\n  ... y {total - 50} files más")
+                result.append(f"\n  ... and {total - 50} more files")
 
             total_size = sum(m.size for m in all_members if m.isfile())
-            result.append(f"\n  Total: {total} elementos, {self._format_size(total_size)}")
+            result.append(f"\n  Total: {total} items, {self._format_size(total_size)}")
 
         return "\n".join(result)
 
     def add_to_archive(self, archive_path: str, source_paths: str) -> str:
-        """Agrega files a un ZIP existente."""
+        """Add files to an existing ZIP."""
         try:
             arc_path = Path(archive_path).expanduser()
 
             if not arc_path.exists():
-                return f"Error: Archivo no encontrado: {archive_path}"
+                return f"Error: Archive not found: {archive_path}"
 
             if not str(arc_path).endswith(".zip"):
-                return "Error: Solo se puede agregar a files ZIP"
+                return "Error: Can only add to ZIP files"
 
-            # Parsear rutas fuente
+            # Parse source paths
             sources = [Path(p.strip()).expanduser() for p in source_paths.split(",")]
 
             count = 0
             with zipfile.ZipFile(arc_path, "a", zipfile.ZIP_DEFLATED) as zf:
                 for src in sources:
                     if not src.exists():
-                        return f"Error: No existe: {src}"
+                        return f"Error: Does not exist: {src}"
 
                     if src.is_file():
                         zf.write(src, src.name)
@@ -401,32 +400,32 @@ class ArchiveSkill(Skill):
                                 zf.write(file_path, arcname)
                                 count += 1
 
-            return f"✅ Agregados {count} files a: {arc_path}"
+            return f"Added {count} files to: {arc_path}"
 
         except Exception as e:
-            return f"Error agregando files: {e}"
+            return f"Error adding files: {e}"
 
     def archive_info(self, archive_path: str) -> str:
-        """Muestra información detallada del archivo."""
+        """Show detailed archive information."""
         try:
             arc_path = Path(archive_path).expanduser()
 
             if not arc_path.exists():
-                return f"Error: Archivo no encontrado: {archive_path}"
+                return f"Error: Archive not found: {archive_path}"
 
             stat = arc_path.stat()
             info = [
-                f"📦 Información de {arc_path.name}",
+                f"Archive info: {arc_path.name}",
                 "",
-                f"Ruta: {arc_path.absolute()}",
-                f"Size comprimido: {self._format_size(stat.st_size)}",
-                f"Modificado: {datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}",
+                f"Path: {arc_path.absolute()}",
+                f"Compressed size: {self._format_size(stat.st_size)}",
+                f"Modified: {datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}",
             ]
 
             archive_format = self._get_format(arc_path)
-            info.append(f"Formato: {archive_format.upper()}")
+            info.append(f"Format: {archive_format.upper()}")
 
-            # Información específica del formato
+            # Format-specific information
             if archive_format == "zip":
                 with zipfile.ZipFile(arc_path, "r") as zf:
                     original_size = sum(i.file_size for i in zf.infolist())
@@ -438,12 +437,12 @@ class ArchiveSkill(Skill):
                     original_size = sum(m.size for m in members if m.isfile())
                     file_count = len([m for m in members if m.isfile()])
 
-            info.append(f"Size original: {self._format_size(original_size)}")
-            info.append(f"Archivos: {file_count}")
+            info.append(f"Original size: {self._format_size(original_size)}")
+            info.append(f"Files: {file_count}")
 
             if original_size > 0:
                 ratio = (1 - stat.st_size / original_size) * 100
-                info.append(f"Ratio de compresión: {ratio:.1f}%")
+                info.append(f"Compression ratio: {ratio:.1f}%")
 
             return "\n".join(info)
 
@@ -451,32 +450,32 @@ class ArchiveSkill(Skill):
             return f"Error getting info: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "list")
 
         if action == "create":
             output = kwargs.get("output", "")
             sources = kwargs.get("sources", "")
             if not output or not sources:
-                return "Error: Se requiere output y sources"
+                return "Error: output and sources are required"
             return self.create_archive(output, sources, kwargs.get("format"))
 
         elif action == "extract":
             archive = kwargs.get("archive", "")
             if not archive:
-                return "Error: Se requiere ruta del archivo"
+                return "Error: archive path is required"
             return self.extract_archive(archive, kwargs.get("output"))
 
         elif action == "list":
             archive = kwargs.get("archive", "")
             if not archive:
-                return "Error: Se requiere ruta del archivo"
+                return "Error: archive path is required"
             return self.list_archive(archive)
 
         elif action == "info":
             archive = kwargs.get("archive", "")
             if not archive:
-                return "Error: Se requiere ruta del archivo"
+                return "Error: archive path is required"
             return self.archive_info(archive)
 
         else:

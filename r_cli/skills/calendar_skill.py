@@ -1,10 +1,10 @@
 """
-Skill de Calendario para R CLI.
+Calendar Skill for R CLI.
 
-Gestión de calendario 100% local usando SQLite.
-Soporta eventos, recordatorios, tareas y exportación a iCal.
+100% local calendar management using SQLite.
+Supports events, reminders, tasks and iCal export.
 
-Todo offline, sin dependencias de Google Calendar o servicios en la nube.
+All offline, no dependencies on Google Calendar or cloud services.
 """
 
 import sqlite3
@@ -19,7 +19,7 @@ from r_cli.core.llm import Tool
 
 @dataclass
 class Event:
-    """Representa un evento del calendario."""
+    """Represents a calendar event."""
 
     id: Optional[int] = None
     title: str = ""
@@ -37,7 +37,7 @@ class Event:
 
 @dataclass
 class Task:
-    """Representa una tarea."""
+    """Represents a task."""
 
     id: Optional[int] = None
     title: str = ""
@@ -51,7 +51,7 @@ class Task:
 
 
 class CalendarSkill(Skill):
-    """Skill para gestión de calendario local."""
+    """Skill for local calendar management."""
 
     name = "calendar"
     description = "Manage calendar and tasks locally with SQLite"
@@ -69,13 +69,13 @@ class CalendarSkill(Skill):
         self._init_database()
 
     def _init_database(self):
-        """Inicializa la base de datos SQLite."""
+        """Initialize SQLite database."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         conn = sqlite3.connect(str(self.db_path))
         cursor = conn.cursor()
 
-        # Tabla de eventos
+        # Events table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,7 +93,7 @@ class CalendarSkill(Skill):
             )
         """)
 
-        # Tabla de tareas
+        # Tasks table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +108,7 @@ class CalendarSkill(Skill):
             )
         """)
 
-        # Índices para búsquedas rápidas
+        # Indexes for fast searches
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_start ON events(start_time)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(due_date)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed)")
@@ -120,22 +120,22 @@ class CalendarSkill(Skill):
         return [
             Tool(
                 name="add_event",
-                description="Añade un evento al calendario",
+                description="Add an event to the calendar",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string", "description": "Título del evento"},
+                        "title": {"type": "string", "description": "Event title"},
                         "start_time": {
                             "type": "string",
-                            "description": "Fecha/hora inicio (YYYY-MM-DD HH:MM o YYYY-MM-DD)",
+                            "description": "Start date/time (YYYY-MM-DD HH:MM or YYYY-MM-DD)",
                         },
-                        "end_time": {"type": "string", "description": "Fecha/hora fin (opcional)"},
-                        "description": {"type": "string", "description": "Descripción del evento"},
-                        "location": {"type": "string", "description": "Ubicación"},
+                        "end_time": {"type": "string", "description": "End date/time (optional)"},
+                        "description": {"type": "string", "description": "Event description"},
+                        "location": {"type": "string", "description": "Location"},
                         "category": {"type": "string", "enum": self.CATEGORIES},
                         "reminder_minutes": {
                             "type": "integer",
-                            "description": "Minutos antes para recordatorio",
+                            "description": "Minutes before reminder",
                         },
                         "recurrence": {
                             "type": "string",
@@ -148,25 +148,25 @@ class CalendarSkill(Skill):
             ),
             Tool(
                 name="list_events",
-                description="Lista eventos del calendario",
+                description="List calendar events",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "date": {"type": "string", "description": "Fecha específica (YYYY-MM-DD)"},
-                        "start_date": {"type": "string", "description": "Inicio del rango"},
-                        "end_date": {"type": "string", "description": "Fin del rango"},
-                        "category": {"type": "string", "description": "Filtrar por categoría"},
+                        "date": {"type": "string", "description": "Specific date (YYYY-MM-DD)"},
+                        "start_date": {"type": "string", "description": "Range start"},
+                        "end_date": {"type": "string", "description": "Range end"},
+                        "category": {"type": "string", "description": "Filter by category"},
                     },
                 },
                 handler=self.list_events,
             ),
             Tool(
                 name="delete_event",
-                description="Elimina un evento del calendario",
+                description="Delete a calendar event",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "event_id": {"type": "integer", "description": "ID del evento a eliminar"},
+                        "event_id": {"type": "integer", "description": "Event ID to delete"},
                     },
                     "required": ["event_id"],
                 },
@@ -174,17 +174,17 @@ class CalendarSkill(Skill):
             ),
             Tool(
                 name="add_task",
-                description="Añade una tarea",
+                description="Add a task",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string", "description": "Título de la tarea"},
-                        "due_date": {"type": "string", "description": "Fecha límite (YYYY-MM-DD)"},
-                        "description": {"type": "string", "description": "Descripción"},
+                        "title": {"type": "string", "description": "Task title"},
+                        "due_date": {"type": "string", "description": "Due date (YYYY-MM-DD)"},
+                        "description": {"type": "string", "description": "Description"},
                         "priority": {
                             "type": "integer",
                             "enum": [1, 2, 3],
-                            "description": "1=alta, 2=media, 3=baja",
+                            "description": "1=high, 2=medium, 3=low",
                         },
                         "category": {"type": "string", "enum": self.CATEGORIES},
                     },
@@ -194,27 +194,27 @@ class CalendarSkill(Skill):
             ),
             Tool(
                 name="list_tasks",
-                description="Lista tareas pendientes o completadas",
+                description="List pending or completed tasks",
                 parameters={
                     "type": "object",
                     "properties": {
                         "show_completed": {
                             "type": "boolean",
-                            "description": "Mostrar tareas completadas",
+                            "description": "Show completed tasks",
                         },
-                        "category": {"type": "string", "description": "Filtrar por categoría"},
-                        "priority": {"type": "integer", "description": "Filtrar por prioridad"},
+                        "category": {"type": "string", "description": "Filter by category"},
+                        "priority": {"type": "integer", "description": "Filter by priority"},
                     },
                 },
                 handler=self.list_tasks,
             ),
             Tool(
                 name="complete_task",
-                description="Marca una tarea como completada",
+                description="Mark a task as completed",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "task_id": {"type": "integer", "description": "ID de la tarea"},
+                        "task_id": {"type": "integer", "description": "Task ID"},
                     },
                     "required": ["task_id"],
                 },
@@ -222,11 +222,11 @@ class CalendarSkill(Skill):
             ),
             Tool(
                 name="delete_task",
-                description="Elimina una tarea",
+                description="Delete a task",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "task_id": {"type": "integer", "description": "ID de la tarea"},
+                        "task_id": {"type": "integer", "description": "Task ID"},
                     },
                     "required": ["task_id"],
                 },
@@ -234,25 +234,25 @@ class CalendarSkill(Skill):
             ),
             Tool(
                 name="today_summary",
-                description="Resumen de eventos y tareas de hoy",
+                description="Summary of today's events and tasks",
                 parameters={"type": "object", "properties": {}},
                 handler=self.today_summary,
             ),
             Tool(
                 name="week_summary",
-                description="Resumen de la semana",
+                description="Weekly summary",
                 parameters={"type": "object", "properties": {}},
                 handler=self.week_summary,
             ),
             Tool(
                 name="export_ical",
-                description="Exporta eventos a formato iCal (.ics)",
+                description="Export events to iCal format (.ics)",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "output_path": {"type": "string", "description": "Ruta del archivo .ics"},
-                        "start_date": {"type": "string", "description": "Fecha inicio (opcional)"},
-                        "end_date": {"type": "string", "description": "Fecha fin (opcional)"},
+                        "output_path": {"type": "string", "description": ".ics file path"},
+                        "start_date": {"type": "string", "description": "Start date (optional)"},
+                        "end_date": {"type": "string", "description": "End date (optional)"},
                     },
                 },
                 handler=self.export_ical,
@@ -270,9 +270,9 @@ class CalendarSkill(Skill):
         reminder_minutes: int = 15,
         recurrence: str = "none",
     ) -> str:
-        """Añade un evento al calendario."""
+        """Add an event to the calendar."""
         try:
-            # Parsear y validar fecha
+            # Parse and validate date
             start_dt = self._parse_datetime(start_time)
             if not start_dt:
                 return f"Error: Invalid date format: {start_time}"
@@ -282,7 +282,7 @@ class CalendarSkill(Skill):
                 end_dt = self._parse_datetime(end_time)
 
             now = datetime.now().isoformat()
-            all_day = len(start_time) <= 10  # Solo fecha, sin hora
+            all_day = len(start_time) <= 10  # Date only, no time
 
             conn = sqlite3.connect(str(self.db_path))
             cursor = conn.cursor()
@@ -314,12 +314,12 @@ class CalendarSkill(Skill):
 
             formatted_date = start_dt.strftime("%A, %d %B %Y")
             if not all_day:
-                formatted_date += f" a las {start_dt.strftime('%H:%M')}"
+                formatted_date += f" at {start_dt.strftime('%H:%M')}"
 
             return f"Event created (ID: {event_id})\n- {title}\n- {formatted_date}\n- Category: {category}"
 
         except Exception as e:
-            return f"Error creando evento: {e}"
+            return f"Error creating event: {e}"
 
     def list_events(
         self,
@@ -328,7 +328,7 @@ class CalendarSkill(Skill):
         end_date: Optional[str] = None,
         category: Optional[str] = None,
     ) -> str:
-        """Lista eventos del calendario."""
+        """List calendar events."""
         try:
             conn = sqlite3.connect(str(self.db_path))
             conn.row_factory = sqlite3.Row
@@ -358,28 +358,28 @@ class CalendarSkill(Skill):
             conn.close()
 
             if not events:
-                return "No hay eventos para mostrar."
+                return "No events to show."
 
-            result = ["Eventos:\n"]
+            result = ["Events:\n"]
             for event in events:
                 start_dt = datetime.fromisoformat(event["start_time"])
                 date_str = start_dt.strftime("%d/%m/%Y")
-                time_str = start_dt.strftime("%H:%M") if not event["all_day"] else "Todo el día"
+                time_str = start_dt.strftime("%H:%M") if not event["all_day"] else "All day"
 
                 result.append(f"  [{event['id']}] {event['title']}")
                 result.append(f"      {date_str} - {time_str}")
                 if event["location"]:
-                    result.append(f"      Lugar: {event['location']}")
+                    result.append(f"      Location: {event['location']}")
                 result.append(f"      Category: {event['category']}")
                 result.append("")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error listando eventos: {e}"
+            return f"Error listing events: {e}"
 
     def delete_event(self, event_id: int) -> str:
-        """Elimina un evento."""
+        """Delete an event."""
         try:
             conn = sqlite3.connect(str(self.db_path))
             cursor = conn.cursor()
@@ -389,16 +389,16 @@ class CalendarSkill(Skill):
 
             if not event:
                 conn.close()
-                return f"Error: Evento {event_id} no encontrado."
+                return f"Error: Event {event_id} not found."
 
             cursor.execute("DELETE FROM events WHERE id = ?", (event_id,))
             conn.commit()
             conn.close()
 
-            return f"Evento eliminado: {event[0]}"
+            return f"Event deleted: {event[0]}"
 
         except Exception as e:
-            return f"Error eliminando evento: {e}"
+            return f"Error deleting event: {e}"
 
     def add_task(
         self,
@@ -408,7 +408,7 @@ class CalendarSkill(Skill):
         priority: int = 2,
         category: str = "general",
     ) -> str:
-        """Añade una tarea."""
+        """Add a task."""
         try:
             now = datetime.now().isoformat()
 
@@ -427,15 +427,15 @@ class CalendarSkill(Skill):
             conn.commit()
             conn.close()
 
-            priority_labels = {1: "Alta", 2: "Media", 3: "Baja"}
-            result = f"Tarea creada (ID: {task_id})\n- {title}\n- Prioridad: {priority_labels.get(priority, 'Media')}"
+            priority_labels = {1: "High", 2: "Medium", 3: "Low"}
+            result = f"Task created (ID: {task_id})\n- {title}\n- Priority: {priority_labels.get(priority, 'Medium')}"
             if due_date:
-                result += f"\n- Fecha límite: {due_date}"
+                result += f"\n- Due date: {due_date}"
 
             return result
 
         except Exception as e:
-            return f"Error creando tarea: {e}"
+            return f"Error creating task: {e}"
 
     def list_tasks(
         self,
@@ -443,7 +443,7 @@ class CalendarSkill(Skill):
         category: Optional[str] = None,
         priority: Optional[int] = None,
     ) -> str:
-        """Lista tareas."""
+        """List tasks."""
         try:
             conn = sqlite3.connect(str(self.db_path))
             conn.row_factory = sqlite3.Row
@@ -470,10 +470,10 @@ class CalendarSkill(Skill):
             conn.close()
 
             if not tasks:
-                return "No hay tareas pendientes."
+                return "No pending tasks."
 
             priority_icons = {1: "[!]", 2: "[-]", 3: "[ ]"}
-            result = ["Tareas:\n"]
+            result = ["Tasks:\n"]
 
             for task in tasks:
                 icon = priority_icons.get(task["priority"], "[-]")
@@ -481,17 +481,17 @@ class CalendarSkill(Skill):
 
                 result.append(f"  {status} [{task['id']}] {task['title']}")
                 if task["due_date"]:
-                    result.append(f"      Fecha límite: {task['due_date']}")
+                    result.append(f"      Due date: {task['due_date']}")
                 result.append(f"      Category: {task['category']}")
                 result.append("")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error listando tareas: {e}"
+            return f"Error listing tasks: {e}"
 
     def complete_task(self, task_id: int) -> str:
-        """Marca una tarea como completada."""
+        """Mark a task as completed."""
         try:
             conn = sqlite3.connect(str(self.db_path))
             cursor = conn.cursor()
@@ -501,7 +501,7 @@ class CalendarSkill(Skill):
 
             if not task:
                 conn.close()
-                return f"Error: Tarea {task_id} no encontrada."
+                return f"Error: Task {task_id} not found."
 
             if task[1]:
                 conn.close()
@@ -514,13 +514,13 @@ class CalendarSkill(Skill):
             conn.commit()
             conn.close()
 
-            return f"Tarea completada: {task[0]}"
+            return f"Task completed: {task[0]}"
 
         except Exception as e:
-            return f"Error completando tarea: {e}"
+            return f"Error completing task: {e}"
 
     def delete_task(self, task_id: int) -> str:
-        """Elimina una tarea."""
+        """Delete a task."""
         try:
             conn = sqlite3.connect(str(self.db_path))
             cursor = conn.cursor()
@@ -530,19 +530,19 @@ class CalendarSkill(Skill):
 
             if not task:
                 conn.close()
-                return f"Error: Tarea {task_id} no encontrada."
+                return f"Error: Task {task_id} not found."
 
             cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
             conn.commit()
             conn.close()
 
-            return f"Tarea eliminada: {task[0]}"
+            return f"Task deleted: {task[0]}"
 
         except Exception as e:
-            return f"Error eliminando tarea: {e}"
+            return f"Error deleting task: {e}"
 
     def today_summary(self) -> str:
-        """Resumen de hoy."""
+        """Today's summary."""
         try:
             today = datetime.now().strftime("%Y-%m-%d")
 
@@ -550,14 +550,14 @@ class CalendarSkill(Skill):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # Eventos de hoy
+            # Today's events
             cursor.execute(
                 "SELECT * FROM events WHERE date(start_time) = date(?) ORDER BY start_time",
                 (today,),
             )
             events = cursor.fetchall()
 
-            # Tareas pendientes con fecha de hoy o vencidas
+            # Pending tasks with today's date or overdue
             cursor.execute(
                 """
                 SELECT * FROM tasks
@@ -570,43 +570,43 @@ class CalendarSkill(Skill):
 
             conn.close()
 
-            result = [f"Resumen de hoy ({datetime.now().strftime('%A, %d %B %Y')}):\n"]
+            result = [f"Today's summary ({datetime.now().strftime('%A, %d %B %Y')}):\n"]
 
-            # Eventos
-            result.append("EVENTOS:")
+            # Events
+            result.append("EVENTS:")
             if events:
                 for event in events:
                     start_dt = datetime.fromisoformat(event["start_time"])
-                    time_str = start_dt.strftime("%H:%M") if not event["all_day"] else "Todo el día"
+                    time_str = start_dt.strftime("%H:%M") if not event["all_day"] else "All day"
                     result.append(f"  - {time_str}: {event['title']}")
             else:
-                result.append("  (Sin eventos)")
+                result.append("  (No events)")
 
             result.append("")
 
-            # Tareas
-            result.append("TAREAS PENDIENTES:")
+            # Tasks
+            result.append("PENDING TASKS:")
             if tasks:
                 priority_icons = {1: "[!]", 2: "[-]", 3: "[ ]"}
                 for task in tasks:
                     icon = priority_icons.get(task["priority"], "[-]")
                     overdue = ""
                     if task["due_date"] and task["due_date"] < today:
-                        overdue = " (VENCIDA)"
+                        overdue = " (OVERDUE)"
                     result.append(f"  {icon} {task['title']}{overdue}")
             else:
-                result.append("  (Sin tareas pendientes)")
+                result.append("  (No pending tasks)")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error generando resumen: {e}"
+            return f"Error generating summary: {e}"
 
     def week_summary(self) -> str:
-        """Resumen de la semana."""
+        """Weekly summary."""
         try:
             today = datetime.now()
-            # Inicio de semana (lunes)
+            # Start of week (Monday)
             start_of_week = today - timedelta(days=today.weekday())
             end_of_week = start_of_week + timedelta(days=6)
 
@@ -617,7 +617,7 @@ class CalendarSkill(Skill):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # Eventos de la semana
+            # Week's events
             cursor.execute(
                 """
                 SELECT * FROM events
@@ -628,7 +628,7 @@ class CalendarSkill(Skill):
             )
             events = cursor.fetchall()
 
-            # Tareas de la semana
+            # Week's tasks
             cursor.execute(
                 """
                 SELECT * FROM tasks
@@ -642,11 +642,11 @@ class CalendarSkill(Skill):
             conn.close()
 
             result = [
-                f"Resumen de la semana ({start_of_week.strftime('%d/%m')} - {end_of_week.strftime('%d/%m/%Y')}):\n"
+                f"Week summary ({start_of_week.strftime('%d/%m')} - {end_of_week.strftime('%d/%m/%Y')}):\n"
             ]
 
-            # Organizar eventos por día
-            days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            # Organize events by day
+            days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
             events_by_day = {i: [] for i in range(7)}
 
             for event in events:
@@ -657,7 +657,7 @@ class CalendarSkill(Skill):
             for day_idx, day_name in enumerate(days):
                 day_date = start_of_week + timedelta(days=day_idx)
                 is_today = day_date.date() == today.date()
-                marker = " <-- HOY" if is_today else ""
+                marker = " <-- TODAY" if is_today else ""
 
                 result.append(f"{day_name} {day_date.strftime('%d/%m')}{marker}:")
 
@@ -665,26 +665,24 @@ class CalendarSkill(Skill):
                 if day_events:
                     for event in day_events:
                         start_dt = datetime.fromisoformat(event["start_time"])
-                        time_str = (
-                            start_dt.strftime("%H:%M") if not event["all_day"] else "Todo el día"
-                        )
+                        time_str = start_dt.strftime("%H:%M") if not event["all_day"] else "All day"
                         result.append(f"  - {time_str}: {event['title']}")
                 else:
-                    result.append("  (Sin eventos)")
+                    result.append("  (No events)")
                 result.append("")
 
-            # Tareas de la semana
-            result.append("TAREAS DE LA SEMANA:")
+            # Week's tasks
+            result.append("WEEK'S TASKS:")
             if tasks:
                 for task in tasks:
                     result.append(f"  - [{task['due_date']}] {task['title']}")
             else:
-                result.append("  (Sin tareas programadas)")
+                result.append("  (No scheduled tasks)")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error generando resumen semanal: {e}"
+            return f"Error generating weekly summary: {e}"
 
     def export_ical(
         self,
@@ -692,7 +690,7 @@ class CalendarSkill(Skill):
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> str:
-        """Exporta eventos a formato iCal."""
+        """Export events to iCal format."""
         try:
             conn = sqlite3.connect(str(self.db_path))
             conn.row_factory = sqlite3.Row
@@ -713,9 +711,9 @@ class CalendarSkill(Skill):
             conn.close()
 
             if not events:
-                return "No hay eventos para exportar."
+                return "No events to export."
 
-            # Generar iCal
+            # Generate iCal
             ical_lines = [
                 "BEGIN:VCALENDAR",
                 "VERSION:2.0",
@@ -755,7 +753,7 @@ class CalendarSkill(Skill):
 
             ical_lines.append("END:VCALENDAR")
 
-            # Guardar archivo
+            # Save file
             if output_path:
                 out_path = Path(output_path)
             else:
@@ -765,13 +763,13 @@ class CalendarSkill(Skill):
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text("\n".join(ical_lines))
 
-            return f"Calendario exportado: {out_path}\n{len(events)} eventos exportados."
+            return f"Calendar exported: {out_path}\n{len(events)} events exported."
 
         except Exception as e:
-            return f"Error exportando calendario: {e}"
+            return f"Error exporting calendar: {e}"
 
     def _parse_datetime(self, dt_str: str) -> Optional[datetime]:
-        """Parsea string a datetime."""
+        """Parse string to datetime."""
         formats = [
             "%Y-%m-%d %H:%M",
             "%Y-%m-%d %H:%M:%S",
@@ -788,7 +786,7 @@ class CalendarSkill(Skill):
         return None
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "today")
 
         if action == "today":
@@ -797,13 +795,13 @@ class CalendarSkill(Skill):
             return self.week_summary()
         elif action == "add":
             return self.add_event(
-                title=kwargs.get("title", "Evento"),
+                title=kwargs.get("title", "Event"),
                 start_time=kwargs.get("date", datetime.now().strftime("%Y-%m-%d")),
                 description=kwargs.get("description", ""),
             )
         elif action == "task":
             return self.add_task(
-                title=kwargs.get("title", "Tarea"),
+                title=kwargs.get("title", "Task"),
                 due_date=kwargs.get("due"),
                 priority=kwargs.get("priority", 2),
             )

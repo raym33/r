@@ -1,10 +1,10 @@
 """
-Skill de Clipboard para R CLI.
+Clipboard Skill for R CLI.
 
-Operaciones con el portapapeles del sistema:
-- Copiar texto
-- Pegar texto
-- Historial de clipboard
+System clipboard operations:
+- Copy text
+- Paste text
+- Clipboard history
 """
 
 import platform
@@ -18,7 +18,7 @@ from r_cli.core.llm import Tool
 
 
 class ClipboardSkill(Skill):
-    """Skill para operaciones con el portapapeles del sistema."""
+    """Skill for system clipboard operations."""
 
     name = "clipboard"
     description = "System clipboard: copy, paste and manage history"
@@ -32,13 +32,13 @@ class ClipboardSkill(Skill):
         return [
             Tool(
                 name="clipboard_copy",
-                description="Copia texto al portapapeles del sistema",
+                description="Copy text to system clipboard",
                 parameters={
                     "type": "object",
                     "properties": {
                         "text": {
                             "type": "string",
-                            "description": "Texto a copiar al portapapeles",
+                            "description": "Text to copy to clipboard",
                         },
                     },
                     "required": ["text"],
@@ -47,7 +47,7 @@ class ClipboardSkill(Skill):
             ),
             Tool(
                 name="clipboard_paste",
-                description="Obtiene el contenido actual del portapapeles",
+                description="Get current clipboard content",
                 parameters={
                     "type": "object",
                     "properties": {},
@@ -56,13 +56,13 @@ class ClipboardSkill(Skill):
             ),
             Tool(
                 name="clipboard_history",
-                description="Muestra el historial reciente del portapapeles",
+                description="Show recent clipboard history",
                 parameters={
                     "type": "object",
                     "properties": {
                         "count": {
                             "type": "integer",
-                            "description": "Número de entradas a mostrar (default: 10)",
+                            "description": "Number of entries to show (default: 10)",
                         },
                     },
                 },
@@ -70,7 +70,7 @@ class ClipboardSkill(Skill):
             ),
             Tool(
                 name="clipboard_clear",
-                description="Limpia el portapapeles",
+                description="Clear the clipboard",
                 parameters={
                     "type": "object",
                     "properties": {},
@@ -79,13 +79,13 @@ class ClipboardSkill(Skill):
             ),
             Tool(
                 name="clipboard_from_file",
-                description="Copia el contenido de un archivo al portapapeles",
+                description="Copy file content to clipboard",
                 parameters={
                     "type": "object",
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Ruta del archivo a copiar",
+                            "description": "Path to file to copy",
                         },
                     },
                     "required": ["file_path"],
@@ -94,13 +94,13 @@ class ClipboardSkill(Skill):
             ),
             Tool(
                 name="clipboard_to_file",
-                description="Guarda el contenido del portapapeles en un archivo",
+                description="Save clipboard content to a file",
                 parameters={
                     "type": "object",
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el contenido",
+                            "description": "Path where to save content",
                         },
                     },
                     "required": ["file_path"],
@@ -110,11 +110,11 @@ class ClipboardSkill(Skill):
         ]
 
     def _get_clipboard_command(self) -> tuple[list[str], list[str]]:
-        """Obtiene los comandos de clipboard según el sistema operativo."""
+        """Get clipboard commands for the current OS."""
         system = platform.system()
 
         if system == "Linux":
-            # Intentar xclip primero, luego xsel
+            # Try xclip first, then xsel
             return (
                 ["xclip", "-selection", "clipboard"],
                 ["xclip", "-selection", "clipboard", "-o"],
@@ -127,20 +127,20 @@ class ClipboardSkill(Skill):
             return ([], [])
 
     def _add_to_history(self, text: str) -> None:
-        """Agrega texto al historial."""
-        self._history.append((datetime.now(), text[:500]))  # Limitar tamaño
+        """Add text to history."""
+        self._history.append((datetime.now(), text[:500]))  # Limit size
         if len(self._history) > self._max_history:
             self._history.pop(0)
 
     def copy(self, text: str) -> str:
-        """Copia texto al portapapeles."""
+        """Copy text to clipboard."""
         try:
             copy_cmd, _ = self._get_clipboard_command()
 
             if not copy_cmd:
-                return "Error: No se pudo detectar el sistema de clipboard"
+                return "Error: Could not detect clipboard system"
 
-            # Ejecutar comando de copia
+            # Execute copy command
             process = subprocess.Popen(
                 copy_cmd,
                 stdin=subprocess.PIPE,
@@ -152,26 +152,26 @@ class ClipboardSkill(Skill):
             if process.returncode == 0:
                 self._add_to_history(text)
                 preview = text[:50] + "..." if len(text) > 50 else text
-                return f"✅ Copiado al portapapeles: {preview}"
+                return f"Copied to clipboard: {preview}"
             else:
                 return f"Error: {stderr.decode()}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout copiando al portapapeles"
+            return "Error: Timeout copying to clipboard"
         except FileNotFoundError:
             return self._suggest_install()
         except Exception as e:
-            return f"Error copiando al portapapeles: {e}"
+            return f"Error copying to clipboard: {e}"
 
     def paste(self) -> str:
-        """Obtiene el contenido del portapapeles."""
+        """Get clipboard content."""
         try:
             _, paste_cmd = self._get_clipboard_command()
 
             if not paste_cmd:
-                return "Error: No se pudo detectar el sistema de clipboard"
+                return "Error: Could not detect clipboard system"
 
-            # Ejecutar comando de pegado
+            # Execute paste command
             result = subprocess.run(
                 paste_cmd,
                 check=False,
@@ -184,29 +184,29 @@ class ClipboardSkill(Skill):
                 content = result.stdout
 
                 if not content:
-                    return "El portapapeles está vacío"
+                    return "Clipboard is empty"
 
-                # Limitar tamaño de salida
+                # Limit output size
                 if len(content) > 5000:
-                    content = content[:5000] + "\n\n... (contenido truncado)"
+                    content = content[:5000] + "\n\n... (content truncated)"
 
-                return f"Contenido del portapapeles:\n\n{content}"
+                return f"Clipboard content:\n\n{content}"
             else:
                 return f"Error: {result.stderr}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout leyendo el portapapeles"
+            return "Error: Timeout reading clipboard"
         except FileNotFoundError:
             return self._suggest_install()
         except Exception as e:
-            return f"Error leyendo el portapapeles: {e}"
+            return f"Error reading clipboard: {e}"
 
     def history(self, count: int = 10) -> str:
-        """Muestra el historial del portapapeles."""
+        """Show clipboard history."""
         if not self._history:
-            return "El historial está vacío (solo se registra durante esta sesión)"
+            return "History is empty (only recorded during this session)"
 
-        result = ["📋 Historial del portapapeles:\n"]
+        result = ["Clipboard history:\n"]
         entries = self._history[-count:]
 
         for i, (timestamp, text) in enumerate(reversed(entries), 1):
@@ -219,48 +219,48 @@ class ClipboardSkill(Skill):
         return "\n".join(result)
 
     def clear(self) -> str:
-        """Limpia el portapapeles."""
+        """Clear clipboard."""
         try:
-            # Copiar texto vacío
+            # Copy empty text
             return self.copy("")
 
         except Exception as e:
-            return f"Error limpiando portapapeles: {e}"
+            return f"Error clearing clipboard: {e}"
 
     def copy_from_file(self, file_path: str) -> str:
-        """Copia el contenido de un archivo al portapapeles."""
+        """Copy file content to clipboard."""
         try:
             path = Path(file_path).expanduser()
 
             if not path.exists():
-                return f"Error: Archivo no encontrado: {file_path}"
+                return f"Error: File not found: {file_path}"
 
             if not path.is_file():
-                return f"Error: No es un archivo: {file_path}"
+                return f"Error: Not a file: {file_path}"
 
-            # Verificar tamaño
+            # Check size
             size = path.stat().st_size
             if size > 1_000_000:  # 1MB
-                return "Error: Archivo demasiado grande para copiar al portapapeles (>1MB)"
+                return "Error: File too large for clipboard (>1MB)"
 
-            # Leer contenido
+            # Read content
             with open(path, encoding="utf-8", errors="replace") as f:
                 content = f.read()
 
             return self.copy(content)
 
         except Exception as e:
-            return f"Error copiando archivo: {e}"
+            return f"Error copying file: {e}"
 
     def paste_to_file(self, file_path: str) -> str:
-        """Guarda el contenido del portapapeles en un archivo."""
+        """Save clipboard content to a file."""
         try:
             _, paste_cmd = self._get_clipboard_command()
 
             if not paste_cmd:
-                return "Error: No se pudo detectar el sistema de clipboard"
+                return "Error: Could not detect clipboard system"
 
-            # Obtener contenido
+            # Get content
             result = subprocess.run(
                 paste_cmd,
                 check=False,
@@ -270,50 +270,50 @@ class ClipboardSkill(Skill):
             )
 
             if result.returncode != 0:
-                return f"Error leyendo portapapeles: {result.stderr}"
+                return f"Error reading clipboard: {result.stderr}"
 
             content = result.stdout
 
             if not content:
-                return "El portapapeles está vacío"
+                return "Clipboard is empty"
 
-            # Guardar archivo
+            # Save file
             path = Path(file_path).expanduser()
             path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
 
-            return f"✅ Contenido guardado en: {path}"
+            return f"Content saved to: {path}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout leyendo el portapapeles"
+            return "Error: Timeout reading clipboard"
         except FileNotFoundError:
             return self._suggest_install()
         except Exception as e:
-            return f"Error guardando archivo: {e}"
+            return f"Error saving file: {e}"
 
     def _suggest_install(self) -> str:
-        """Sugiere cómo instalar el comando de clipboard."""
+        """Suggest how to install clipboard command."""
         system = platform.system()
 
         if system == "Linux":
-            return "Error: xclip no está instalado. Instálalo con:\n  sudo apt install xclip  # Debian/Ubuntu\n  sudo dnf install xclip  # Fedora\n  sudo pacman -S xclip    # Arch"
+            return "Error: xclip is not installed. Install with:\n  sudo apt install xclip  # Debian/Ubuntu\n  sudo dnf install xclip  # Fedora\n  sudo pacman -S xclip    # Arch"
         elif system == "Darwin":
-            return "Error: pbcopy/pbpaste no encontrados (deberían estar por defecto en macOS)"
+            return "Error: pbcopy/pbpaste not found (should be default on macOS)"
         elif system == "Windows":
-            return "Error: clip.exe no encontrado (debería estar por defecto en Windows)"
+            return "Error: clip.exe not found (should be default on Windows)"
         else:
-            return f"Error: Sistema operativo no soportado: {system}"
+            return f"Error: Unsupported operating system: {system}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "paste")
 
         if action == "copy":
             text = kwargs.get("text", "")
             if not text:
-                return "Error: Se requiere texto para copiar"
+                return "Error: text is required for copy"
             return self.copy(text)
         elif action == "paste":
             return self.paste()

@@ -1,14 +1,13 @@
 """
-Skill de Docker para R CLI.
+Docker Skill for R CLI.
 
-Gestión de contenedores Docker:
-- Listar contenedores e imágenes
-- Ejecutar contenedores
-- Ver logs
-- Gestionar volúmenes
+Docker container management:
+- List containers and images
+- Run containers
+- View logs
+- Manage volumes
 """
 
-import json
 import subprocess
 from typing import Optional
 
@@ -17,7 +16,7 @@ from r_cli.core.llm import Tool
 
 
 class DockerSkill(Skill):
-    """Skill para operaciones Docker."""
+    """Skill for Docker operations."""
 
     name = "docker"
     description = "Docker management: containers, images, volumes, logs"
@@ -28,13 +27,13 @@ class DockerSkill(Skill):
         return [
             Tool(
                 name="docker_ps",
-                description="Lista los contenedores Docker",
+                description="List Docker containers",
                 parameters={
                     "type": "object",
                     "properties": {
                         "all": {
                             "type": "boolean",
-                            "description": "Incluir contenedores detenidos",
+                            "description": "Include stopped containers",
                         },
                     },
                 },
@@ -42,13 +41,13 @@ class DockerSkill(Skill):
             ),
             Tool(
                 name="docker_images",
-                description="Lista las imágenes Docker",
+                description="List Docker images",
                 parameters={
                     "type": "object",
                     "properties": {
                         "all": {
                             "type": "boolean",
-                            "description": "Incluir imágenes intermedias",
+                            "description": "Include intermediate images",
                         },
                     },
                 },
@@ -56,37 +55,37 @@ class DockerSkill(Skill):
             ),
             Tool(
                 name="docker_run",
-                description="Ejecuta un contenedor Docker",
+                description="Run a Docker container",
                 parameters={
                     "type": "object",
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "Nombre de la imagen",
+                            "description": "Image name",
                         },
                         "name": {
                             "type": "string",
-                            "description": "Nombre del contenedor",
+                            "description": "Container name",
                         },
                         "ports": {
                             "type": "string",
-                            "description": "Mapeo de puertos (ej: 8080:80,3000:3000)",
+                            "description": "Port mapping (e.g., 8080:80,3000:3000)",
                         },
                         "volumes": {
                             "type": "string",
-                            "description": "Mapeo de volúmenes (ej: /host:/container)",
+                            "description": "Volume mapping (e.g., /host:/container)",
                         },
                         "env": {
                             "type": "string",
-                            "description": "Variables de entorno (KEY=value,KEY2=value2)",
+                            "description": "Environment variables (KEY=value,KEY2=value2)",
                         },
                         "detach": {
                             "type": "boolean",
-                            "description": "Ejecutar en background (default: true)",
+                            "description": "Run in background (default: true)",
                         },
                         "command": {
                             "type": "string",
-                            "description": "Comando a ejecutar",
+                            "description": "Command to execute",
                         },
                     },
                     "required": ["image"],
@@ -95,13 +94,13 @@ class DockerSkill(Skill):
             ),
             Tool(
                 name="docker_stop",
-                description="Detiene un contenedor",
+                description="Stop a container",
                 parameters={
                     "type": "object",
                     "properties": {
                         "container": {
                             "type": "string",
-                            "description": "ID o nombre del contenedor",
+                            "description": "Container ID or name",
                         },
                     },
                     "required": ["container"],
@@ -110,21 +109,21 @@ class DockerSkill(Skill):
             ),
             Tool(
                 name="docker_logs",
-                description="Muestra los logs de un contenedor",
+                description="Show container logs",
                 parameters={
                     "type": "object",
                     "properties": {
                         "container": {
                             "type": "string",
-                            "description": "ID o nombre del contenedor",
+                            "description": "Container ID or name",
                         },
                         "tail": {
                             "type": "integer",
-                            "description": "Número de líneas (default: 100)",
+                            "description": "Number of lines (default: 100)",
                         },
                         "follow": {
                             "type": "boolean",
-                            "description": "Seguir logs en tiempo real",
+                            "description": "Follow logs in real time",
                         },
                     },
                     "required": ["container"],
@@ -133,17 +132,17 @@ class DockerSkill(Skill):
             ),
             Tool(
                 name="docker_exec",
-                description="Ejecuta un comando en un contenedor",
+                description="Execute a command in a container",
                 parameters={
                     "type": "object",
                     "properties": {
                         "container": {
                             "type": "string",
-                            "description": "ID o nombre del contenedor",
+                            "description": "Container ID or name",
                         },
                         "command": {
                             "type": "string",
-                            "description": "Comando a ejecutar",
+                            "description": "Command to execute",
                         },
                     },
                     "required": ["container", "command"],
@@ -152,7 +151,7 @@ class DockerSkill(Skill):
             ),
             Tool(
                 name="docker_info",
-                description="Muestra información de Docker y el sistema",
+                description="Show Docker and system information",
                 parameters={
                     "type": "object",
                     "properties": {},
@@ -162,7 +161,7 @@ class DockerSkill(Skill):
         ]
 
     def _run_docker(self, args: list[str], timeout: Optional[int] = None) -> tuple[bool, str]:
-        """Ejecuta un comando docker."""
+        """Execute a docker command."""
         try:
             cmd = ["docker"] + args
             result = subprocess.run(
@@ -176,17 +175,17 @@ class DockerSkill(Skill):
             if result.returncode == 0:
                 return True, result.stdout.strip()
             else:
-                return False, result.stderr.strip() or "Error desconocido"
+                return False, result.stderr.strip() or "Unknown error"
 
         except subprocess.TimeoutExpired:
-            return False, "Timeout ejecutando comando"
+            return False, "Timeout executing command"
         except FileNotFoundError:
-            return False, "Docker no está instalado o no está en el PATH"
+            return False, "Docker is not installed or not in PATH"
         except Exception as e:
             return False, str(e)
 
     def docker_ps(self, all: bool = False) -> str:
-        """Lista contenedores."""
+        """List containers."""
         args = ["ps", "--format", "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Names}}\t{{.Ports}}"]
         if all:
             args.insert(1, "-a")
@@ -195,12 +194,12 @@ class DockerSkill(Skill):
 
         if success:
             if not output or output.count("\n") == 0:
-                return "No hay contenedores en ejecución."
-            return f"🐳 Contenedores:\n\n{output}"
+                return "No running containers."
+            return f"Containers:\n\n{output}"
         return f"Error: {output}"
 
     def docker_images(self, all: bool = False) -> str:
-        """Lista imágenes."""
+        """List images."""
         args = [
             "images",
             "--format",
@@ -213,8 +212,8 @@ class DockerSkill(Skill):
 
         if success:
             if not output or output.count("\n") == 0:
-                return "No hay imágenes Docker."
-            return f"🐳 Images:\n\n{output}"
+                return "No Docker images."
+            return f"Images:\n\n{output}"
         return f"Error: {output}"
 
     def docker_run(
@@ -227,7 +226,7 @@ class DockerSkill(Skill):
         detach: bool = True,
         command: Optional[str] = None,
     ) -> str:
-        """Ejecuta un contenedor."""
+        """Run a container."""
         args = ["run"]
 
         if detach:
@@ -257,15 +256,15 @@ class DockerSkill(Skill):
 
         if success:
             container_id = output[:12] if len(output) >= 12 else output
-            return f"✅ Contenedor iniciado: {container_id}"
+            return f"Container started: {container_id}"
         return f"Error: {output}"
 
     def docker_stop(self, container: str) -> str:
-        """Detiene un contenedor."""
+        """Stop a container."""
         success, output = self._run_docker(["stop", container])
 
         if success:
-            return f"✅ Contenedor detenido: {container}"
+            return f"Container stopped: {container}"
         return f"Error: {output}"
 
     def docker_logs(
@@ -274,12 +273,14 @@ class DockerSkill(Skill):
         tail: int = 100,
         follow: bool = False,
     ) -> str:
-        """Muestra logs de un contenedor."""
+        """Show container logs."""
         args = ["logs", "--tail", str(tail)]
 
         if follow:
-            # No soportamos follow en este contexto
-            return "Error: El modo follow no está soportado en este skill. Usa 'docker logs -f' directamente."
+            # Follow not supported in this context
+            return (
+                "Error: Follow mode is not supported in this skill. Use 'docker logs -f' directly."
+            )
 
         args.append(container)
 
@@ -287,40 +288,40 @@ class DockerSkill(Skill):
 
         if success:
             if not output:
-                return "No hay logs disponibles."
-            # Limitar tamaño
+                return "No logs available."
+            # Limit size
             if len(output) > 10000:
-                output = output[-10000:] + "\n\n... (logs truncados)"
-            return f"📋 Logs de {container}:\n\n{output}"
+                output = output[-10000:] + "\n\n... (logs truncated)"
+            return f"Logs for {container}:\n\n{output}"
         return f"Error: {output}"
 
     def docker_exec(self, container: str, command: str) -> str:
-        """Ejecuta comando en un contenedor."""
-        # Validar comando para seguridad básica
+        """Execute command in a container."""
+        # Validate command for basic security
         dangerous_patterns = ["rm -rf /", "mkfs", "dd if="]
         for pattern in dangerous_patterns:
             if pattern in command:
-                return "Error: Comando potencialmente peligroso detectado"
+                return "Error: Potentially dangerous command detected"
 
         args = ["exec", container] + command.split()
 
         success, output = self._run_docker(args, timeout=30)
 
         if success:
-            return f"Resultado:\n\n{output}" if output else "Comando ejecutado (sin output)"
+            return f"Result:\n\n{output}" if output else "Command executed (no output)"
         return f"Error: {output}"
 
     def docker_info(self) -> str:
-        """Muestra información de Docker."""
-        # Info básica
+        """Show Docker information."""
+        # Basic info
         success, version = self._run_docker(["version", "--format", "{{.Server.Version}}"])
         if not success:
-            return f"Error: Docker no disponible - {version}"
+            return f"Error: Docker not available - {version}"
 
-        info = ["🐳 Docker Info\n"]
-        info.append(f"Versión: {version}")
+        info = ["Docker Info\n"]
+        info.append(f"Version: {version}")
 
-        # Contar recursos
+        # Count resources
         _, containers = self._run_docker(["ps", "-q"])
         running = len(containers.split("\n")) if containers else 0
 
@@ -330,22 +331,22 @@ class DockerSkill(Skill):
         _, images = self._run_docker(["images", "-q"])
         num_images = len(images.split("\n")) if images else 0
 
-        info.append(f"Contenedores: {running} corriendo / {total} total")
+        info.append(f"Containers: {running} running / {total} total")
         info.append(f"Images: {num_images}")
 
-        # Uso de disco
+        # Disk usage
         success, disk = self._run_docker(
             ["system", "df", "--format", "{{.Type}}\t{{.Size}}\t{{.Reclaimable}}"]
         )
         if success and disk:
-            info.append("\nUso de disco:")
+            info.append("\nDisk usage:")
             for line in disk.split("\n"):
                 info.append(f"  {line}")
 
         return "\n".join(info)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "ps")
 
         if action == "ps":
@@ -355,7 +356,7 @@ class DockerSkill(Skill):
         elif action == "run":
             image = kwargs.get("image", "")
             if not image:
-                return "Error: Se requiere una imagen"
+                return "Error: image is required"
             return self.docker_run(image, **{k: v for k, v in kwargs.items() if k != "action"})
         elif action == "stop":
             return self.docker_stop(kwargs.get("container", ""))

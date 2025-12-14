@@ -1,10 +1,10 @@
 """
-Skill de Git para R CLI.
+Git Skill for R CLI.
 
-Operaciones Git comunes:
-- Estado del repositorio
-- Commits y historial
-- Ramas
+Common Git operations:
+- Repository status
+- Commits and history
+- Branches
 - Diffs
 """
 
@@ -17,25 +17,25 @@ from r_cli.core.llm import Tool
 
 
 class GitSkill(Skill):
-    """Skill para operaciones Git."""
+    """Skill for Git operations."""
 
     name = "git"
     description = "Git operations: status, log, diff, branches, commits"
 
-    # Timeout para comandos git
+    # Timeout for git commands
     TIMEOUT = 30
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
                 name="git_status",
-                description="Muestra el estado del repositorio Git",
+                description="Show Git repository status",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio (default: directorio actual)",
+                            "description": "Repository path (default: current directory)",
                         },
                     },
                 },
@@ -43,21 +43,21 @@ class GitSkill(Skill):
             ),
             Tool(
                 name="git_log",
-                description="Muestra el historial de commits",
+                description="Show commit history",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio",
+                            "description": "Repository path",
                         },
                         "count": {
                             "type": "integer",
-                            "description": "Número de commits a mostrar (default: 10)",
+                            "description": "Number of commits to show (default: 10)",
                         },
                         "oneline": {
                             "type": "boolean",
-                            "description": "Formato compacto de una línea",
+                            "description": "Compact one-line format",
                         },
                     },
                 },
@@ -65,21 +65,21 @@ class GitSkill(Skill):
             ),
             Tool(
                 name="git_diff",
-                description="Muestra los cambios pendientes o entre commits",
+                description="Show pending changes or diff between commits",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio",
+                            "description": "Repository path",
                         },
                         "staged": {
                             "type": "boolean",
-                            "description": "Mostrar solo cambios staged",
+                            "description": "Show only staged changes",
                         },
                         "file": {
                             "type": "string",
-                            "description": "Archivo específico para ver diff",
+                            "description": "Specific file to diff",
                         },
                     },
                 },
@@ -87,17 +87,17 @@ class GitSkill(Skill):
             ),
             Tool(
                 name="git_branches",
-                description="Lista las ramas del repositorio",
+                description="List repository branches",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio",
+                            "description": "Repository path",
                         },
                         "all": {
                             "type": "boolean",
-                            "description": "Incluir ramas remotas",
+                            "description": "Include remote branches",
                         },
                     },
                 },
@@ -105,21 +105,21 @@ class GitSkill(Skill):
             ),
             Tool(
                 name="git_commit",
-                description="Crea un commit con los cambios staged",
+                description="Create a commit with staged changes",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio",
+                            "description": "Repository path",
                         },
                         "message": {
                             "type": "string",
-                            "description": "Mensaje del commit",
+                            "description": "Commit message",
                         },
                         "add_all": {
                             "type": "boolean",
-                            "description": "Agregar todos los files modificados antes del commit",
+                            "description": "Add all modified files before commit",
                         },
                     },
                     "required": ["message"],
@@ -128,17 +128,17 @@ class GitSkill(Skill):
             ),
             Tool(
                 name="git_add",
-                description="Agrega files al staging area",
+                description="Add files to staging area",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio",
+                            "description": "Repository path",
                         },
                         "files": {
                             "type": "string",
-                            "description": "Archivos a agregar (separados por espacio, o '.' para todos)",
+                            "description": "Files to add (space-separated, or '.' for all)",
                         },
                     },
                     "required": ["files"],
@@ -147,13 +147,13 @@ class GitSkill(Skill):
             ),
             Tool(
                 name="git_info",
-                description="Muestra información general del repositorio",
+                description="Show general repository information",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del repositorio",
+                            "description": "Repository path",
                         },
                     },
                 },
@@ -162,12 +162,12 @@ class GitSkill(Skill):
         ]
 
     def _run_git(self, args: list[str], cwd: Optional[Path] = None) -> tuple[bool, str]:
-        """Ejecuta un comando git de forma segura."""
+        """Execute a git command safely."""
         try:
-            # Comando git base
+            # Base git command
             cmd = ["git"] + args
 
-            # Ejecutar
+            # Execute
             result = subprocess.run(
                 cmd,
                 check=False,
@@ -180,37 +180,37 @@ class GitSkill(Skill):
             if result.returncode == 0:
                 return True, result.stdout.strip()
             else:
-                return False, result.stderr.strip() or "Error desconocido"
+                return False, result.stderr.strip() or "Unknown error"
 
         except subprocess.TimeoutExpired:
-            return False, "Timeout: el comando tardó demasiado"
+            return False, "Timeout: command took too long"
         except FileNotFoundError:
-            return False, "Git no está instalado o no está en el PATH"
+            return False, "Git is not installed or not in PATH"
         except Exception as e:
-            return False, f"Error ejecutando git: {e}"
+            return False, f"Error executing git: {e}"
 
     def _get_repo_path(self, path: Optional[str]) -> Path:
-        """Obtiene la ruta del repositorio."""
+        """Get repository path."""
         if path:
             return Path(path).expanduser().resolve()
         return Path.cwd()
 
     def _is_git_repo(self, path: Path) -> bool:
-        """Verifica si la ruta es un repositorio Git."""
+        """Check if path is a Git repository."""
         success, _ = self._run_git(["rev-parse", "--git-dir"], cwd=path)
         return success
 
     def git_status(self, path: Optional[str] = None) -> str:
-        """Muestra el estado del repositorio."""
+        """Show repository status."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
         success, output = self._run_git(["status", "-sb"], cwd=repo_path)
 
         if success:
-            return f"Estado de {repo_path}:\n\n{output}"
+            return f"Status of {repo_path}:\n\n{output}"
         return f"Error: {output}"
 
     def git_log(
@@ -219,13 +219,13 @@ class GitSkill(Skill):
         count: int = 10,
         oneline: bool = True,
     ) -> str:
-        """Muestra el historial de commits."""
+        """Show commit history."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
-        # Construir argumentos
+        # Build arguments
         args = ["log", f"-{count}"]
         if oneline:
             args.append("--oneline")
@@ -235,7 +235,7 @@ class GitSkill(Skill):
         success, output = self._run_git(args, cwd=repo_path)
 
         if success:
-            return f"Últimos {count} commits:\n\n{output}"
+            return f"Last {count} commits:\n\n{output}"
         return f"Error: {output}"
 
     def git_diff(
@@ -244,13 +244,13 @@ class GitSkill(Skill):
         staged: bool = False,
         file: Optional[str] = None,
     ) -> str:
-        """Muestra los cambios pendientes."""
+        """Show pending changes."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
-        # Construir argumentos
+        # Build arguments
         args = ["diff", "--stat"]
         if staged:
             args.append("--staged")
@@ -262,9 +262,9 @@ class GitSkill(Skill):
 
         if success:
             if not output:
-                return "No hay cambios pendientes."
+                return "No pending changes."
 
-            # También obtener diff detallado (limitado)
+            # Also get detailed diff (limited)
             detail_args = ["diff"]
             if staged:
                 detail_args.append("--staged")
@@ -274,19 +274,19 @@ class GitSkill(Skill):
 
             _, detail = self._run_git(detail_args, cwd=repo_path)
 
-            # Limitar tamaño del diff
+            # Limit diff size
             if len(detail) > 5000:
-                detail = detail[:5000] + "\n\n... (diff truncado)"
+                detail = detail[:5000] + "\n\n... (diff truncated)"
 
-            return f"Resumen de cambios:\n{output}\n\nDetalle:\n{detail}"
+            return f"Changes summary:\n{output}\n\nDetails:\n{detail}"
         return f"Error: {output}"
 
     def git_branches(self, path: Optional[str] = None, all: bool = False) -> str:
-        """Lista las ramas del repositorio."""
+        """List repository branches."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
         args = ["branch", "-v"]
         if all:
@@ -295,7 +295,7 @@ class GitSkill(Skill):
         success, output = self._run_git(args, cwd=repo_path)
 
         if success:
-            return f"Ramas:\n\n{output}"
+            return f"Branches:\n\n{output}"
         return f"Error: {output}"
 
     def git_commit(
@@ -304,81 +304,81 @@ class GitSkill(Skill):
         path: Optional[str] = None,
         add_all: bool = False,
     ) -> str:
-        """Crea un commit."""
+        """Create a commit."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
-        # Si add_all, primero agregar todos los cambios
+        # If add_all, first add all changes
         if add_all:
             success, output = self._run_git(["add", "-A"], cwd=repo_path)
             if not success:
-                return f"Error agregando files: {output}"
+                return f"Error adding files: {output}"
 
-        # Verificar que hay algo que commitear
+        # Check there's something to commit
         success, status = self._run_git(["diff", "--staged", "--stat"], cwd=repo_path)
         if success and not status:
-            return "No hay cambios en staging para commitear. Usa git_add primero."
+            return "No staged changes to commit. Use git_add first."
 
-        # Crear commit
+        # Create commit
         success, output = self._run_git(["commit", "-m", message], cwd=repo_path)
 
         if success:
-            return f"✅ Commit creado:\n\n{output}"
-        return f"Error creando commit: {output}"
+            return f"Commit created:\n\n{output}"
+        return f"Error creating commit: {output}"
 
     def git_add(self, files: str, path: Optional[str] = None) -> str:
-        """Agrega files al staging."""
+        """Add files to staging."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
-        # Parsear files
+        # Parse files
         file_list = files.split()
 
         success, output = self._run_git(["add"] + file_list, cwd=repo_path)
 
         if success:
-            # Mostrar qué se agregó
+            # Show what was added
             _, status = self._run_git(["status", "-s"], cwd=repo_path)
-            return f"✅ Archivos agregados al staging:\n\n{status}"
+            return f"Files added to staging:\n\n{status}"
         return f"Error: {output}"
 
     def git_info(self, path: Optional[str] = None) -> str:
-        """Muestra información general del repositorio."""
+        """Show general repository information."""
         repo_path = self._get_repo_path(path)
 
         if not self._is_git_repo(repo_path):
-            return f"Error: {repo_path} no es un repositorio Git"
+            return f"Error: {repo_path} is not a Git repository"
 
-        info = [f"📂 Repositorio: {repo_path}\n"]
+        info = [f"Repository: {repo_path}\n"]
 
-        # Rama actual
+        # Current branch
         success, branch = self._run_git(["branch", "--show-current"], cwd=repo_path)
         if success:
-            info.append(f"🌿 Rama actual: {branch}")
+            info.append(f"Current branch: {branch}")
 
         # Remote
         success, remote = self._run_git(["remote", "-v"], cwd=repo_path)
         if success and remote:
-            info.append(f"\n🔗 Remotes:\n{remote}")
+            info.append(f"\nRemotes:\n{remote}")
 
-        # Último commit
+        # Last commit
         success, last_commit = self._run_git(
             ["log", "-1", "--format=%h - %s (%ar)"],
             cwd=repo_path,
         )
         if success:
-            info.append(f"\n📝 Último commit: {last_commit}")
+            info.append(f"\nLast commit: {last_commit}")
 
-        # Estadísticas
+        # Statistics
         success, stats = self._run_git(["rev-list", "--count", "HEAD"], cwd=repo_path)
         if success:
-            info.append(f"📊 Total commits: {stats}")
+            info.append(f"Total commits: {stats}")
 
-        # Archivos sin trackear
+        # Untracked files
         success, untracked = self._run_git(
             ["status", "--porcelain", "-u"],
             cwd=repo_path,
@@ -390,18 +390,18 @@ class GitSkill(Skill):
             staged = len([l for l in lines if l.startswith("A ") or l.startswith("M ")])
 
             if modified or added or staged:
-                info.append("\n📋 Cambios pendientes:")
+                info.append("\nPending changes:")
                 if modified:
-                    info.append(f"   Modificados: {modified}")
+                    info.append(f"   Modified: {modified}")
                 if staged:
-                    info.append(f"   En staging: {staged}")
+                    info.append(f"   Staged: {staged}")
                 if added:
-                    info.append(f"   Sin trackear: {added}")
+                    info.append(f"   Untracked: {added}")
 
         return "\n".join(info)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "status")
         path = kwargs.get("path")
 
@@ -420,7 +420,7 @@ class GitSkill(Skill):
         elif action == "commit":
             message = kwargs.get("message", "")
             if not message:
-                return "Error: Se requiere un mensaje para el commit"
+                return "Error: message is required for commit"
             return self.git_commit(message, path, kwargs.get("add_all", False))
         else:
             return f"Unrecognized action: {action}"
