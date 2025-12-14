@@ -79,15 +79,14 @@ class Memory:
                 import chromadb
 
                 # Use new PersistentClient API (ChromaDB >= 0.4.0)
-                self._chroma_client = chromadb.PersistentClient(
-                    path=str(self.long_term_dir)
-                )
+                self._chroma_client = chromadb.PersistentClient(path=str(self.long_term_dir))
             except ImportError:
                 # ChromaDB no instalado, usar fallback
                 self._chroma_client = None
             except Exception as e:
                 # Error initializing ChromaDB, use fallback
                 import logging
+
                 logging.getLogger(__name__).warning(f"ChromaDB init failed: {e}")
                 self._chroma_client = None
 

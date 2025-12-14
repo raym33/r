@@ -116,9 +116,9 @@ class DesignSkill(Skill):
                 info["device"] = "cuda"
                 props = torch.cuda.get_device_properties(0)
                 info["total_vram_gb"] = props.total_memory / (1024**3)
-                info["free_vram_gb"] = (
-                    props.total_memory - torch.cuda.memory_allocated(0)
-                ) / (1024**3)
+                info["free_vram_gb"] = (props.total_memory - torch.cuda.memory_allocated(0)) / (
+                    1024**3
+                )
                 info["used_vram_gb"] = torch.cuda.memory_allocated(0) / (1024**3)
             elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
                 info["device"] = "mps"

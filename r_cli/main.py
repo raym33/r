@@ -34,7 +34,9 @@ def create_agent(config: Optional[Config] = None) -> Agent:
 @click.option("--version", "-v", is_flag=True, help="Muestra la versión")
 @click.option("--theme", "-t", default="ps2", help="Tema visual (ps2, matrix, minimal)")
 @click.option("--no-animation", is_flag=True, help="Desactiva animaciones")
-@click.option("--stream/--no-stream", default=True, help="Habilita/deshabilita streaming de respuestas")
+@click.option(
+    "--stream/--no-stream", default=True, help="Habilita/deshabilita streaming de respuestas"
+)
 @click.pass_context
 def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool):
     """

@@ -241,7 +241,10 @@ class LLMClient:
         if total_tokens > max_tokens:
             return False, f"Contexto excede límite ({total_tokens}/{max_tokens} tokens)"
         elif total_tokens > threshold:
-            return True, f"Advertencia: Contexto al {int(total_tokens/max_tokens*100)}% ({total_tokens}/{max_tokens} tokens)"
+            return (
+                True,
+                f"Advertencia: Contexto al {int(total_tokens / max_tokens * 100)}% ({total_tokens}/{max_tokens} tokens)",
+            )
         return True, ""
 
     def _truncate_context_if_needed(self) -> None:
@@ -303,7 +306,10 @@ class LLMClient:
             is_ok, warning = self._check_token_limits(message)
             if not is_ok:
                 logger.error(f"Cannot add message: {warning}")
-                return Message(role="assistant", content=f"Error: {warning}. Usa /clear para limpiar el historial.")
+                return Message(
+                    role="assistant",
+                    content=f"Error: {warning}. Usa /clear para limpiar el historial.",
+                )
 
         # Agregar mensaje del usuario
         self.add_message("user", message)

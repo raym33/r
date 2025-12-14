@@ -112,9 +112,7 @@ class Agent:
 
                 # Check if skill is enabled in config
                 if not self.config.skills.is_skill_enabled(skill.name):
-                    console.print(
-                        f"[dim]Skill deshabilitado en config: {skill.name}[/dim]"
-                    )
+                    console.print(f"[dim]Skill deshabilitado en config: {skill.name}[/dim]")
                     continue
 
                 self.register_skill(skill)
