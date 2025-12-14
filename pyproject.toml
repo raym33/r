@@ -75,8 +75,20 @@ design = [
 ocr = [
     "pytesseract>=0.3.10",
 ]
+web = [
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+]
+translate = [
+    "deep-translator>=1.11.0",
+    "langdetect>=1.0.9",
+]
+json-tools = [
+    "jmespath>=1.0.0",
+    "jsonschema>=4.0.0",
+]
 all = [
-    "r-cli-ai[rag,audio,design,ocr]",
+    "r-cli-ai[rag,audio,design,ocr,web,translate,json-tools]",
 ]
 
 [project.scripts]
@@ -179,7 +191,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG", "PLR2004", "PLC0415", "E501", "S101", "F401", "F841"]
-"r_cli/skills/*" = ["ARG001", "ARG002", "E501", "F401", "F841"]
+"r_cli/skills/*" = ["ARG001", "ARG002", "E501", "F401", "F841", "SIM116", "E721"]
 "examples/*" = ["E501", "T201"]
 
 [tool.ruff.format]
