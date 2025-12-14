@@ -18,16 +18,24 @@ from pydantic import BaseModel
 class LLMConfig(BaseModel):
     """Configuración del backend LLM."""
 
-    provider: str = "lm-studio"  # lm-studio, ollama, custom
-    base_url: str = "http://localhost:1234/v1"
-    api_key: str = "not-needed"  # LM Studio/Ollama no requieren key
-    model: str = "local-model"  # El modelo cargado en LM Studio
+    # Backend: auto, mlx, ollama, lm-studio, openai-compatible
+    backend: str = "auto"
+
+    # Configuración general
+    model: str = "auto"  # auto = detectar mejor modelo disponible
     temperature: float = 0.7
     max_tokens: int = 4096
 
+    # Configuración OpenAI-compatible (LM Studio, vLLM, etc.)
+    base_url: str = "http://localhost:1234/v1"
+    api_key: str = "not-needed"
+
     # Modelos especializados (opcional)
-    coder_model: Optional[str] = None  # Para tareas de código
-    vision_model: Optional[str] = None  # Para imágenes
+    coder_model: Optional[str] = None
+    vision_model: Optional[str] = None
+
+    # Legacy compatibility
+    provider: str = "auto"  # Alias de backend
 
 
 class RAGConfig(BaseModel):
@@ -103,17 +111,22 @@ class Config(BaseModel):
 
 # Configuraciones preset para diferentes backends
 PRESETS = {
-    "lm-studio": LLMConfig(
-        provider="lm-studio",
-        base_url="http://localhost:1234/v1",
-        api_key="not-needed",
-        model="local-model",
+    "auto": LLMConfig(
+        backend="auto",
+        model="auto",
+    ),
+    "mlx": LLMConfig(
+        backend="mlx",
+        model="qwen2.5-7b",
     ),
     "ollama": LLMConfig(
-        provider="ollama",
-        base_url="http://localhost:11434/v1",
-        api_key="ollama",
-        model="qwen2.5:72b",  # Cambiar según modelo instalado
+        backend="ollama",
+        model="qwen2.5:7b",
+    ),
+    "lm-studio": LLMConfig(
+        backend="lm-studio",
+        base_url="http://localhost:1234/v1",
+        model="local-model",
     ),
 }
 
@@ -121,3 +134,10 @@ PRESETS = {
 def get_default_config() -> Config:
     """Retorna configuración por defecto."""
     return Config()
+
+
+def get_preset(name: str) -> LLMConfig:
+    """Obtiene una configuración preset por nombre."""
+    if name not in PRESETS:
+        raise ValueError(f"Preset no encontrado: {name}. Disponibles: {list(PRESETS.keys())}")
+    return PRESETS[name].model_copy()
