@@ -1,8 +1,8 @@
 """
-Skill de Multi-Agente para R CLI.
+Multi-Agent Skill for R CLI.
 
-Expone la funcionalidad de orquestación multi-agente como un skill.
-Permite al usuario interactuar con múltiples agentes especializados.
+Exposes multi-agent orchestration functionality as a skill.
+Allows users to interact with multiple specialized agents.
 """
 
 from typing import Optional
@@ -13,7 +13,7 @@ from r_cli.core.orchestrator import Orchestrator
 
 
 class MultiAgentSkill(Skill):
-    """Skill para orquestación multi-agente."""
+    """Skill for multi-agent orchestration."""
 
     name = "multiagent"
     description = "Orchestrate multiple specialized agents for complex tasks"
@@ -23,7 +23,7 @@ class MultiAgentSkill(Skill):
         self._orchestrator: Optional[Orchestrator] = None
 
     def _get_orchestrator(self) -> Orchestrator:
-        """Obtiene o inicializa el orquestador."""
+        """Get or initialize the orchestrator."""
         if self._orchestrator is None:
             from r_cli.core.llm import LLMClient
 
@@ -35,13 +35,13 @@ class MultiAgentSkill(Skill):
         return [
             Tool(
                 name="ask_agent",
-                description="Envía una tarea a un agente especializado específico",
+                description="Send a task to a specific specialized agent",
                 parameters={
                     "type": "object",
                     "properties": {
                         "task": {
                             "type": "string",
-                            "description": "The task o pregunta para el agente",
+                            "description": "The task or question for the agent",
                         },
                         "agent": {
                             "type": "string",
@@ -54,7 +54,7 @@ class MultiAgentSkill(Skill):
                                 "designer",
                                 "planner",
                             ],
-                            "description": "El agente a usar (opcional, se auto-detecta)",
+                            "description": "The agent to use (optional, auto-detected)",
                         },
                     },
                     "required": ["task"],
@@ -63,17 +63,17 @@ class MultiAgentSkill(Skill):
             ),
             Tool(
                 name="complex_task",
-                description="Procesa una tarea compleja usando múltiples agentes",
+                description="Process a complex task using multiple agents",
                 parameters={
                     "type": "object",
                     "properties": {
                         "task": {
                             "type": "string",
-                            "description": "The task compleja a procesar",
+                            "description": "The complex task to process",
                         },
                         "max_steps": {
                             "type": "integer",
-                            "description": "Máximo de pasos/agentes a usar (default: 5)",
+                            "description": "Maximum steps/agents to use (default: 5)",
                         },
                     },
                     "required": ["task"],
@@ -82,28 +82,28 @@ class MultiAgentSkill(Skill):
             ),
             Tool(
                 name="list_agents",
-                description="Lista todos los agentes especializados disponibles",
+                description="List all available specialized agents",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_agents,
             ),
             Tool(
                 name="agent_conversation",
-                description="Inicia una conversación entre agentes sobre un tema",
+                description="Start a conversation between agents on a topic",
                 parameters={
                     "type": "object",
                     "properties": {
                         "topic": {
                             "type": "string",
-                            "description": "El tema de la conversación",
+                            "description": "The topic of the conversation",
                         },
                         "agents": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Lista de agentes a incluir",
+                            "description": "List of agents to include",
                         },
                         "rounds": {
                             "type": "integer",
-                            "description": "Número de rondas de conversación (default: 3)",
+                            "description": "Number of conversation rounds (default: 3)",
                         },
                     },
                     "required": ["topic"],
@@ -112,13 +112,13 @@ class MultiAgentSkill(Skill):
             ),
             Tool(
                 name="get_history",
-                description="Obtiene el historial de conversación multi-agente",
+                description="Get the multi-agent conversation history",
                 parameters={"type": "object", "properties": {}},
                 handler=self.get_history,
             ),
             Tool(
                 name="clear_agents",
-                description="Limpia el historial de todos los agentes",
+                description="Clear the history of all agents",
                 parameters={"type": "object", "properties": {}},
                 handler=self.clear_agents,
             ),
@@ -129,40 +129,40 @@ class MultiAgentSkill(Skill):
         task: str,
         agent: Optional[str] = None,
     ) -> str:
-        """Envía una tarea a un agente específico."""
+        """Send a task to a specific agent."""
         try:
             orchestrator = self._get_orchestrator()
             result = orchestrator.process_task_sync(task, agent_id=agent)
 
-            response = [f"Agente: {result.agent_name}"]
-            response.append(f"Tiempo: {result.execution_time:.2f}s")
+            response = [f"Agent: {result.agent_name}"]
+            response.append(f"Time: {result.execution_time:.2f}s")
             response.append("-" * 40)
             response.append(result.result)
 
             return "\n".join(response)
 
         except Exception as e:
-            return f"Error procesando tarea: {e}"
+            return f"Error processing task: {e}"
 
     def complex_task(
         self,
         task: str,
         max_steps: int = 5,
     ) -> str:
-        """Procesa una tarea compleja con múltiples agentes."""
+        """Process a complex task with multiple agents."""
         try:
             orchestrator = self._get_orchestrator()
             results = orchestrator.process_complex_task_sync(task, max_iterations=max_steps)
 
             if not results:
-                return "No se obtuvieron resultados."
+                return "No results obtained."
 
-            response = [f"Tarea procesada con {len(results)} pasos:\n"]
+            response = [f"Task processed with {len(results)} steps:\n"]
 
             for i, result in enumerate(results, 1):
-                response.append(f"Paso {i} - {result.agent_name}:")
-                response.append(f"  Tiempo: {result.execution_time:.2f}s")
-                # Truncar resultado largo
+                response.append(f"Step {i} - {result.agent_name}:")
+                response.append(f"  Time: {result.execution_time:.2f}s")
+                # Truncate long result
                 result_text = result.result
                 if len(result_text) > 500:
                     result_text = result_text[:500] + "..."
@@ -171,20 +171,20 @@ class MultiAgentSkill(Skill):
 
             # Total time
             total_time = sum(r.execution_time for r in results)
-            response.append(f"Tiempo total: {total_time:.2f}s")
+            response.append(f"Total time: {total_time:.2f}s")
 
             return "\n".join(response)
 
         except Exception as e:
-            return f"Error procesando tarea compleja: {e}"
+            return f"Error processing complex task: {e}"
 
     def list_agents(self) -> str:
-        """Lista los agentes disponibles."""
+        """List available agents."""
         try:
             orchestrator = self._get_orchestrator()
             return orchestrator.list_agents()
         except Exception as e:
-            return f"Error listando agentes: {e}"
+            return f"Error listing agents: {e}"
 
     def agent_conversation(
         self,
@@ -192,34 +192,34 @@ class MultiAgentSkill(Skill):
         agents: Optional[list] = None,
         rounds: int = 3,
     ) -> str:
-        """Inicia una conversación entre agentes."""
+        """Start a conversation between agents."""
         try:
             orchestrator = self._get_orchestrator()
 
-            # Agentes por defecto
+            # Default agents
             if not agents:
                 agents = ["researcher", "analyst", "writer"]
 
-            # Validar agentes
+            # Validate agents
             available = list(orchestrator.agents.keys())
             agents = [a for a in agents if a in available]
 
             if len(agents) < 2:
-                return "Error: Se necesitan al menos 2 agentes válidos para una conversación."
+                return "Error: At least 2 valid agents are required for a conversation."
 
-            conversation = [f"Conversación multi-agente sobre: {topic}\n"]
-            conversation.append(f"Participantes: {', '.join(agents)}")
+            conversation = [f"Multi-agent conversation about: {topic}\n"]
+            conversation.append(f"Participants: {', '.join(agents)}")
             conversation.append("=" * 50 + "\n")
 
             context = {"topic": topic, "previous_responses": []}
 
             for round_num in range(1, rounds + 1):
-                conversation.append(f"--- Ronda {round_num} ---\n")
+                conversation.append(f"--- Round {round_num} ---\n")
 
                 for agent_id in agents:
-                    # Construir prompt con contexto
+                    # Build prompt with context
                     if round_num == 1 and agent_id == agents[0]:
-                        prompt = f"Inicia una discusión sobre: {topic}"
+                        prompt = f"Start a discussion about: {topic}"
                     else:
                         previous = (
                             context["previous_responses"][-3:]
@@ -229,16 +229,16 @@ class MultiAgentSkill(Skill):
                         prev_text = "\n".join(
                             [f"{p['agent']}: {p['response'][:200]}..." for p in previous]
                         )
-                        prompt = f"""Continúa la conversación sobre "{topic}".
+                        prompt = f"""Continue the conversation about "{topic}".
 
-Respuestas anteriores:
+Previous responses:
 {prev_text}
 
-Añade tu perspectiva como {agent_id}. Sé conciso (máximo 150 palabras)."""
+Add your perspective as {agent_id}. Be concise (max 150 words)."""
 
                     result = orchestrator.process_task_sync(prompt, agent_id=agent_id)
 
-                    # Truncar respuesta
+                    # Truncate response
                     response_text = result.result
                     if len(response_text) > 400:
                         response_text = response_text[:400] + "..."
@@ -247,7 +247,7 @@ Añade tu perspectiva como {agent_id}. Sé conciso (máximo 150 palabras)."""
                     conversation.append(f"  {response_text}")
                     conversation.append("")
 
-                    # Agregar al contexto
+                    # Add to context
                     context["previous_responses"].append(
                         {
                             "agent": result.agent_name,
@@ -256,7 +256,7 @@ Añade tu perspectiva como {agent_id}. Sé conciso (máximo 150 palabras)."""
                     )
 
             conversation.append("=" * 50)
-            conversation.append("Fin de la conversación")
+            conversation.append("End of conversation")
 
             return "\n".join(conversation)
 
@@ -264,24 +264,24 @@ Añade tu perspectiva como {agent_id}. Sé conciso (máximo 150 palabras)."""
             return f"Error in multi-agent conversation: {e}"
 
     def get_history(self) -> str:
-        """Obtiene el historial de conversación."""
+        """Get conversation history."""
         try:
             orchestrator = self._get_orchestrator()
             return orchestrator.get_conversation_summary()
         except Exception as e:
-            return f"Error obteniendo historial: {e}"
+            return f"Error getting history: {e}"
 
     def clear_agents(self) -> str:
-        """Limpia el historial de todos los agentes."""
+        """Clear the history of all agents."""
         try:
             orchestrator = self._get_orchestrator()
             orchestrator.clear_all_history()
-            return "Historial de todos los agentes limpiado."
+            return "History of all agents cleared."
         except Exception as e:
-            return f"Error limpiando historial: {e}"
+            return f"Error clearing history: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         task = kwargs.get("task")
         agent = kwargs.get("agent")
         complex_mode = kwargs.get("complex", False)

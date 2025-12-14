@@ -1,13 +1,13 @@
 """
-Skill de Voz para R CLI.
+Voice Skill for R CLI.
 
-Transcription de audio con Whisper y síntesis de voz con Piper TTS.
-Todo 100% local y offline.
+Audio transcription with Whisper and voice synthesis with Piper TTS.
+100% local and offline.
 
-Requisitos:
-- whisper o faster-whisper para transcripción
-- piper-tts para síntesis de voz
-- sounddevice/pyaudio para grabación en tiempo real
+Requirements:
+- whisper or faster-whisper for transcription
+- piper-tts for voice synthesis
+- sounddevice/pyaudio for real-time recording
 """
 
 import json
@@ -26,22 +26,22 @@ logger = logging.getLogger(__name__)
 
 
 class VoiceSkill(Skill):
-    """Skill para transcripción y síntesis de voz offline."""
+    """Skill for offline voice transcription and synthesis."""
 
     name = "voice"
     description = "Transcribe audio with Whisper and generate voice with Piper TTS"
 
-    # Modelos Whisper disponibles
+    # Available Whisper models
     WHISPER_MODELS = {
-        "tiny": "Más rápido, menor precisión (~1GB VRAM)",
-        "base": "Balance velocidad/precisión (~1GB VRAM)",
-        "small": "Buena precisión (~2GB VRAM)",
-        "medium": "Alta precisión (~5GB VRAM)",
-        "large": "Máxima precisión (~10GB VRAM)",
-        "large-v3": "Última versión, mejor calidad (~10GB VRAM)",
+        "tiny": "Fastest, lower accuracy (~1GB VRAM)",
+        "base": "Speed/accuracy balance (~1GB VRAM)",
+        "small": "Good accuracy (~2GB VRAM)",
+        "medium": "High accuracy (~5GB VRAM)",
+        "large": "Maximum accuracy (~10GB VRAM)",
+        "large-v3": "Latest version, best quality (~10GB VRAM)",
     }
 
-    # Voces Piper populares (se pueden descargar)
+    # Popular Piper voices (can be downloaded)
     PIPER_VOICES = {
         "en_US-amy-medium": "Amy - English US female",
         "en_US-ryan-medium": "Ryan - English US male",
@@ -61,7 +61,7 @@ class VoiceSkill(Skill):
         self._sounddevice_available = self._check_sounddevice()
 
     def _check_whisper(self) -> bool:
-        """Verifica si Whisper está disponible."""
+        """Check if Whisper is available."""
         try:
             import whisper
 
@@ -75,11 +75,11 @@ class VoiceSkill(Skill):
                 return False
 
     def _check_piper(self) -> bool:
-        """Verifica si Piper TTS está disponible."""
+        """Check if Piper TTS is available."""
         return shutil.which("piper") is not None
 
     def _check_sounddevice(self) -> bool:
-        """Verifica si sounddevice está disponible."""
+        """Check if sounddevice is available."""
         try:
             import sounddevice
 
@@ -91,27 +91,27 @@ class VoiceSkill(Skill):
         return [
             Tool(
                 name="transcribe_audio",
-                description="Transcribe un archivo de audio a texto usando Whisper",
+                description="Transcribe an audio file to text using Whisper",
                 parameters={
                     "type": "object",
                     "properties": {
                         "audio_path": {
                             "type": "string",
-                            "description": "Ruta al archivo de audio (mp3, wav, m4a, etc.)",
+                            "description": "Path to audio file (mp3, wav, m4a, etc.)",
                         },
                         "model": {
                             "type": "string",
                             "enum": list(self.WHISPER_MODELS.keys()),
-                            "description": "Modelo Whisper a usar (default: base)",
+                            "description": "Whisper model to use (default: base)",
                         },
                         "language": {
                             "type": "string",
-                            "description": "Código de idioma (es, en, fr, etc.). Auto-detecta si no se especifica.",
+                            "description": "Language code (es, en, fr, etc.). Auto-detects if not specified.",
                         },
                         "output_format": {
                             "type": "string",
                             "enum": ["text", "srt", "vtt", "json"],
-                            "description": "Formato de salida (default: text)",
+                            "description": "Output format (default: text)",
                         },
                     },
                     "required": ["audio_path"],
@@ -120,25 +120,25 @@ class VoiceSkill(Skill):
             ),
             Tool(
                 name="text_to_speech",
-                description="Convierte texto a audio usando Piper TTS",
+                description="Convert text to audio using Piper TTS",
                 parameters={
                     "type": "object",
                     "properties": {
                         "text": {
                             "type": "string",
-                            "description": "Texto a convertir en voz",
+                            "description": "Text to convert to speech",
                         },
                         "voice": {
                             "type": "string",
-                            "description": "Voz a usar (ver list_voices para opciones)",
+                            "description": "Voice to use (see list_voices for options)",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el audio (opcional)",
+                            "description": "Path to save audio (optional)",
                         },
                         "speed": {
                             "type": "number",
-                            "description": "Velocidad de habla (0.5-2.0, default: 1.0)",
+                            "description": "Speech speed (0.5-2.0, default: 1.0)",
                         },
                     },
                     "required": ["text"],
@@ -147,17 +147,17 @@ class VoiceSkill(Skill):
             ),
             Tool(
                 name="record_audio",
-                description="Graba audio desde el micrófono",
+                description="Record audio from the microphone",
                 parameters={
                     "type": "object",
                     "properties": {
                         "duration": {
                             "type": "number",
-                            "description": "Duración en segundos",
+                            "description": "Duration in seconds",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar la grabación",
+                            "description": "Path to save recording",
                         },
                     },
                     "required": ["duration"],
@@ -166,25 +166,25 @@ class VoiceSkill(Skill):
             ),
             Tool(
                 name="list_whisper_models",
-                description="Lista los modelos Whisper disponibles",
+                description="List available Whisper models",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_whisper_models,
             ),
             Tool(
                 name="list_voices",
-                description="Lista las voces Piper TTS disponibles",
+                description="List available Piper TTS voices",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_voices,
             ),
             Tool(
                 name="voice_chat",
-                description="Modo conversación por voz (graba, transcribe, responde)",
+                description="Voice conversation mode (record, transcribe, respond)",
                 parameters={
                     "type": "object",
                     "properties": {
                         "duration": {
                             "type": "number",
-                            "description": "Duración de grabación en segundos",
+                            "description": "Recording duration in seconds",
                         },
                     },
                     "required": ["duration"],
@@ -200,16 +200,16 @@ class VoiceSkill(Skill):
         language: Optional[str] = None,
         output_format: str = "text",
     ) -> str:
-        """Transcribe audio usando Whisper."""
+        """Transcribe audio using Whisper."""
         if not self._whisper_available:
-            return "Error: Whisper no instalado. Ejecuta: pip install openai-whisper"
+            return "Error: Whisper not installed. Run: pip install openai-whisper"
 
         audio_file = Path(audio_path)
         if not audio_file.exists():
-            return f"Error: Archivo no encontrado: {audio_path}"
+            return f"Error: File not found: {audio_path}"
 
         try:
-            # Intentar con faster-whisper primero (más eficiente)
+            # Try faster-whisper first (more efficient)
             try:
                 from faster_whisper import WhisperModel
 
@@ -240,7 +240,7 @@ class VoiceSkill(Skill):
                     return f"Transcription JSON:\n\n{json_content}"
 
             except ImportError:
-                # Fallback a openai-whisper
+                # Fallback to openai-whisper
                 import whisper
 
                 whisper_model = whisper.load_model(model)
@@ -268,10 +268,10 @@ class VoiceSkill(Skill):
                     )
 
         except Exception as e:
-            return f"Error transcribiendo audio: {e}"
+            return f"Error transcribing audio: {e}"
 
     def _to_srt(self, segments) -> str:
-        """Convierte segmentos a formato SRT."""
+        """Convert segments to SRT format."""
         srt_lines = []
         for i, seg in enumerate(segments, 1):
             start = self._format_timestamp_srt(seg.start)
@@ -283,7 +283,7 @@ class VoiceSkill(Skill):
         return "\n".join(srt_lines)
 
     def _to_vtt(self, segments) -> str:
-        """Convierte segmentos a formato VTT."""
+        """Convert segments to VTT format."""
         vtt_lines = ["WEBVTT", ""]
         for seg in segments:
             start = self._format_timestamp_vtt(seg.start)
@@ -294,7 +294,7 @@ class VoiceSkill(Skill):
         return "\n".join(vtt_lines)
 
     def _to_json(self, segments, language: str) -> str:
-        """Convierte segmentos a JSON."""
+        """Convert segments to JSON."""
         data = {
             "language": language,
             "segments": [
@@ -309,7 +309,7 @@ class VoiceSkill(Skill):
         return json.dumps(data, indent=2, ensure_ascii=False)
 
     def _format_timestamp_srt(self, seconds: float) -> str:
-        """Formatea timestamp para SRT (HH:MM:SS,mmm)."""
+        """Format timestamp for SRT (HH:MM:SS,mmm)."""
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
@@ -317,7 +317,7 @@ class VoiceSkill(Skill):
         return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
     def _format_timestamp_vtt(self, seconds: float) -> str:
-        """Formatea timestamp para VTT (HH:MM:SS.mmm)."""
+        """Format timestamp for VTT (HH:MM:SS.mmm)."""
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
@@ -325,7 +325,7 @@ class VoiceSkill(Skill):
         return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
 
     def _whisper_to_srt(self, result: dict) -> str:
-        """Convierte resultado de whisper a SRT."""
+        """Convert whisper result to SRT."""
         srt_lines = []
         for i, seg in enumerate(result.get("segments", []), 1):
             start = self._format_timestamp_srt(seg["start"])
@@ -337,7 +337,7 @@ class VoiceSkill(Skill):
         return "\n".join(srt_lines)
 
     def _whisper_to_vtt(self, result: dict) -> str:
-        """Convierte resultado de whisper a VTT."""
+        """Convert whisper result to VTT."""
         vtt_lines = ["WEBVTT", ""]
         for seg in result.get("segments", []):
             start = self._format_timestamp_vtt(seg["start"])
@@ -354,12 +354,12 @@ class VoiceSkill(Skill):
         output_path: Optional[str] = None,
         speed: float = 1.0,
     ) -> str:
-        """Convierte texto a voz usando Piper TTS."""
+        """Convert text to speech using Piper TTS."""
         if not self._piper_available:
             return self._tts_fallback(text, output_path)
 
         try:
-            # Determinar ruta de salida
+            # Determine output path
             if output_path:
                 out_path = Path(output_path)
             else:
@@ -368,8 +368,8 @@ class VoiceSkill(Skill):
 
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Ejecutar Piper
-            # Piper espera el texto por stdin
+            # Run Piper
+            # Piper expects text via stdin
             cmd = [
                 "piper",
                 "--model",
@@ -391,19 +391,19 @@ class VoiceSkill(Skill):
             )
 
             if result.returncode != 0:
-                return f"Error en Piper TTS: {result.stderr}"
+                return f"Error in Piper TTS: {result.stderr}"
 
-            return f"Audio generado: {out_path}"
+            return f"Audio generated: {out_path}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout generando audio (>120s)"
+            return "Error: Timeout generating audio (>120s)"
         except Exception as e:
-            return f"Error en TTS: {e}"
+            return f"Error in TTS: {e}"
 
     def _tts_fallback(self, text: str, output_path: Optional[str] = None) -> str:
-        """Fallback usando say (macOS) o espeak (Linux)."""
+        """Fallback using say (macOS) or espeak (Linux)."""
         try:
-            # Determinar ruta de salida
+            # Determine output path
             if output_path:
                 out_path = Path(output_path)
             else:
@@ -412,16 +412,16 @@ class VoiceSkill(Skill):
 
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Intentar say (macOS)
+            # Try say (macOS)
             if shutil.which("say"):
                 subprocess.run(
                     ["say", "-o", str(out_path), text],
                     check=True,
                     timeout=60,
                 )
-                return f"Audio generado (say): {out_path}"
+                return f"Audio generated (say): {out_path}"
 
-            # Intentar espeak (Linux)
+            # Try espeak (Linux)
             elif shutil.which("espeak"):
                 wav_path = out_path.with_suffix(".wav")
                 subprocess.run(
@@ -429,34 +429,34 @@ class VoiceSkill(Skill):
                     check=True,
                     timeout=60,
                 )
-                return f"Audio generado (espeak): {wav_path}"
+                return f"Audio generated (espeak): {wav_path}"
 
             else:
-                return "Error: No hay TTS disponible. Instala piper-tts, o usa say (macOS) / espeak (Linux)"
+                return "Error: No TTS available. Install piper-tts, or use say (macOS) / espeak (Linux)"
 
         except Exception as e:
-            return f"Error en TTS fallback: {e}"
+            return f"Error in TTS fallback: {e}"
 
     def record_audio(
         self,
         duration: float,
         output_path: Optional[str] = None,
     ) -> str:
-        """Graba audio desde el micrófono."""
+        """Record audio from the microphone."""
         if not self._sounddevice_available:
-            return "Error: sounddevice no instalado. Ejecuta: pip install sounddevice"
+            return "Error: sounddevice not installed. Run: pip install sounddevice"
 
         try:
             import numpy as np
             import sounddevice as sd
 
-            # Parámetros de grabación
-            sample_rate = 16000  # 16kHz es suficiente para voz
+            # Recording parameters
+            sample_rate = 16000  # 16kHz is sufficient for voice
             channels = 1
 
-            print(f"Grabando {duration} segundos...")
+            print(f"Recording {duration} seconds...")
 
-            # Grabar
+            # Record
             audio_data = sd.rec(
                 int(duration * sample_rate),
                 samplerate=sample_rate,
@@ -465,7 +465,7 @@ class VoiceSkill(Skill):
             )
             sd.wait()
 
-            # Determinar ruta de salida
+            # Determine output path
             if output_path:
                 out_path = Path(output_path)
             else:
@@ -474,7 +474,7 @@ class VoiceSkill(Skill):
 
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Guardar como WAV
+            # Save as WAV
             with wave.open(str(out_path), "wb") as wf:
                 wf.setnchannels(channels)
                 wf.setsampwidth(2)  # 16-bit
@@ -484,22 +484,22 @@ class VoiceSkill(Skill):
             return f"Recording saved: {out_path}"
 
         except Exception as e:
-            return f"Error grabando audio: {e}"
+            return f"Error recording audio: {e}"
 
     def voice_chat(self, duration: float = 5.0) -> str:
-        """Modo conversación: graba -> transcribe -> devuelve texto."""
-        # Grabar audio
+        """Conversation mode: record -> transcribe -> return text."""
+        # Record audio
         record_result = self.record_audio(duration)
         if "Error" in record_result:
             return record_result
 
-        # Extraer path de la grabación
+        # Extract path from recording
         audio_path = record_result.split(": ")[-1]
 
-        # Transcribir
+        # Transcribe
         transcription = self.transcribe_audio(audio_path, model="base")
 
-        # Limpiar archivo temporal si está en output_dir
+        # Clean up temp file if in output_dir
         try:
             Path(audio_path).unlink()
         except Exception as e:
@@ -508,37 +508,37 @@ class VoiceSkill(Skill):
         return transcription
 
     def list_whisper_models(self) -> str:
-        """Lista los modelos Whisper disponibles."""
-        result = ["Modelos Whisper disponibles:\n"]
+        """List available Whisper models."""
+        result = ["Available Whisper models:\n"]
 
         for model, desc in self.WHISPER_MODELS.items():
             result.append(f"  - {model}: {desc}")
 
-        result.append("\nUso: transcribe_audio(audio_path, model='medium')")
-        result.append("\nInstalación: pip install openai-whisper")
-        result.append("O para más velocidad: pip install faster-whisper")
+        result.append("\nUsage: transcribe_audio(audio_path, model='medium')")
+        result.append("\nInstallation: pip install openai-whisper")
+        result.append("Or for more speed: pip install faster-whisper")
 
         return "\n".join(result)
 
     def list_voices(self) -> str:
-        """Lista las voces Piper TTS disponibles."""
-        result = ["Voces Piper TTS disponibles:\n"]
+        """List available Piper TTS voices."""
+        result = ["Available Piper TTS voices:\n"]
 
         for voice, desc in self.PIPER_VOICES.items():
             result.append(f"  - {voice}: {desc}")
 
-        result.append("\nUso: text_to_speech(text, voice='es_ES-davefx-medium')")
-        result.append("\nDescargar voces: https://github.com/rhasspy/piper/releases")
+        result.append("\nUsage: text_to_speech(text, voice='es_ES-davefx-medium')")
+        result.append("\nDownload voices: https://github.com/rhasspy/piper/releases")
 
         if not self._piper_available:
             result.append(
-                "\n⚠️  Piper no instalado. Se usará say (macOS) / espeak (Linux) como fallback."
+                "\nWarning: Piper not installed. Will use say (macOS) / espeak (Linux) as fallback."
             )
 
         return "\n".join(result)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         audio_path = kwargs.get("audio")
         text = kwargs.get("text")
         record_duration = kwargs.get("record")
@@ -563,4 +563,4 @@ class VoiceSkill(Skill):
                 output_path=kwargs.get("output"),
             )
         else:
-            return "Error: Especifica --audio para transcribir, --text para TTS, o --record para grabar"
+            return "Error: Specify --audio to transcribe, --text for TTS, or --record to record"

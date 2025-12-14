@@ -1,11 +1,11 @@
 """
-Skill de SQL para R CLI.
+SQL Skill for R CLI.
 
-Funcionalidades:
-- Text-to-SQL: Convertir lenguaje natural a consultas SQL
-- Ejecutar queries en bases de datos locales (SQLite, DuckDB)
-- Analizar CSVs con SQL
-- Crear y gestionar bases de datos
+Features:
+- Text-to-SQL: Convert natural language to SQL queries
+- Execute queries on local databases (SQLite, DuckDB)
+- Analyze CSVs with SQL
+- Create and manage databases
 """
 
 import os
@@ -16,7 +16,7 @@ from r_cli.core.llm import Tool
 
 
 class SQLSkill(Skill):
-    """Skill para consultas SQL en lenguaje natural."""
+    """Skill for natural language SQL queries."""
 
     name = "sql"
     description = "SQL queries on local databases and CSVs"
@@ -27,12 +27,12 @@ class SQLSkill(Skill):
 
     @property
     def duckdb(self):
-        """Lazy loading de DuckDB."""
+        """Lazy loading of DuckDB."""
         if self._duckdb_conn is None:
             try:
                 import duckdb
 
-                # Conexión en memoria con persistencia opcional
+                # In-memory connection with optional persistence
                 db_path = os.path.join(os.path.expanduser(self.config.home_dir), "r_cli.duckdb")
                 self._duckdb_conn = duckdb.connect(db_path)
             except ImportError:
@@ -43,17 +43,17 @@ class SQLSkill(Skill):
         return [
             Tool(
                 name="query_csv",
-                description="Ejecuta una consulta SQL sobre un archivo CSV",
+                description="Execute a SQL query on a CSV file",
                 parameters={
                     "type": "object",
                     "properties": {
                         "csv_path": {
                             "type": "string",
-                            "description": "Ruta al archivo CSV",
+                            "description": "Path to the CSV file",
                         },
                         "query": {
                             "type": "string",
-                            "description": "Consulta SQL (usa 'data' como nombre de tabla)",
+                            "description": "SQL query (use 'data' as table name)",
                         },
                     },
                     "required": ["csv_path", "query"],
@@ -62,17 +62,17 @@ class SQLSkill(Skill):
             ),
             Tool(
                 name="query_database",
-                description="Ejecuta una consulta SQL en la base de datos local",
+                description="Execute a SQL query on the local database",
                 parameters={
                     "type": "object",
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "Consulta SQL a ejecutar",
+                            "description": "SQL query to execute",
                         },
                         "limit": {
                             "type": "integer",
-                            "description": "Límite de filas a retornar (default: 100)",
+                            "description": "Row limit to return (default: 100)",
                         },
                     },
                     "required": ["query"],
@@ -81,13 +81,13 @@ class SQLSkill(Skill):
             ),
             Tool(
                 name="describe_csv",
-                description="Muestra la estructura y estadísticas de un CSV",
+                description="Show structure and statistics of a CSV",
                 parameters={
                     "type": "object",
                     "properties": {
                         "csv_path": {
                             "type": "string",
-                            "description": "Ruta al archivo CSV",
+                            "description": "Path to the CSV file",
                         },
                     },
                     "required": ["csv_path"],
@@ -96,17 +96,17 @@ class SQLSkill(Skill):
             ),
             Tool(
                 name="import_csv_to_db",
-                description="Importa un CSV a una tabla en la base de datos local",
+                description="Import a CSV to a table in the local database",
                 parameters={
                     "type": "object",
                     "properties": {
                         "csv_path": {
                             "type": "string",
-                            "description": "Ruta al archivo CSV",
+                            "description": "Path to the CSV file",
                         },
                         "table_name": {
                             "type": "string",
-                            "description": "Nombre de la tabla a crear",
+                            "description": "Name of the table to create",
                         },
                     },
                     "required": ["csv_path", "table_name"],
@@ -115,19 +115,19 @@ class SQLSkill(Skill):
             ),
             Tool(
                 name="list_tables",
-                description="Lista las tablas disponibles en la base de datos",
+                description="List available tables in the database",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_tables,
             ),
             Tool(
                 name="describe_table",
-                description="Muestra la estructura de una tabla",
+                description="Show the structure of a table",
                 parameters={
                     "type": "object",
                     "properties": {
                         "table_name": {
                             "type": "string",
-                            "description": "Nombre de la tabla",
+                            "description": "Table name",
                         },
                     },
                     "required": ["table_name"],
@@ -137,52 +137,52 @@ class SQLSkill(Skill):
         ]
 
     def query_csv(self, csv_path: str, query: str) -> str:
-        """Ejecuta SQL sobre un CSV usando DuckDB."""
+        """Execute SQL on a CSV using DuckDB."""
         try:
             if self.duckdb is None:
-                return "Error: DuckDB no instalado. Ejecuta: pip install duckdb"
+                return "Error: DuckDB not installed. Run: pip install duckdb"
 
             path = Path(csv_path)
             if not path.exists():
-                return f"Error: CSV no encontrado: {csv_path}"
+                return f"Error: CSV not found: {csv_path}"
 
-            # Reemplazar 'data' con la ruta real del CSV
+            # Replace 'data' with actual CSV path
             actual_query = query.replace("data", f"'{csv_path}'")
             actual_query = actual_query.replace("FROM csv", f"FROM '{csv_path}'")
 
-            # Si la query no tiene FROM con path, agregar
+            # If query doesn't have FROM with path, add it
             if "FROM" not in actual_query.upper() or csv_path not in actual_query:
-                # Intentar detectar el nombre de tabla usado
+                # Try to detect table name used
                 if " data" in actual_query.lower() or "from data" in actual_query.lower():
                     actual_query = actual_query.replace(" data", f" '{csv_path}'")
 
             result = self.duckdb.execute(actual_query).fetchdf()
 
-            # Formatear resultado
+            # Format result
             if len(result) == 0:
-                return "Query ejecutada. Sin resultados."
+                return "Query executed. No results."
 
-            # Limitar filas para display
+            # Limit rows for display
             display_df = result.head(50)
 
-            output = [f"📊 Resultados ({len(result)} filas):\n"]
+            output = [f"Results ({len(result)} rows):\n"]
             output.append(display_df.to_string(index=False))
 
             if len(result) > 50:
-                output.append(f"\n... (mostrando 50 de {len(result)} filas)")
+                output.append(f"\n... (showing 50 of {len(result)} rows)")
 
             return "\n".join(output)
 
         except Exception as e:
-            return f"Error ejecutando query: {e}"
+            return f"Error executing query: {e}"
 
     def query_database(self, query: str, limit: int = 100) -> str:
-        """Ejecuta SQL en la base de datos local."""
+        """Execute SQL on the local database."""
         try:
             if self.duckdb is None:
-                return "Error: DuckDB no instalado. Ejecuta: pip install duckdb"
+                return "Error: DuckDB not installed. Run: pip install duckdb"
 
-            # Agregar LIMIT si no está presente y es SELECT
+            # Add LIMIT if not present and is SELECT
             if query.strip().upper().startswith("SELECT") and "LIMIT" not in query.upper():
                 query = f"{query} LIMIT {limit}"
 
@@ -190,65 +190,65 @@ class SQLSkill(Skill):
 
             if len(result) == 0:
                 if query.strip().upper().startswith("SELECT"):
-                    return "Query ejecutada. Sin resultados."
+                    return "Query executed. No results."
                 else:
-                    return "✅ Query ejecutada exitosamente."
+                    return "Query executed successfully."
 
-            output = [f"📊 Resultados ({len(result)} filas):\n"]
+            output = [f"Results ({len(result)} rows):\n"]
             output.append(result.to_string(index=False))
 
             return "\n".join(output)
 
         except Exception as e:
-            return f"Error ejecutando query: {e}"
+            return f"Error executing query: {e}"
 
     def describe_csv(self, csv_path: str) -> str:
-        """Describe la estructura y estadísticas de un CSV."""
+        """Describe the structure and statistics of a CSV."""
         try:
             if self.duckdb is None:
-                # Fallback a pandas
+                # Fallback to pandas
                 try:
                     import pandas as pd
 
                     df = pd.read_csv(csv_path, nrows=1000)
 
-                    output = [f"📄 Análisis de: {Path(csv_path).name}\n"]
-                    output.append(f"Filas (muestra): {len(df)}")
-                    output.append(f"Columnas: {len(df.columns)}\n")
+                    output = [f"Analysis of: {Path(csv_path).name}\n"]
+                    output.append(f"Rows (sample): {len(df)}")
+                    output.append(f"Columns: {len(df.columns)}\n")
 
-                    output.append("Columnas:")
+                    output.append("Columns:")
                     for col in df.columns:
                         dtype = str(df[col].dtype)
                         nulls = df[col].isnull().sum()
-                        output.append(f"  • {col}: {dtype} ({nulls} nulos)")
+                        output.append(f"  - {col}: {dtype} ({nulls} nulls)")
 
                     return "\n".join(output)
 
                 except ImportError:
-                    return "Error: Necesitas DuckDB o Pandas instalado"
+                    return "Error: DuckDB or Pandas required"
 
             path = Path(csv_path)
             if not path.exists():
-                return f"Error: CSV no encontrado: {csv_path}"
+                return f"Error: CSV not found: {csv_path}"
 
-            # Usar DuckDB para análisis
-            output = [f"📄 Análisis de: {path.name}\n"]
+            # Use DuckDB for analysis
+            output = [f"Analysis of: {path.name}\n"]
 
-            # Contar filas
+            # Count rows
             count = self.duckdb.execute(f"SELECT COUNT(*) FROM '{csv_path}'").fetchone()[0]
-            output.append(f"Total filas: {count:,}")
+            output.append(f"Total rows: {count:,}")
 
-            # Obtener schema
+            # Get schema
             schema = self.duckdb.execute(f"DESCRIBE SELECT * FROM '{csv_path}'").fetchdf()
 
-            output.append(f"Columnas: {len(schema)}\n")
-            output.append("Estructura:")
+            output.append(f"Columns: {len(schema)}\n")
+            output.append("Structure:")
 
             for _, row in schema.iterrows():
-                output.append(f"  • {row['column_name']}: {row['column_type']}")
+                output.append(f"  - {row['column_name']}: {row['column_type']}")
 
-            # Estadísticas básicas para columnas numéricas
-            output.append("\nEstadísticas (columnas numéricas):")
+            # Basic statistics for numeric columns
+            output.append("\nStatistics (numeric columns):")
             try:
                 stats = self.duckdb.execute(
                     f"SELECT * FROM (SUMMARIZE SELECT * FROM '{csv_path}')"
@@ -265,94 +265,92 @@ class SQLSkill(Skill):
             return "\n".join(output)
 
         except Exception as e:
-            return f"Error describiendo CSV: {e}"
+            return f"Error describing CSV: {e}"
 
     def import_csv_to_db(self, csv_path: str, table_name: str) -> str:
-        """Importa un CSV a una tabla persistente."""
+        """Import a CSV to a persistent table."""
         try:
             if self.duckdb is None:
-                return "Error: DuckDB no instalado"
+                return "Error: DuckDB not installed"
 
             path = Path(csv_path)
             if not path.exists():
-                return f"Error: CSV no encontrado: {csv_path}"
+                return f"Error: CSV not found: {csv_path}"
 
-            # Crear tabla desde CSV
+            # Create table from CSV
             self.duckdb.execute(
                 f"CREATE OR REPLACE TABLE {table_name} AS SELECT * FROM '{csv_path}'"
             )
 
-            # Contar filas importadas
+            # Count imported rows
             count = self.duckdb.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
 
-            return f"✅ Importado: {count:,} filas a tabla '{table_name}'"
+            return f"Imported: {count:,} rows to table '{table_name}'"
 
         except Exception as e:
-            return f"Error importando CSV: {e}"
+            return f"Error importing CSV: {e}"
 
     def list_tables(self) -> str:
-        """Lista las tablas en la base de datos."""
+        """List tables in the database."""
         try:
             if self.duckdb is None:
-                return "Error: DuckDB no instalado"
+                return "Error: DuckDB not installed"
 
             tables = self.duckdb.execute("SHOW TABLES").fetchdf()
 
             if len(tables) == 0:
-                return (
-                    "No hay tablas en la base de datos.\nUsa import_csv_to_db para importar datos."
-                )
+                return "No tables in the database.\nUse import_csv_to_db to import data."
 
-            output = ["📊 Tablas disponibles:\n"]
+            output = ["Available tables:\n"]
 
             for _, row in tables.iterrows():
                 table_name = row["name"]
                 try:
                     count = self.duckdb.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-                    output.append(f"  • {table_name} ({count:,} filas)")
+                    output.append(f"  - {table_name} ({count:,} rows)")
                 except Exception:
-                    output.append(f"  • {table_name}")
+                    output.append(f"  - {table_name}")
 
             return "\n".join(output)
 
         except Exception as e:
-            return f"Error listando tablas: {e}"
+            return f"Error listing tables: {e}"
 
     def describe_table(self, table_name: str) -> str:
-        """Describe la estructura de una tabla."""
+        """Describe the structure of a table."""
         try:
             if self.duckdb is None:
-                return "Error: DuckDB no instalado"
+                return "Error: DuckDB not installed"
 
-            # Verificar que existe
+            # Verify it exists
             tables = self.duckdb.execute("SHOW TABLES").fetchdf()
             if table_name not in tables["name"].values:
-                return f"Error: Tabla no encontrada: {table_name}"
+                return f"Error: Table not found: {table_name}"
 
             schema = self.duckdb.execute(f"DESCRIBE {table_name}").fetchdf()
 
-            output = [f"📊 Estructura de: {table_name}\n"]
+            output = [f"Structure of: {table_name}\n"]
 
             for _, row in schema.iterrows():
                 nullable = "NULL" if row["null"] == "YES" else "NOT NULL"
-                output.append(f"  • {row['column_name']}: {row['column_type']} {nullable}")
+                output.append(f"  - {row['column_name']}: {row['column_type']} {nullable}")
 
-            # Contar filas
+            # Count rows
             count = self.duckdb.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-            output.append(f"\nTotal filas: {count:,}")
+            output.append(f"\nTotal rows: {count:,}")
 
             # Preview
             preview = self.duckdb.execute(f"SELECT * FROM {table_name} LIMIT 5").fetchdf()
-            output.append("\nPreview (5 filas):")
+            output.append("\nPreview (5 rows):")
             output.append(preview.to_string(index=False))
 
             return "\n".join(output)
 
         except Exception as e:
-            return f"Error describiendo tabla: {e}"
+            return f"Error describing table: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         query = kwargs.get("query", "")
         csv_path = kwargs.get("csv")
 

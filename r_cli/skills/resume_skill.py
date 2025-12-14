@@ -1,11 +1,11 @@
 """
-Skill de resumen de documentos para R CLI.
+Document Summarization Skill for R CLI.
 
-Funcionalidades:
-- Resumir documentos largos (PDFs, texto)
-- Resumen iterativo/jerárquico para docs muy largos
-- Extracción de puntos clave
-- Generación de flashcards para estudio
+Features:
+- Summarize long documents (PDFs, text)
+- Iterative/hierarchical summarization for very long docs
+- Key points extraction
+- Study flashcards generation
 """
 
 from pathlib import Path
@@ -15,35 +15,35 @@ from r_cli.core.llm import Tool
 
 
 class ResumeSkill(Skill):
-    """Skill para resumir documentos largos."""
+    """Skill for summarizing long documents."""
 
     name = "resume"
     description = "Summarize long documents, extract key points, generate flashcards"
 
-    # Configuración de chunking
-    CHUNK_SIZE = 3000  # caracteres por chunk
+    # Chunking configuration
+    CHUNK_SIZE = 3000  # characters per chunk
     CHUNK_OVERLAP = 200
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
                 name="summarize_text",
-                description="Resume un texto largo",
+                description="Summarize a long text",
                 parameters={
                     "type": "object",
                     "properties": {
                         "text": {
                             "type": "string",
-                            "description": "Texto a resumir",
+                            "description": "Text to summarize",
                         },
                         "style": {
                             "type": "string",
                             "enum": ["concise", "detailed", "bullets", "academic"],
-                            "description": "Estilo del resumen",
+                            "description": "Summary style",
                         },
                         "max_length": {
                             "type": "integer",
-                            "description": "Longitud máxima del resumen en palabras",
+                            "description": "Maximum summary length in words",
                         },
                     },
                     "required": ["text"],
@@ -52,18 +52,18 @@ class ResumeSkill(Skill):
             ),
             Tool(
                 name="summarize_file",
-                description="Resume un archivo de texto o PDF",
+                description="Summarize a text file or PDF",
                 parameters={
                     "type": "object",
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Ruta al archivo a resumir",
+                            "description": "Path to the file to summarize",
                         },
                         "style": {
                             "type": "string",
                             "enum": ["concise", "detailed", "bullets", "academic"],
-                            "description": "Estilo del resumen",
+                            "description": "Summary style",
                         },
                     },
                     "required": ["file_path"],
@@ -72,17 +72,17 @@ class ResumeSkill(Skill):
             ),
             Tool(
                 name="extract_key_points",
-                description="Extrae los puntos clave de un texto",
+                description="Extract key points from a text",
                 parameters={
                     "type": "object",
                     "properties": {
                         "text": {
                             "type": "string",
-                            "description": "Texto del cual extraer puntos clave",
+                            "description": "Text from which to extract key points",
                         },
                         "num_points": {
                             "type": "integer",
-                            "description": "Número de puntos a extraer (default: 10)",
+                            "description": "Number of points to extract (default: 10)",
                         },
                     },
                     "required": ["text"],
@@ -91,22 +91,22 @@ class ResumeSkill(Skill):
             ),
             Tool(
                 name="generate_flashcards",
-                description="Genera flashcards de estudio desde un texto",
+                description="Generate study flashcards from a text",
                 parameters={
                     "type": "object",
                     "properties": {
                         "text": {
                             "type": "string",
-                            "description": "Texto del cual generar flashcards",
+                            "description": "Text from which to generate flashcards",
                         },
                         "num_cards": {
                             "type": "integer",
-                            "description": "Número de flashcards (default: 20)",
+                            "description": "Number of flashcards (default: 20)",
                         },
                         "format": {
                             "type": "string",
                             "enum": ["text", "anki", "csv"],
-                            "description": "Formato de salida",
+                            "description": "Output format",
                         },
                     },
                     "required": ["text"],
@@ -115,17 +115,17 @@ class ResumeSkill(Skill):
             ),
             Tool(
                 name="compare_texts",
-                description="Compara dos textos y muestra diferencias/similitudes",
+                description="Compare two texts and show differences/similarities",
                 parameters={
                     "type": "object",
                     "properties": {
                         "text1": {
                             "type": "string",
-                            "description": "Primer texto",
+                            "description": "First text",
                         },
                         "text2": {
                             "type": "string",
-                            "description": "Segundo texto",
+                            "description": "Second text",
                         },
                     },
                     "required": ["text1", "text2"],
@@ -141,56 +141,56 @@ class ResumeSkill(Skill):
         max_length: int = 500,
     ) -> str:
         """
-        Resume un texto.
+        Summarize a text.
 
-        Para textos muy largos, usa resumen iterativo:
-        1. Divide en chunks
-        2. Resume cada chunk
-        3. Resume los resúmenes
+        For very long texts, uses iterative summarization:
+        1. Split into chunks
+        2. Summarize each chunk
+        3. Summarize the summaries
         """
         try:
-            # Si el texto es corto, resumen directo
+            # If text is short, direct summarization
             if len(text) < self.CHUNK_SIZE * 2:
                 return self._generate_summary(text, style, max_length)
 
-            # Resumen iterativo para textos largos
+            # Iterative summarization for long texts
             chunks = self._split_into_chunks(text)
 
-            # Primera pasada: resumir cada chunk
+            # First pass: summarize each chunk
             chunk_summaries = []
             for i, chunk in enumerate(chunks):
                 summary = self._generate_summary(chunk, "concise", max_length // len(chunks))
-                chunk_summaries.append(f"[Sección {i + 1}] {summary}")
+                chunk_summaries.append(f"[Section {i + 1}] {summary}")
 
-            # Segunda pasada: resumir los resúmenes
+            # Second pass: summarize the summaries
             combined = "\n\n".join(chunk_summaries)
 
             if len(combined) > self.CHUNK_SIZE * 2:
-                # Necesita otra pasada
+                # Needs another pass
                 return self._generate_summary(combined, style, max_length)
             else:
                 final_summary = self._generate_summary(combined, style, max_length)
-                return f"📝 Resumen ({len(chunks)} secciones procesadas):\n\n{final_summary}"
+                return f"Summary ({len(chunks)} sections processed):\n\n{final_summary}"
 
         except Exception as e:
-            return f"Error resumiendo texto: {e}"
+            return f"Error summarizing text: {e}"
 
     def _split_into_chunks(self, text: str) -> list[str]:
-        """Divide texto en chunks con overlap."""
+        """Split text into chunks with overlap."""
         chunks = []
         start = 0
 
         while start < len(text):
             end = start + self.CHUNK_SIZE
 
-            # Intentar cortar en un punto o párrafo
+            # Try to cut at a period or paragraph
             if end < len(text):
-                # Buscar fin de párrafo
+                # Find end of paragraph
                 paragraph_end = text.rfind("\n\n", start, end)
                 if paragraph_end > start + self.CHUNK_SIZE // 2:
                     end = paragraph_end + 2
                 else:
-                    # Buscar fin de oración
+                    # Find end of sentence
                     sentence_end = text.rfind(". ", start, end)
                     if sentence_end > start + self.CHUNK_SIZE // 2:
                         end = sentence_end + 2
@@ -205,25 +205,25 @@ class ResumeSkill(Skill):
 
     def _generate_summary(self, text: str, style: str, max_length: int) -> str:
         """
-        Genera resumen usando el LLM.
+        Generate summary using the LLM.
 
-        Nota: En una implementación real, esto llamaría al LLM.
-        Por ahora retorna un resumen básico para demostración.
+        Note: In a real implementation, this would call the LLM.
+        For now returns a basic summary for demonstration.
         """
-        # Placeholder: En la versión completa, esto llama al LLM
-        # Por ahora, hacemos un resumen extractivo simple
+        # Placeholder: In the full version, this calls the LLM
+        # For now, we do a simple extractive summary
 
         sentences = text.replace("\n", " ").split(". ")
         sentences = [s.strip() for s in sentences if len(s.strip()) > 20]
 
         if style == "bullets":
-            # Top sentences como bullets
+            # Top sentences as bullets
             top_n = min(10, len(sentences))
             bullets = ["• " + s for s in sentences[:top_n]]
             return "\n".join(bullets)
 
         elif style == "concise":
-            # Primeras y últimas oraciones
+            # First and last sentences
             if len(sentences) <= 5:
                 return ". ".join(sentences) + "."
             else:
@@ -231,12 +231,12 @@ class ResumeSkill(Skill):
                 return ". ".join(summary)
 
         elif style == "detailed":
-            # Más oraciones
+            # More sentences
             top_n = min(15, len(sentences))
             return ". ".join(sentences[:top_n]) + "."
 
         else:  # academic
-            # Estructura: intro, puntos principales, conclusión
+            # Structure: intro, main points, conclusion
             if len(sentences) < 6:
                 return ". ".join(sentences) + "."
 
@@ -245,41 +245,41 @@ class ResumeSkill(Skill):
             conclusion = sentences[-1]
 
             return (
-                f"{intro}.\n\nPuntos principales:\n"
+                f"{intro}.\n\nMain points:\n"
                 + "\n".join([f"• {p}" for p in main_points])
-                + f"\n\nConclusión: {conclusion}."
+                + f"\n\nConclusion: {conclusion}."
             )
 
     def summarize_file(self, file_path: str, style: str = "concise") -> str:
-        """Resume un archivo."""
+        """Summarize a file."""
         try:
             path = Path(file_path)
 
             if not path.exists():
-                return f"Error: Archivo no encontrado: {file_path}"
+                return f"Error: File not found: {file_path}"
 
-            # Leer contenido según tipo
+            # Read content based on type
             if path.suffix.lower() == ".pdf":
                 text = self._extract_pdf_text(path)
             elif path.suffix.lower() in [".txt", ".md", ".rst"]:
                 with open(path, encoding="utf-8", errors="replace") as f:
                     text = f.read()
             else:
-                # Intentar leer como texto
+                # Try to read as text
                 try:
                     with open(path, encoding="utf-8", errors="replace") as f:
                         text = f.read()
                 except Exception:
-                    return f"Error: No se puede leer el archivo: {file_path}"
+                    return f"Error: Cannot read file: {file_path}"
 
             if not text.strip():
-                return "Error: El archivo está vacío o no se pudo extraer texto."
+                return "Error: File is empty or text could not be extracted."
 
-            # Agregar info del archivo
+            # Add file info
             result = [
-                f"📄 Resumen de: {path.name}",
-                f"   Size: {len(text):,} caracteres",
-                f"   Palabras: ~{len(text.split()):,}",
+                f"Summary of: {path.name}",
+                f"   Size: {len(text):,} characters",
+                f"   Words: ~{len(text.split()):,}",
                 "",
             ]
 
@@ -289,10 +289,10 @@ class ResumeSkill(Skill):
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error resumiendo archivo: {e}"
+            return f"Error summarizing file: {e}"
 
     def _extract_pdf_text(self, pdf_path: Path) -> str:
-        """Extrae texto de un PDF."""
+        """Extract text from a PDF."""
         try:
             from pypdf import PdfReader
 
@@ -307,47 +307,44 @@ class ResumeSkill(Skill):
             return "\n\n".join(text_parts)
 
         except ImportError:
-            return "Error: pypdf no instalado. Ejecuta: pip install pypdf"
+            return "Error: pypdf not installed. Run: pip install pypdf"
         except Exception as e:
-            return f"Error extrayendo PDF: {e}"
+            return f"Error extracting PDF: {e}"
 
     def extract_key_points(self, text: str, num_points: int = 10) -> str:
-        """Extrae puntos clave del texto."""
+        """Extract key points from text."""
         try:
-            # Dividir en oraciones
+            # Split into sentences
             sentences = text.replace("\n", " ").split(". ")
             sentences = [s.strip() + "." for s in sentences if len(s.strip()) > 30]
 
             if len(sentences) == 0:
-                return "No se encontraron puntos clave."
+                return "No key points found."
 
-            # Seleccionar las oraciones más "importantes"
-            # (simplificación: las más largas y diversas)
+            # Select the most "important" sentences
+            # (simplification: the longest and most diverse)
             scored = []
             for s in sentences:
-                # Score basado en longitud y presencia de palabras clave
+                # Score based on length and presence of keywords
                 score = len(s.split())
-                if any(
-                    kw in s.lower()
-                    for kw in ["importante", "clave", "principal", "debe", "necesario"]
-                ):
+                if any(kw in s.lower() for kw in ["important", "key", "main", "must", "necessary"]):
                     score *= 1.5
-                if any(kw in s.lower() for kw in ["primero", "segundo", "finalmente", "además"]):
+                if any(kw in s.lower() for kw in ["first", "second", "finally", "also"]):
                     score *= 1.3
                 scored.append((score, s))
 
-            # Ordenar por score y tomar los top
+            # Sort by score and take the top
             scored.sort(reverse=True, key=lambda x: x[0])
             top_points = [s for _, s in scored[:num_points]]
 
-            result = [f"🔑 {num_points} Puntos Clave:\n"]
+            result = [f"{num_points} Key Points:\n"]
             for i, point in enumerate(top_points, 1):
                 result.append(f"{i}. {point}")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error extrayendo puntos clave: {e}"
+            return f"Error extracting key points: {e}"
 
     def generate_flashcards(
         self,
@@ -355,22 +352,22 @@ class ResumeSkill(Skill):
         num_cards: int = 20,
         format: str = "text",
     ) -> str:
-        """Genera flashcards para estudio."""
+        """Generate flashcards for study."""
         try:
-            # Extraer oraciones con información factual
+            # Extract sentences with factual information
             sentences = text.replace("\n", " ").split(". ")
             sentences = [s.strip() for s in sentences if len(s.strip()) > 40]
 
             if len(sentences) < 5:
-                return "Error: Texto muy corto para generar flashcards."
+                return "Error: Text too short to generate flashcards."
 
             cards = []
 
             for i, sentence in enumerate(sentences[:num_cards]):
-                # Crear pregunta simple (placeholder - el LLM haría esto mejor)
+                # Create simple question (placeholder - LLM would do this better)
                 words = sentence.split()
                 if len(words) > 5:
-                    # Ocultar una parte clave
+                    # Hide a key part
                     mid = len(words) // 2
                     question_words = words[:mid] + ["___"] + words[mid + 2 :]
                     answer = " ".join(words[mid : mid + 2])
@@ -379,24 +376,24 @@ class ResumeSkill(Skill):
                     cards.append({"q": question, "a": answer, "full": sentence})
 
             if not cards:
-                return "No se pudieron generar flashcards."
+                return "Could not generate flashcards."
 
-            # Formatear salida
+            # Format output
             if format == "csv":
-                output = ["pregunta,respuesta"]
+                output = ["question,answer"]
                 for card in cards:
                     output.append(f'"{card["q"]}","{card["a"]}"')
                 return "\n".join(output)
 
             elif format == "anki":
-                # Formato tab-separated para Anki
+                # Tab-separated format for Anki
                 output = []
                 for card in cards:
                     output.append(f"{card['q']}\t{card['a']}")
                 return "\n".join(output)
 
             else:  # text
-                output = [f"📚 {len(cards)} Flashcards Generadas:\n"]
+                output = [f"{len(cards)} Flashcards Generated:\n"]
                 for i, card in enumerate(cards, 1):
                     output.append(f"Card {i}:")
                     output.append(f"  Q: {card['q']}")
@@ -405,12 +402,12 @@ class ResumeSkill(Skill):
                 return "\n".join(output)
 
         except Exception as e:
-            return f"Error generando flashcards: {e}"
+            return f"Error generating flashcards: {e}"
 
     def compare_texts(self, text1: str, text2: str) -> str:
-        """Compara dos textos."""
+        """Compare two texts."""
         try:
-            # Estadísticas básicas
+            # Basic statistics
             words1 = set(text1.lower().split())
             words2 = set(text2.lower().split())
 
@@ -421,33 +418,33 @@ class ResumeSkill(Skill):
             similarity = len(common) / max(len(words1 | words2), 1) * 100
 
             result = [
-                "📊 Comparación de Textos:",
+                "Text Comparison:",
                 "",
-                f"Texto 1: {len(text1):,} caracteres, {len(words1):,} palabras únicas",
-                f"Texto 2: {len(text2):,} caracteres, {len(words2):,} palabras únicas",
+                f"Text 1: {len(text1):,} characters, {len(words1):,} unique words",
+                f"Text 2: {len(text2):,} characters, {len(words2):,} unique words",
                 "",
-                f"Similitud (Jaccard): {similarity:.1f}%",
-                f"Palabras en común: {len(common):,}",
-                f"Solo en texto 1: {len(only1):,}",
-                f"Solo en texto 2: {len(only2):,}",
+                f"Similarity (Jaccard): {similarity:.1f}%",
+                f"Words in common: {len(common):,}",
+                f"Only in text 1: {len(only1):,}",
+                f"Only in text 2: {len(only2):,}",
             ]
 
-            # Mostrar algunas palabras únicas
+            # Show some unique words
             if only1:
                 sample1 = list(only1)[:10]
-                result.append(f"\nPalabras únicas texto 1: {', '.join(sample1)}...")
+                result.append(f"\nUnique words text 1: {', '.join(sample1)}...")
 
             if only2:
                 sample2 = list(only2)[:10]
-                result.append(f"Palabras únicas texto 2: {', '.join(sample2)}...")
+                result.append(f"Unique words text 2: {', '.join(sample2)}...")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error comparando textos: {e}"
+            return f"Error comparing texts: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         text = kwargs.get("text", "")
         file_path = kwargs.get("file")
 
@@ -456,4 +453,4 @@ class ResumeSkill(Skill):
         elif text:
             return self.summarize_text(text, kwargs.get("style", "concise"))
         else:
-            return "Error: Se requiere texto o archivo para resumir"
+            return "Error: Text or file required for summarization"

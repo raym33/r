@@ -1,13 +1,13 @@
 """
-Skill de OCR para R CLI.
+OCR Skill for R CLI.
 
-Extrae texto de:
+Extract text from:
 - Images (PNG, JPG, etc.)
-- PDFs escaneados
-- Capturas de pantalla
-- Documentos fotografiados
+- Scanned PDFs
+- Screenshots
+- Photographed documents
 
-Usa Tesseract OCR (open source, offline).
+Uses Tesseract OCR (open source, offline).
 """
 
 import shutil
@@ -21,12 +21,12 @@ from r_cli.core.llm import Tool
 
 
 class OCRSkill(Skill):
-    """Skill para extracción de texto con OCR."""
+    """Skill for text extraction with OCR."""
 
     name = "ocr"
     description = "Extract text from images and scanned PDFs using Tesseract OCR"
 
-    # Idiomas soportados por Tesseract
+    # Languages supported by Tesseract
     LANGUAGES = {
         "eng": "English",
         "spa": "Spanish",
@@ -47,32 +47,32 @@ class OCRSkill(Skill):
         self._tesseract_available = self._check_tesseract()
 
     def _check_tesseract(self) -> bool:
-        """Verifica si Tesseract está instalado."""
+        """Check if Tesseract is installed."""
         return shutil.which("tesseract") is not None
 
     def _check_poppler(self) -> bool:
-        """Verifica si Poppler (pdftoppm) está instalado para PDFs."""
+        """Check if Poppler (pdftoppm) is installed for PDFs."""
         return shutil.which("pdftoppm") is not None
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
                 name="extract_text_from_image",
-                description="Extrae texto de una imagen usando OCR",
+                description="Extract text from an image using OCR",
                 parameters={
                     "type": "object",
                     "properties": {
                         "image_path": {
                             "type": "string",
-                            "description": "Ruta a la imagen (PNG, JPG, TIFF, etc.)",
+                            "description": "Path to the image (PNG, JPG, TIFF, etc.)",
                         },
                         "language": {
                             "type": "string",
-                            "description": "Idioma del texto (eng, spa, fra, deu, etc.)",
+                            "description": "Text language (eng, spa, fra, deu, etc.)",
                         },
                         "output_file": {
                             "type": "string",
-                            "description": "Ruta para guardar el texto extraído (opcional)",
+                            "description": "Path to save extracted text (optional)",
                         },
                     },
                     "required": ["image_path"],
@@ -81,25 +81,25 @@ class OCRSkill(Skill):
             ),
             Tool(
                 name="extract_text_from_pdf",
-                description="Extrae texto de un PDF (incluyendo escaneados)",
+                description="Extract text from a PDF (including scanned)",
                 parameters={
                     "type": "object",
                     "properties": {
                         "pdf_path": {
                             "type": "string",
-                            "description": "Ruta al archivo PDF",
+                            "description": "Path to the PDF file",
                         },
                         "language": {
                             "type": "string",
-                            "description": "Idioma del texto (eng, spa, fra, etc.)",
+                            "description": "Text language (eng, spa, fra, etc.)",
                         },
                         "pages": {
                             "type": "string",
-                            "description": "Páginas a procesar (ej: '1-5', 'all')",
+                            "description": "Pages to process (e.g., '1-5', 'all')",
                         },
                         "output_file": {
                             "type": "string",
-                            "description": "Ruta para guardar el texto extraído",
+                            "description": "Path to save extracted text",
                         },
                     },
                     "required": ["pdf_path"],
@@ -108,21 +108,21 @@ class OCRSkill(Skill):
             ),
             Tool(
                 name="ocr_to_searchable_pdf",
-                description="Convierte un PDF escaneado a PDF con texto seleccionable",
+                description="Convert a scanned PDF to PDF with selectable text",
                 parameters={
                     "type": "object",
                     "properties": {
                         "pdf_path": {
                             "type": "string",
-                            "description": "Ruta al PDF escaneado",
+                            "description": "Path to the scanned PDF",
                         },
                         "language": {
                             "type": "string",
-                            "description": "Idioma del texto",
+                            "description": "Text language",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta para el PDF de salida",
+                            "description": "Path for the output PDF",
                         },
                     },
                     "required": ["pdf_path"],
@@ -131,25 +131,25 @@ class OCRSkill(Skill):
             ),
             Tool(
                 name="batch_ocr",
-                description="Procesa múltiples imágenes en un directorio",
+                description="Process multiple images in a directory",
                 parameters={
                     "type": "object",
                     "properties": {
                         "directory": {
                             "type": "string",
-                            "description": "Directorio con imágenes",
+                            "description": "Directory with images",
                         },
                         "pattern": {
                             "type": "string",
-                            "description": "Patrón de files (ej: *.png, *.jpg)",
+                            "description": "File pattern (e.g., *.png, *.jpg)",
                         },
                         "language": {
                             "type": "string",
-                            "description": "Idioma del texto",
+                            "description": "Text language",
                         },
                         "output_file": {
                             "type": "string",
-                            "description": "Archivo donde concatenar todo el texto",
+                            "description": "File to concatenate all text",
                         },
                     },
                     "required": ["directory"],
@@ -158,7 +158,7 @@ class OCRSkill(Skill):
             ),
             Tool(
                 name="list_ocr_languages",
-                description="Lista los idiomas disponibles para OCR",
+                description="List available languages for OCR",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_languages,
             ),
@@ -170,7 +170,7 @@ class OCRSkill(Skill):
         language: str = "eng",
         output_file: Optional[str] = None,
     ) -> str:
-        """Extrae texto de una imagen."""
+        """Extract text from an image."""
         if not self._tesseract_available:
             return self._install_instructions()
 
@@ -178,14 +178,14 @@ class OCRSkill(Skill):
             path = Path(image_path)
 
             if not path.exists():
-                return f"Error: Imagen no encontrada: {image_path}"
+                return f"Error: Image not found: {image_path}"
 
-            # Verificar formato
+            # Check format
             valid_extensions = [".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif", ".webp"]
             if path.suffix.lower() not in valid_extensions:
-                return f"Error: Formato no soportado. Use: {', '.join(valid_extensions)}"
+                return f"Error: Unsupported format. Use: {', '.join(valid_extensions)}"
 
-            # Ejecutar Tesseract
+            # Run Tesseract
             result = subprocess.run(
                 [
                     "tesseract",
@@ -203,30 +203,30 @@ class OCRSkill(Skill):
             )
 
             if result.returncode != 0:
-                error = result.stderr or "Error desconocido"
+                error = result.stderr or "Unknown error"
                 if "Tesseract couldn't load any languages" in error:
-                    return f"Error: Idioma '{language}' no instalado. Ejecuta: brew install tesseract-lang"
-                return f"Error en OCR: {error}"
+                    return f"Error: Language '{language}' not installed. Run: brew install tesseract-lang"
+                return f"OCR error: {error}"
 
             text = result.stdout.strip()
 
             if not text:
-                return "No se detectó texto en la imagen."
+                return "No text detected in the image."
 
-            # Guardar a archivo si se especifica
+            # Save to file if specified
             if output_file:
                 out_path = Path(output_file)
                 out_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(out_path, "w", encoding="utf-8") as f:
                     f.write(text)
-                return f"Texto extraido y guardado en: {out_path}\n\n{text[:1000]}{'...' if len(text) > 1000 else ''}"
+                return f"Text extracted and saved to: {out_path}\n\n{text[:1000]}{'...' if len(text) > 1000 else ''}"
 
-            return f"Texto extraido ({len(text)} caracteres):\n\n{text}"
+            return f"Text extracted ({len(text)} characters):\n\n{text}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout procesando imagen (>120s)"
+            return "Error: Timeout processing image (>120s)"
         except Exception as e:
-            return f"Error en OCR: {e}"
+            return f"OCR error: {e}"
 
     def extract_from_pdf(
         self,
@@ -235,7 +235,7 @@ class OCRSkill(Skill):
         pages: str = "all",
         output_file: Optional[str] = None,
     ) -> str:
-        """Extrae texto de un PDF."""
+        """Extract text from a PDF."""
         if not self._tesseract_available:
             return self._install_instructions()
 
@@ -243,30 +243,30 @@ class OCRSkill(Skill):
             path = Path(pdf_path)
 
             if not path.exists():
-                return f"Error: PDF no encontrado: {pdf_path}"
+                return f"Error: PDF not found: {pdf_path}"
 
-            # Primero intentar extracción directa (para PDFs con texto)
+            # First try direct extraction (for PDFs with text)
             direct_text = self._extract_pdf_text_direct(path)
             if direct_text and len(direct_text.strip()) > 100:
                 if output_file:
                     Path(output_file).write_text(direct_text)
-                    return f"Texto extraido directamente y guardado en: {output_file}"
-                return f"Texto extraido directamente ({len(direct_text)} chars):\n\n{direct_text[:2000]}..."
+                    return f"Text extracted directly and saved to: {output_file}"
+                return f"Text extracted directly ({len(direct_text)} chars):\n\n{direct_text[:2000]}..."
 
-            # Si no hay texto, usar OCR
+            # If no text, use OCR
             if not self._check_poppler():
-                return "Error: Poppler no instalado. Necesario para PDFs escaneados.\nInstala: brew install poppler"
+                return "Error: Poppler not installed. Required for scanned PDFs.\nInstall: brew install poppler"
 
             all_text = []
 
             with tempfile.TemporaryDirectory() as tmpdir:
-                # Convertir PDF a imágenes
+                # Convert PDF to images
                 subprocess.run(
                     [
                         "pdftoppm",
                         "-png",
                         "-r",
-                        "300",  # 300 DPI para mejor OCR
+                        "300",  # 300 DPI for better OCR
                         str(path),
                         f"{tmpdir}/page",
                     ],
@@ -275,11 +275,11 @@ class OCRSkill(Skill):
                     timeout=300,
                 )
 
-                # Procesar cada página
+                # Process each page
                 page_images = sorted(Path(tmpdir).glob("page-*.png"))
 
                 if not page_images:
-                    return "Error: No se pudieron extraer páginas del PDF"
+                    return "Error: Could not extract pages from PDF"
 
                 for i, img_path in enumerate(page_images, 1):
                     result = subprocess.run(
@@ -297,28 +297,26 @@ class OCRSkill(Skill):
                     )
 
                     if result.stdout.strip():
-                        all_text.append(f"--- Pagina {i} ---\n{result.stdout.strip()}")
+                        all_text.append(f"--- Page {i} ---\n{result.stdout.strip()}")
 
             if not all_text:
-                return "No se detectó texto en el PDF."
+                return "No text detected in the PDF."
 
             full_text = "\n\n".join(all_text)
 
             if output_file:
                 Path(output_file).write_text(full_text)
-                return (
-                    f"Texto OCR extraido de {len(page_images)} paginas. Guardado en: {output_file}"
-                )
+                return f"OCR text extracted from {len(page_images)} pages. Saved to: {output_file}"
 
-            return f"Texto OCR ({len(page_images)} paginas, {len(full_text)} chars):\n\n{full_text[:3000]}..."
+            return f"OCR text ({len(page_images)} pages, {len(full_text)} chars):\n\n{full_text[:3000]}..."
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout procesando PDF"
+            return "Error: Timeout processing PDF"
         except Exception as e:
-            return f"Error procesando PDF: {e}"
+            return f"Error processing PDF: {e}"
 
     def _extract_pdf_text_direct(self, pdf_path: Path) -> str:
-        """Intenta extraer texto directamente del PDF (sin OCR)."""
+        """Try to extract text directly from PDF (without OCR)."""
         try:
             from pypdf import PdfReader
 
@@ -340,7 +338,7 @@ class OCRSkill(Skill):
         language: str = "eng",
         output_path: Optional[str] = None,
     ) -> str:
-        """Crea un PDF con capa de texto seleccionable."""
+        """Create a PDF with selectable text layer."""
         if not self._tesseract_available:
             return self._install_instructions()
 
@@ -348,17 +346,17 @@ class OCRSkill(Skill):
             path = Path(pdf_path)
 
             if not path.exists():
-                return f"Error: PDF no encontrado: {pdf_path}"
+                return f"Error: PDF not found: {pdf_path}"
 
-            # Determinar salida
+            # Determine output
             if output_path:
                 out_path = Path(output_path)
             else:
                 out_path = path.with_stem(f"{path.stem}_searchable")
 
-            # Usar Tesseract para crear PDF con OCR
+            # Use Tesseract to create PDF with OCR
             with tempfile.TemporaryDirectory() as tmpdir:
-                # Convertir a imágenes primero
+                # Convert to images first
                 subprocess.run(
                     ["pdftoppm", "-png", "-r", "300", str(path), f"{tmpdir}/page"],
                     check=False,
@@ -369,9 +367,9 @@ class OCRSkill(Skill):
                 page_images = sorted(Path(tmpdir).glob("page-*.png"))
 
                 if not page_images:
-                    return "Error: No se pudieron extraer páginas"
+                    return "Error: Could not extract pages"
 
-                # Crear PDF con OCR para cada página
+                # Create PDF with OCR for each page
                 pdf_parts = []
                 for img in page_images:
                     pdf_out = img.with_suffix("")
@@ -390,10 +388,10 @@ class OCRSkill(Skill):
                     )
                     pdf_parts.append(f"{pdf_out}.pdf")
 
-                # Unir PDFs si hay múltiples
+                # Merge PDFs if multiple
                 if len(pdf_parts) == 1:
                     shutil.copy(pdf_parts[0], out_path)
-                # Usar pdfunite si está disponible
+                # Use pdfunite if available
                 elif shutil.which("pdfunite"):
                     subprocess.run(
                         ["pdfunite"] + pdf_parts + [str(out_path)],
@@ -401,14 +399,14 @@ class OCRSkill(Skill):
                         capture_output=True,
                     )
                 else:
-                    # Fallback: solo copiar primera página
+                    # Fallback: only copy first page
                     shutil.copy(pdf_parts[0], out_path)
-                    return f"PDF searchable creado (solo primera pagina, instala poppler-utils para unir): {out_path}"
+                    return f"Searchable PDF created (first page only, install poppler-utils to merge): {out_path}"
 
-            return f"PDF searchable creado: {out_path}"
+            return f"Searchable PDF created: {out_path}"
 
         except Exception as e:
-            return f"Error creando PDF searchable: {e}"
+            return f"Error creating searchable PDF: {e}"
 
     def batch_ocr(
         self,
@@ -417,7 +415,7 @@ class OCRSkill(Skill):
         language: str = "eng",
         output_file: Optional[str] = None,
     ) -> str:
-        """Procesa múltiples imágenes."""
+        """Process multiple images."""
         if not self._tesseract_available:
             return self._install_instructions()
 
@@ -425,12 +423,12 @@ class OCRSkill(Skill):
             dir_path = Path(directory)
 
             if not dir_path.exists():
-                return f"Error: Directorio no encontrado: {directory}"
+                return f"Error: Directory not found: {directory}"
 
             images = list(dir_path.glob(pattern))
 
             if not images:
-                return f"No se encontraron imagenes con patron '{pattern}' en {directory}"
+                return f"No images found with pattern '{pattern}' in {directory}"
 
             all_text = []
             processed = 0
@@ -458,31 +456,33 @@ class OCRSkill(Skill):
                     errors += 1
 
             if not all_text:
-                return f"No se extrajo texto de ninguna imagen ({errors} errores)"
+                return f"No text extracted from any image ({errors} errors)"
 
             full_text = "\n\n".join(all_text)
 
             if output_file:
                 Path(output_file).write_text(full_text)
-                return f"Procesadas {processed} imagenes ({errors} errores). Texto guardado en: {output_file}"
+                return (
+                    f"Processed {processed} images ({errors} errors). Text saved to: {output_file}"
+                )
 
-            return f"Procesadas {processed} imagenes ({errors} errores):\n\n{full_text[:3000]}..."
+            return f"Processed {processed} images ({errors} errors):\n\n{full_text[:3000]}..."
 
         except Exception as e:
-            return f"Error en batch OCR: {e}"
+            return f"Batch OCR error: {e}"
 
     def list_languages(self) -> str:
-        """Lista idiomas disponibles."""
-        result = ["Idiomas soportados por Tesseract OCR:\n"]
+        """List available languages."""
+        result = ["Languages supported by Tesseract OCR:\n"]
 
         for code, name in self.LANGUAGES.items():
             result.append(f"  - {code}: {name}")
 
-        result.append("\nNota: Algunos idiomas requieren instalación adicional.")
+        result.append("\nNote: Some languages require additional installation.")
         result.append("macOS: brew install tesseract-lang")
         result.append("Ubuntu: apt install tesseract-ocr-[lang]")
 
-        # Verificar idiomas instalados
+        # Check installed languages
         if self._tesseract_available:
             try:
                 installed = subprocess.run(
@@ -493,32 +493,32 @@ class OCRSkill(Skill):
                 )
                 if installed.returncode == 0:
                     langs = installed.stdout.strip().split("\n")[1:]  # Skip header
-                    result.append(f"\nInstalados en este sistema: {', '.join(langs)}")
+                    result.append(f"\nInstalled on this system: {', '.join(langs)}")
             except Exception:
                 pass
 
         return "\n".join(result)
 
     def _install_instructions(self) -> str:
-        """Instrucciones de instalación de Tesseract."""
-        return """Error: Tesseract OCR no está instalado.
+        """Tesseract installation instructions."""
+        return """Error: Tesseract OCR is not installed.
 
-Instrucciones de instalación:
+Installation instructions:
 
 macOS:
   brew install tesseract
-  brew install tesseract-lang  # Para más idiomas
+  brew install tesseract-lang  # For more languages
 
 Ubuntu/Debian:
   sudo apt install tesseract-ocr
-  sudo apt install tesseract-ocr-spa  # Español
+  sudo apt install tesseract-ocr-spa  # Spanish
 
 Windows:
-  Descarga de: https://github.com/UB-Mannheim/tesseract/wiki
+  Download from: https://github.com/UB-Mannheim/tesseract/wiki
 """
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         image = kwargs.get("image")
         pdf = kwargs.get("pdf")
         language = kwargs.get("language", "eng")
@@ -528,4 +528,4 @@ Windows:
         elif pdf:
             return self.extract_from_pdf(pdf, language, output_file=kwargs.get("output"))
         else:
-            return "Error: Se requiere una imagen o PDF para OCR"
+            return "Error: An image or PDF is required for OCR"

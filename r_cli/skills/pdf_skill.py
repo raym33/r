@@ -1,10 +1,10 @@
 """
-Skill de generación de PDF para R CLI.
+PDF Generation Skill for R CLI.
 
-Genera documentos PDF profesionales desde:
-- Texto plano
+Generate professional PDF documents from:
+- Plain text
 - Markdown
-- Templates predefinidos
+- Predefined templates
 """
 
 import os
@@ -18,10 +18,10 @@ from r_cli.core.llm import Tool
 
 
 def _find_unicode_font() -> Optional[str]:
-    """Busca una fuente Unicode disponible según el sistema operativo."""
+    """Find an available Unicode font based on operating system."""
     system = platform.system()
 
-    # Rutas de fuentes por sistema operativo
+    # Font paths by operating system
     font_paths = []
 
     if system == "Linux":
@@ -48,7 +48,7 @@ def _find_unicode_font() -> Optional[str]:
             str(windows_fonts / "tahoma.ttf"),
         ]
 
-    # Buscar primera fuente disponible
+    # Find first available font
     for font_path in font_paths:
         if os.path.exists(font_path):
             return font_path
@@ -57,12 +57,12 @@ def _find_unicode_font() -> Optional[str]:
 
 
 class PDFSkill(Skill):
-    """Skill para generar documentos PDF."""
+    """Skill for generating PDF documents."""
 
     name = "pdf"
     description = "Generate professional PDF documents from text or Markdown"
 
-    # Templates disponibles
+    # Available templates
     TEMPLATES = {
         "minimal": {
             "font_family": "Helvetica",
@@ -98,30 +98,30 @@ class PDFSkill(Skill):
         return [
             Tool(
                 name="generate_pdf",
-                description="Genera un documento PDF desde texto o Markdown",
+                description="Generate a PDF document from text or Markdown",
                 parameters={
                     "type": "object",
                     "properties": {
                         "content": {
                             "type": "string",
-                            "description": "Contenido del documento (texto o Markdown)",
+                            "description": "Document content (text or Markdown)",
                         },
                         "title": {
                             "type": "string",
-                            "description": "Título del documento",
+                            "description": "Document title",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el PDF (opcional)",
+                            "description": "Path to save the PDF (optional)",
                         },
                         "template": {
                             "type": "string",
                             "enum": ["minimal", "business", "academic", "report"],
-                            "description": "Plantilla de estilo (default: minimal)",
+                            "description": "Style template (default: minimal)",
                         },
                         "author": {
                             "type": "string",
-                            "description": "Autor del documento",
+                            "description": "Document author",
                         },
                     },
                     "required": ["content"],
@@ -130,22 +130,22 @@ class PDFSkill(Skill):
             ),
             Tool(
                 name="markdown_to_pdf",
-                description="Convierte un archivo Markdown existente a PDF",
+                description="Convert an existing Markdown file to PDF",
                 parameters={
                     "type": "object",
                     "properties": {
                         "input_path": {
                             "type": "string",
-                            "description": "Ruta del archivo Markdown",
+                            "description": "Path to the Markdown file",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta del PDF de salida (opcional)",
+                            "description": "Output PDF path (optional)",
                         },
                         "template": {
                             "type": "string",
                             "enum": ["minimal", "business", "academic", "report"],
-                            "description": "Plantilla de estilo",
+                            "description": "Style template",
                         },
                     },
                     "required": ["input_path"],
@@ -154,7 +154,7 @@ class PDFSkill(Skill):
             ),
             Tool(
                 name="list_pdf_templates",
-                description="Lista las plantillas de PDF disponibles",
+                description="List available PDF templates",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_templates,
             ),
@@ -168,45 +168,45 @@ class PDFSkill(Skill):
         template: str = "minimal",
         author: Optional[str] = None,
     ) -> str:
-        """Genera un PDF desde contenido de texto."""
+        """Generate a PDF from text content."""
         try:
             from fpdf import FPDF
             from fpdf.enums import XPos, YPos
 
-            # Configuración del template
+            # Template configuration
             tpl = self.TEMPLATES.get(template, self.TEMPLATES["minimal"])
 
-            # Crear PDF
+            # Create PDF
             pdf = FPDF()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.add_page()
 
-            # Agregar fuente Unicode para soporte de caracteres especiales
+            # Add Unicode font for special character support
             unicode_font = _find_unicode_font()
             if unicode_font and not unicode_font.endswith(".ttc"):
                 try:
                     pdf.add_font("Unicode", "", unicode_font, uni=True)
                 except Exception:
-                    pass  # Usar fuente por defecto si falla
+                    pass  # Use default font if it fails
 
-            # Configurar fuente
+            # Configure font
             pdf.set_font(tpl["font_family"], size=tpl["font_size"])
 
-            # Título
+            # Title
             if title:
                 pdf.set_font(tpl["font_family"], "B", size=tpl["font_size"] + 6)
                 pdf.cell(0, 15, title, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
                 pdf.ln(5)
                 pdf.set_font(tpl["font_family"], size=tpl["font_size"])
 
-            # Metadatos
+            # Metadata
             if author:
                 pdf.set_font(tpl["font_family"], "I", size=tpl["font_size"] - 1)
-                pdf.cell(0, 8, f"Autor: {author}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+                pdf.cell(0, 8, f"Author: {author}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
                 pdf.cell(
                     0,
                     8,
-                    f"Fecha: {datetime.now().strftime('%d/%m/%Y')}",
+                    f"Date: {datetime.now().strftime('%Y-%m-%d')}",
                     new_x=XPos.LMARGIN,
                     new_y=YPos.NEXT,
                     align="C",
@@ -214,7 +214,7 @@ class PDFSkill(Skill):
                 pdf.ln(10)
                 pdf.set_font(tpl["font_family"], size=tpl["font_size"])
 
-            # Procesar contenido (Markdown básico)
+            # Process content (basic Markdown)
             lines = content.split("\n")
             for line in lines:
                 line = line.strip()
@@ -223,7 +223,7 @@ class PDFSkill(Skill):
                     pdf.ln(5)
                     continue
 
-                # Headers Markdown
+                # Markdown headers
                 if line.startswith("# "):
                     pdf.set_font(tpl["font_family"], "B", size=tpl["font_size"] + 4)
                     pdf.ln(5)
@@ -242,30 +242,30 @@ class PDFSkill(Skill):
                     pdf.ln(1)
                     pdf.set_font(tpl["font_family"], size=tpl["font_size"])
                 elif line.startswith("- ") or line.startswith("* "):
-                    # Bullet point con indentación
+                    # Bullet point with indentation
                     pdf.multi_cell(0, 6, f"  - {line[2:]}")
                 elif line.startswith("```"):
-                    # Código: cambiar fuente
+                    # Code: change font
                     pdf.set_font("Courier", size=tpl["font_size"] - 1)
                 else:
-                    # Texto normal
-                    # Manejar **bold** básico
+                    # Normal text
+                    # Handle basic **bold**
                     if "**" in line:
-                        # Simplificación: quitar ** por ahora
+                        # Simplification: remove ** for now
                         line = line.replace("**", "")
                     pdf.multi_cell(0, 6, line)
 
-            # Footer con número de página
+            # Footer with page number
             if tpl["footer"]:
                 pdf.set_y(-15)
                 pdf.set_font(tpl["font_family"], "I", 8)
-                pdf.cell(0, 10, f"Página {pdf.page_no()}", align="C")
+                pdf.cell(0, 10, f"Page {pdf.page_no()}", align="C")
 
-            # Determinar ruta de salida
+            # Determine output path
             if output_path:
                 out_path = Path(output_path)
             else:
-                # Generar nombre basado en título o timestamp
+                # Generate name based on title or timestamp
                 filename = (
                     title.replace(" ", "_")[:30]
                     if title
@@ -273,18 +273,18 @@ class PDFSkill(Skill):
                 )
                 out_path = Path(self.output_dir) / f"{filename}.pdf"
 
-            # Crear directorio si no existe
+            # Create directory if it doesn't exist
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Guardar
+            # Save
             pdf.output(str(out_path))
 
-            return f"PDF generado exitosamente: {out_path}"
+            return f"PDF generated successfully: {out_path}"
 
         except ImportError:
-            return "Error: fpdf2 no instalado. Ejecuta: pip install fpdf2"
+            return "Error: fpdf2 not installed. Run: pip install fpdf2"
         except Exception as e:
-            return f"Error generando PDF: {e}"
+            return f"Error generating PDF: {e}"
 
     def markdown_to_pdf(
         self,
@@ -292,18 +292,18 @@ class PDFSkill(Skill):
         output_path: Optional[str] = None,
         template: str = "minimal",
     ) -> str:
-        """Convierte archivo Markdown a PDF."""
+        """Convert Markdown file to PDF."""
         try:
             input_file = Path(input_path)
 
             if not input_file.exists():
-                return f"Error: Archivo no encontrado: {input_path}"
+                return f"Error: File not found: {input_path}"
 
-            # Leer Markdown
+            # Read Markdown
             with open(input_file, encoding="utf-8") as f:
                 content = f.read()
 
-            # Extraer título del primer header si existe
+            # Extract title from first header if exists
             title = None
             lines = content.split("\n")
             for line in lines:
@@ -311,7 +311,7 @@ class PDFSkill(Skill):
                     title = line[2:].strip()
                     break
 
-            # Generar output path
+            # Generate output path
             if not output_path:
                 output_path = str(input_file.with_suffix(".pdf"))
 
@@ -323,26 +323,26 @@ class PDFSkill(Skill):
             )
 
         except Exception as e:
-            return f"Error convirtiendo Markdown: {e}"
+            return f"Error converting Markdown: {e}"
 
     def list_templates(self) -> str:
-        """Lista templates disponibles."""
-        result = ["📄 Templates de PDF disponibles:\n"]
+        """List available templates."""
+        result = ["Available PDF templates:\n"]
 
         for name, config in self.TEMPLATES.items():
-            result.append(f"  • {name}")
-            result.append(f"    Fuente: {config['font_family']}, {config['font_size']}pt")
-            result.append(f"    Header: {'Sí' if config['header'] else 'No'}")
+            result.append(f"  - {name}")
+            result.append(f"    Font: {config['font_family']}, {config['font_size']}pt")
+            result.append(f"    Header: {'Yes' if config['header'] else 'No'}")
             result.append("")
 
-        result.append("Uso: generate_pdf(content, template='business')")
+        result.append("Usage: generate_pdf(content, template='business')")
         return "\n".join(result)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         content = kwargs.get("content", "")
         if not content:
-            return "Error: Se requiere contenido para generar el PDF"
+            return "Error: Content is required to generate the PDF"
 
         return self.generate_pdf(
             content=content,

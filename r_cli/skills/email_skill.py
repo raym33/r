@@ -1,10 +1,10 @@
 """
-Skill de Email para R CLI.
+Email Skill for R CLI.
 
-Permite enviar emails:
-- Envío via SMTP
-- Soporte para adjuntos
-- Templates de email
+Send emails:
+- Send via SMTP
+- Attachment support
+- Email templates
 """
 
 import os
@@ -22,12 +22,12 @@ from r_cli.core.llm import Tool
 
 
 class EmailSkill(Skill):
-    """Skill para envío de emails via SMTP."""
+    """Skill for sending emails via SMTP."""
 
     name = "email"
     description = "Send emails via SMTP with attachment support"
 
-    # Configuración por defecto
+    # Default configuration
     DEFAULT_SMTP_PORT = 587
     DEFAULT_SMTP_SSL_PORT = 465
 
@@ -35,33 +35,33 @@ class EmailSkill(Skill):
         return [
             Tool(
                 name="send_email",
-                description="Envía un email via SMTP",
+                description="Send an email via SMTP",
                 parameters={
                     "type": "object",
                     "properties": {
                         "to": {
                             "type": "string",
-                            "description": "Destinatario(s) separados por coma",
+                            "description": "Recipient(s) separated by comma",
                         },
                         "subject": {
                             "type": "string",
-                            "description": "Asunto del email",
+                            "description": "Email subject",
                         },
                         "body": {
                             "type": "string",
-                            "description": "Cuerpo del mensaje",
+                            "description": "Message body",
                         },
                         "html": {
                             "type": "boolean",
-                            "description": "Si el cuerpo es HTML",
+                            "description": "Whether the body is HTML",
                         },
                         "attachments": {
                             "type": "string",
-                            "description": "Rutas de files adjuntos separadas por coma",
+                            "description": "Attachment file paths separated by comma",
                         },
                         "cc": {
                             "type": "string",
-                            "description": "Destinatarios en copia",
+                            "description": "CC recipients",
                         },
                     },
                     "required": ["to", "subject", "body"],
@@ -70,33 +70,33 @@ class EmailSkill(Skill):
             ),
             Tool(
                 name="email_config",
-                description="Muestra o configura los ajustes SMTP",
+                description="Show or configure SMTP settings",
                 parameters={
                     "type": "object",
                     "properties": {
                         "smtp_server": {
                             "type": "string",
-                            "description": "Servidor SMTP",
+                            "description": "SMTP server",
                         },
                         "smtp_port": {
                             "type": "integer",
-                            "description": "Puerto SMTP",
+                            "description": "SMTP port",
                         },
                         "username": {
                             "type": "string",
-                            "description": "Usuario SMTP",
+                            "description": "SMTP username",
                         },
                         "password": {
                             "type": "string",
-                            "description": "Contraseña SMTP",
+                            "description": "SMTP password",
                         },
                         "from_email": {
                             "type": "string",
-                            "description": "Email del remitente",
+                            "description": "Sender email",
                         },
                         "use_ssl": {
                             "type": "boolean",
-                            "description": "Usar SSL directo en vez de STARTTLS",
+                            "description": "Use direct SSL instead of STARTTLS",
                         },
                     },
                 },
@@ -104,7 +104,7 @@ class EmailSkill(Skill):
             ),
             Tool(
                 name="test_smtp",
-                description="Prueba la conexión SMTP",
+                description="Test SMTP connection",
                 parameters={
                     "type": "object",
                     "properties": {},
@@ -114,7 +114,7 @@ class EmailSkill(Skill):
         ]
 
     def _get_smtp_config(self) -> dict:
-        """Obtiene la configuración SMTP de variables de entorno o config."""
+        """Get SMTP configuration from environment variables or config."""
         return {
             "server": os.environ.get("SMTP_SERVER", ""),
             "port": int(os.environ.get("SMTP_PORT", self.DEFAULT_SMTP_PORT)),
@@ -133,14 +133,14 @@ class EmailSkill(Skill):
         attachments: Optional[str] = None,
         cc: Optional[str] = None,
     ) -> str:
-        """Envía un email."""
+        """Send an email."""
         try:
             config = self._get_smtp_config()
 
             if not config["server"]:
-                return "Error: SMTP no configurado. Usa email_config o variables de entorno:\n  SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM"
+                return "Error: SMTP not configured. Use email_config or environment variables:\n  SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM"
 
-            # Crear mensaje
+            # Create message
             msg = MIMEMultipart()
             msg["From"] = config["from_email"] or config["username"]
             msg["To"] = to
@@ -149,19 +149,19 @@ class EmailSkill(Skill):
             if cc:
                 msg["Cc"] = cc
 
-            # Cuerpo
+            # Body
             content_type = "html" if html else "plain"
             msg.attach(MIMEText(body, content_type, "utf-8"))
 
-            # Adjuntos
+            # Attachments
             if attachments:
                 for attachment_path in attachments.split(","):
                     path = Path(attachment_path.strip()).expanduser()
                     if not path.exists():
-                        return f"Error: Archivo adjunto no encontrado: {path}"
+                        return f"Error: Attachment not found: {path}"
 
                     if path.stat().st_size > 25 * 1024 * 1024:  # 25MB
-                        return f"Error: Archivo muy grande: {path.name} (>25MB)"
+                        return f"Error: File too large: {path.name} (>25MB)"
 
                     with open(path, "rb") as f:
                         part = MIMEBase("application", "octet-stream")
@@ -174,12 +174,12 @@ class EmailSkill(Skill):
                     )
                     msg.attach(part)
 
-            # Destinatarios
+            # Recipients
             recipients = [addr.strip() for addr in to.split(",")]
             if cc:
                 recipients.extend([addr.strip() for addr in cc.split(",")])
 
-            # Enviar
+            # Send
             if config["use_ssl"]:
                 context = ssl.create_default_context()
                 with smtplib.SMTP_SSL(
@@ -196,14 +196,14 @@ class EmailSkill(Skill):
                     server.login(config["username"], config["password"])
                     server.sendmail(msg["From"], recipients, msg.as_string())
 
-            return f"✅ Email enviado a: {to}"
+            return f"✅ Email sent to: {to}"
 
         except smtplib.SMTPAuthenticationError:
-            return "Error: Autenticación SMTP fallida. Verifica usuario y contraseña."
+            return "Error: SMTP authentication failed. Check username and password."
         except smtplib.SMTPException as e:
-            return f"Error SMTP: {e}"
+            return f"SMTP Error: {e}"
         except Exception as e:
-            return f"Error enviando email: {e}"
+            return f"Error sending email: {e}"
 
     def email_config(
         self,
@@ -214,39 +214,39 @@ class EmailSkill(Skill):
         from_email: Optional[str] = None,
         use_ssl: Optional[bool] = None,
     ) -> str:
-        """Muestra o configura SMTP."""
-        # Si no hay parámetros, mostrar configuración actual
+        """Show or configure SMTP."""
+        # If no parameters, show current configuration
         if all(
             v is None for v in [smtp_server, smtp_port, username, password, from_email, use_ssl]
         ):
             config = self._get_smtp_config()
 
-            masked_password = "****" if config["password"] else "(no configurada)"
+            masked_password = "****" if config["password"] else "(not configured)"
 
             return f"""📧 SMTP Configuration:
 
-Servidor: {config["server"] or "(no configurado)"}
-Puerto: {config["port"]}
-Usuario: {config["username"] or "(no configurado)"}
-Contraseña: {masked_password}
-Remitente: {config["from_email"] or "(usa username)"}
-SSL: {"Sí" if config["use_ssl"] else "No (STARTTLS)"}
+Server: {config["server"] or "(not configured)"}
+Port: {config["port"]}
+Username: {config["username"] or "(not configured)"}
+Password: {masked_password}
+Sender: {config["from_email"] or "(uses username)"}
+SSL: {"Yes" if config["use_ssl"] else "No (STARTTLS)"}
 
-Para configurar, usa variables de entorno:
+To configure, use environment variables:
   export SMTP_SERVER="smtp.gmail.com"
   export SMTP_PORT="587"
-  export SMTP_USERNAME="tu@email.com"
-  export SMTP_PASSWORD="tu_contraseña"
-  export SMTP_FROM="tu@email.com"
+  export SMTP_USERNAME="your@email.com"
+  export SMTP_PASSWORD="your_password"
+  export SMTP_FROM="your@email.com"
   export SMTP_SSL="false"
 
-Proveedores comunes:
-  Gmail: smtp.gmail.com:587 (requiere App Password)
+Common providers:
+  Gmail: smtp.gmail.com:587 (requires App Password)
   Outlook: smtp.office365.com:587
   Yahoo: smtp.mail.yahoo.com:587
 """
 
-        # Configurar (solo muestra cómo hacerlo)
+        # Configure (only shows how to do it)
         env_vars = []
         if smtp_server:
             env_vars.append(f'export SMTP_SERVER="{smtp_server}"')
@@ -255,23 +255,23 @@ Proveedores comunes:
         if username:
             env_vars.append(f'export SMTP_USERNAME="{username}"')
         if password:
-            env_vars.append('export SMTP_PASSWORD="****"  # Por seguridad')
+            env_vars.append('export SMTP_PASSWORD="****"  # For security')
         if from_email:
             env_vars.append(f'export SMTP_FROM="{from_email}"')
         if use_ssl is not None:
             env_vars.append(f'export SMTP_SSL="{"true" if use_ssl else "false"}"')
 
-        return "Para aplicar esta configuración, ejecuta:\n\n" + "\n".join(env_vars)
+        return "To apply this configuration, run:\n\n" + "\n".join(env_vars)
 
     def test_smtp(self) -> str:
-        """Prueba la conexión SMTP."""
+        """Test SMTP connection."""
         try:
             config = self._get_smtp_config()
 
             if not config["server"]:
-                return "Error: SMTP no configurado"
+                return "Error: SMTP not configured"
 
-            # Intentar conexión
+            # Try connection
             if config["use_ssl"]:
                 context = ssl.create_default_context()
                 with smtplib.SMTP_SSL(
@@ -288,17 +288,17 @@ Proveedores comunes:
                     server.login(config["username"], config["password"])
                     server.noop()
 
-            return f"✅ SMTP connection successful a {config['server']}:{config['port']}"
+            return f"✅ SMTP connection successful to {config['server']}:{config['port']}"
 
         except smtplib.SMTPAuthenticationError:
-            return "❌ Error: Autenticación fallida"
+            return "❌ Error: Authentication failed"
         except smtplib.SMTPConnectError:
-            return "❌ Error: No se pudo conectar al servidor SMTP"
+            return "❌ Error: Could not connect to SMTP server"
         except Exception as e:
             return f"❌ Error: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "config")
 
         if action == "send":
@@ -306,7 +306,7 @@ Proveedores comunes:
             subject = kwargs.get("subject", "")
             body = kwargs.get("body", "")
             if not all([to, subject, body]):
-                return "Error: Se requiere to, subject y body"
+                return "Error: to, subject and body are required"
             return self.send_email(to, subject, body)
         elif action == "config":
             return self.email_config()

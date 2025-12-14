@@ -1,8 +1,8 @@
 """
-Skill de RAG Mejorado para R CLI.
+Enhanced RAG Skill for R CLI.
 
-Búsqueda semántica usando embeddings locales con sentence-transformers.
-100% offline después de descargar el modelo.
+Semantic search using local embeddings with sentence-transformers.
+100% offline after downloading the model.
 """
 
 from pathlib import Path
@@ -13,20 +13,20 @@ from r_cli.core.llm import Tool
 
 
 class RAGSkill(Skill):
-    """Skill para RAG con embeddings locales."""
+    """Skill for RAG with local embeddings."""
 
     name = "rag"
     description = "Knowledge base with semantic search using local embeddings"
 
-    # Modelos disponibles
+    # Available models
     MODELS = {
-        "mini": "Rápido y ligero (80MB, ideal para CPU)",
-        "minilm": "Balance velocidad/calidad (120MB)",
-        "mpnet": "Alta calidad (420MB)",
-        "multilingual": "Soporta 50+ idiomas (470MB)",
-        "spanish": "Optimizado para español (470MB)",
-        "qa": "Optimizado para Q&A (80MB)",
-        "code": "Para búsqueda de código (420MB)",
+        "mini": "Fast and lightweight (80MB, ideal for CPU)",
+        "minilm": "Speed/quality balance (120MB)",
+        "mpnet": "High quality (420MB)",
+        "multilingual": "Supports 50+ languages (470MB)",
+        "spanish": "Optimized for Spanish (470MB)",
+        "qa": "Optimized for Q&A (80MB)",
+        "code": "For code search (420MB)",
     }
 
     def __init__(self, *args, **kwargs):
@@ -36,7 +36,7 @@ class RAGSkill(Skill):
         self._model_name = "mini"  # Default
 
     def _get_embeddings(self):
-        """Lazy loading de embeddings."""
+        """Lazy loading of embeddings."""
         if self._embeddings is None:
             try:
                 from r_cli.core.embeddings import LocalEmbeddings
@@ -55,7 +55,7 @@ class RAGSkill(Skill):
         return self._embeddings
 
     def _get_index(self):
-        """Lazy loading del índice semántico."""
+        """Lazy loading of the semantic index."""
         if self._index is None:
             embeddings = self._get_embeddings()
             if embeddings is None:
@@ -81,25 +81,25 @@ class RAGSkill(Skill):
         return [
             Tool(
                 name="rag_add",
-                description="Añade un documento a la base de conocimiento",
+                description="Add a document to the knowledge base",
                 parameters={
                     "type": "object",
                     "properties": {
                         "content": {
                             "type": "string",
-                            "description": "Contenido del documento",
+                            "description": "Document content",
                         },
                         "doc_id": {
                             "type": "string",
-                            "description": "ID opcional del documento",
+                            "description": "Optional document ID",
                         },
                         "source": {
                             "type": "string",
-                            "description": "Fuente/origen del documento",
+                            "description": "Document source/origin",
                         },
                         "tags": {
                             "type": "string",
-                            "description": "Tags separados por comas",
+                            "description": "Comma-separated tags",
                         },
                     },
                     "required": ["content"],
@@ -108,17 +108,17 @@ class RAGSkill(Skill):
             ),
             Tool(
                 name="rag_add_file",
-                description="Añade un archivo a la base de conocimiento",
+                description="Add a file to the knowledge base",
                 parameters={
                     "type": "object",
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Ruta al archivo",
+                            "description": "Path to the file",
                         },
                         "chunk_size": {
                             "type": "integer",
-                            "description": "Size de chunks (default: 1000)",
+                            "description": "Chunk size (default: 1000)",
                         },
                     },
                     "required": ["file_path"],
@@ -127,21 +127,21 @@ class RAGSkill(Skill):
             ),
             Tool(
                 name="rag_search",
-                description="Busca documentos similares usando búsqueda semántica",
+                description="Search for similar documents using semantic search",
                 parameters={
                     "type": "object",
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "Texto de búsqueda",
+                            "description": "Search text",
                         },
                         "top_k": {
                             "type": "integer",
-                            "description": "Número de resultados (default: 5)",
+                            "description": "Number of results (default: 5)",
                         },
                         "threshold": {
                             "type": "number",
-                            "description": "Similitud mínima 0-1 (default: 0.3)",
+                            "description": "Minimum similarity 0-1 (default: 0.3)",
                         },
                     },
                     "required": ["query"],
@@ -150,12 +150,12 @@ class RAGSkill(Skill):
             ),
             Tool(
                 name="rag_similarity",
-                description="Calcula similitud semántica entre dos textos",
+                description="Calculate semantic similarity between two texts",
                 parameters={
                     "type": "object",
                     "properties": {
-                        "text1": {"type": "string", "description": "Primer texto"},
-                        "text2": {"type": "string", "description": "Segundo texto"},
+                        "text1": {"type": "string", "description": "First text"},
+                        "text2": {"type": "string", "description": "Second text"},
                     },
                     "required": ["text1", "text2"],
                 },
@@ -163,20 +163,20 @@ class RAGSkill(Skill):
             ),
             Tool(
                 name="rag_list_models",
-                description="Lista los modelos de embeddings disponibles",
+                description="List available embedding models",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_models,
             ),
             Tool(
                 name="rag_set_model",
-                description="Cambia el modelo de embeddings",
+                description="Change the embedding model",
                 parameters={
                     "type": "object",
                     "properties": {
                         "model": {
                             "type": "string",
                             "enum": list(self.MODELS.keys()),
-                            "description": "Nombre del modelo",
+                            "description": "Model name",
                         },
                     },
                     "required": ["model"],
@@ -185,19 +185,19 @@ class RAGSkill(Skill):
             ),
             Tool(
                 name="rag_stats",
-                description="Muestra estadísticas del índice",
+                description="Show index statistics",
                 parameters={"type": "object", "properties": {}},
                 handler=self.get_stats,
             ),
             Tool(
                 name="rag_delete",
-                description="Elimina un documento del índice",
+                description="Delete a document from the index",
                 parameters={
                     "type": "object",
                     "properties": {
                         "doc_id": {
                             "type": "string",
-                            "description": "ID del documento a eliminar",
+                            "description": "ID of the document to delete",
                         },
                     },
                     "required": ["doc_id"],
@@ -206,7 +206,7 @@ class RAGSkill(Skill):
             ),
             Tool(
                 name="rag_clear",
-                description="Limpia todo el índice (cuidado!)",
+                description="Clear the entire index (caution!)",
                 parameters={"type": "object", "properties": {}},
                 handler=self.clear_index,
             ),
@@ -219,10 +219,12 @@ class RAGSkill(Skill):
         source: Optional[str] = None,
         tags: Optional[str] = None,
     ) -> str:
-        """Añade un documento al índice."""
+        """Add a document to the index."""
         index = self._get_index()
         if index is None:
-            return "Error: sentence-transformers no instalado. Ejecuta: pip install sentence-transformers"
+            return (
+                "Error: sentence-transformers not installed. Run: pip install sentence-transformers"
+            )
 
         try:
             metadata = {}
@@ -247,23 +249,25 @@ class RAGSkill(Skill):
         file_path: str,
         chunk_size: int = 1000,
     ) -> str:
-        """Añade un archivo al índice, dividiéndolo en chunks."""
+        """Add a file to the index, splitting it into chunks."""
         index = self._get_index()
         if index is None:
-            return "Error: sentence-transformers no instalado. Ejecuta: pip install sentence-transformers"
+            return (
+                "Error: sentence-transformers not installed. Run: pip install sentence-transformers"
+            )
 
         path = Path(file_path).expanduser()
         if not path.exists():
-            return f"Error: Archivo no encontrado: {file_path}"
+            return f"Error: File not found: {file_path}"
 
         try:
-            # Leer archivo
+            # Read file
             content = path.read_text(encoding="utf-8", errors="ignore")
 
-            # Dividir en chunks
+            # Split into chunks
             chunks = self._chunk_text(content, chunk_size)
 
-            # Añadir chunks
+            # Add chunks
             documents = []
             for i, chunk in enumerate(chunks):
                 documents.append(
@@ -283,10 +287,10 @@ class RAGSkill(Skill):
             return f"File added: {path.name}\n{len(chunks)} chunks indexed."
 
         except Exception as e:
-            return f"Error procesando archivo: {e}"
+            return f"Error processing file: {e}"
 
     def _chunk_text(self, text: str, chunk_size: int) -> list[str]:
-        """Divide texto en chunks."""
+        """Split text into chunks."""
         if len(text) <= chunk_size:
             return [text]
 
@@ -298,7 +302,7 @@ class RAGSkill(Skill):
             end = start + chunk_size
             chunk = text[start:end]
 
-            # Cortar en punto o espacio
+            # Cut at period or space
             if end < len(text):
                 for sep in [". ", "\n\n", "\n", " "]:
                     last_sep = chunk.rfind(sep)
@@ -318,10 +322,12 @@ class RAGSkill(Skill):
         top_k: int = 5,
         threshold: float = 0.3,
     ) -> str:
-        """Busca documentos similares."""
+        """Search for similar documents."""
         index = self._get_index()
         if index is None:
-            return "Error: sentence-transformers no instalado. Ejecuta: pip install sentence-transformers"
+            return (
+                "Error: sentence-transformers not installed. Run: pip install sentence-transformers"
+            )
 
         try:
             results = index.search(
@@ -331,9 +337,9 @@ class RAGSkill(Skill):
             )
 
             if not results:
-                return f"No se encontraron documentos similares a: '{query}'"
+                return f"No similar documents found for: '{query}'"
 
-            output = [f"Resultados para: '{query}'\n"]
+            output = [f"Results for: '{query}'\n"]
 
             for i, doc in enumerate(results, 1):
                 similarity = doc["similarity"]
@@ -341,11 +347,11 @@ class RAGSkill(Skill):
                 if len(content) > 300:
                     content = content[:300] + "..."
 
-                output.append(f"{i}. [Similitud: {similarity:.2%}]")
+                output.append(f"{i}. [Similarity: {similarity:.2%}]")
                 output.append(f"   ID: {doc['id']}")
 
                 if doc.get("metadata", {}).get("source"):
-                    output.append(f"   Fuente: {doc['metadata']['source']}")
+                    output.append(f"   Source: {doc['metadata']['source']}")
 
                 output.append(f"   {content}")
                 output.append("")
@@ -356,63 +362,63 @@ class RAGSkill(Skill):
             return f"Search error: {e}"
 
     def similarity(self, text1: str, text2: str) -> str:
-        """Calcula similitud entre dos textos."""
+        """Calculate similarity between two texts."""
         embeddings = self._get_embeddings()
         if embeddings is None:
-            return "Error: sentence-transformers no instalado."
+            return "Error: sentence-transformers not installed."
 
         try:
             sim = embeddings.similarity(text1, text2)
 
             interpretation = ""
             if sim >= 0.8:
-                interpretation = "Muy similares"
+                interpretation = "Very similar"
             elif sim >= 0.6:
-                interpretation = "Similares"
+                interpretation = "Similar"
             elif sim >= 0.4:
-                interpretation = "Moderadamente similares"
+                interpretation = "Moderately similar"
             elif sim >= 0.2:
-                interpretation = "Poco similares"
+                interpretation = "Slightly similar"
             else:
-                interpretation = "No relacionados"
+                interpretation = "Not related"
 
             return f"""Semantic similarity: {sim:.2%} ({interpretation})
 
-Texto 1: {text1[:100]}{"..." if len(text1) > 100 else ""}
-Texto 2: {text2[:100]}{"..." if len(text2) > 100 else ""}"""
+Text 1: {text1[:100]}{"..." if len(text1) > 100 else ""}
+Text 2: {text2[:100]}{"..." if len(text2) > 100 else ""}"""
 
         except Exception as e:
-            return f"Error calculando similitud: {e}"
+            return f"Error calculating similarity: {e}"
 
     def list_models(self) -> str:
-        """Lista modelos disponibles."""
+        """List available models."""
         try:
             from r_cli.core.embeddings import list_available_models
 
             return list_available_models()
         except ImportError:
-            result = ["Modelos de embeddings disponibles:\n"]
+            result = ["Available embedding models:\n"]
             for name, desc in self.MODELS.items():
                 result.append(f"  - {name}: {desc}")
-            result.append("\nInstalación: pip install sentence-transformers")
+            result.append("\nInstallation: pip install sentence-transformers")
             return "\n".join(result)
 
     def set_model(self, model: str) -> str:
-        """Cambia el modelo de embeddings."""
+        """Change the embedding model."""
         if model not in self.MODELS:
-            return f"Error: Modelo '{model}' not valid. Usa: {', '.join(self.MODELS.keys())}"
+            return f"Error: Model '{model}' not valid. Use: {', '.join(self.MODELS.keys())}"
 
         self._model_name = model
-        self._embeddings = None  # Forzar recarga
+        self._embeddings = None  # Force reload
         self._index = None
 
-        return f"Modelo cambiado a: {model}\n{self.MODELS[model]}"
+        return f"Model changed to: {model}\n{self.MODELS[model]}"
 
     def get_stats(self) -> str:
-        """Estadísticas del índice."""
+        """Get index statistics."""
         index = self._get_index()
         if index is None:
-            return "Error: sentence-transformers no instalado."
+            return "Error: sentence-transformers not installed."
 
         try:
             stats = index.get_stats()
@@ -420,16 +426,16 @@ Texto 2: {text2[:100]}{"..." if len(text2) > 100 else ""}"""
             model_info = embeddings.get_model_info() if embeddings else {}
 
             result = [
-                "Estadísticas del RAG:\n",
-                f"  Documentos indexados: {stats['total_documents']}",
-                f"  Dimensión embeddings: {stats['embedding_dimension']}",
-                f"  Modelo: {stats['model']}",
-                f"  Size del índice: {stats['index_size_mb']:.2f} MB",
+                "RAG Statistics:\n",
+                f"  Indexed documents: {stats['total_documents']}",
+                f"  Embedding dimension: {stats['embedding_dimension']}",
+                f"  Model: {stats['model']}",
+                f"  Index size: {stats['index_size_mb']:.2f} MB",
             ]
 
             if model_info:
-                result.append(f"  Dispositivo: {model_info.get('device', 'N/A')}")
-                result.append(f"  Cache de embeddings: {model_info.get('cache_size', 0)} entradas")
+                result.append(f"  Device: {model_info.get('device', 'N/A')}")
+                result.append(f"  Embedding cache: {model_info.get('cache_size', 0)} entries")
 
             return "\n".join(result)
 
@@ -437,27 +443,27 @@ Texto 2: {text2[:100]}{"..." if len(text2) > 100 else ""}"""
             return f"Error getting statistics: {e}"
 
     def delete_document(self, doc_id: str) -> str:
-        """Elimina un documento."""
+        """Delete a document."""
         index = self._get_index()
         if index is None:
-            return "Error: sentence-transformers no instalado."
+            return "Error: sentence-transformers not installed."
 
         if index.delete(doc_id):
-            return f"Documento '{doc_id}' eliminado."
+            return f"Document '{doc_id}' deleted."
         else:
-            return f"Documento '{doc_id}' no encontrado."
+            return f"Document '{doc_id}' not found."
 
     def clear_index(self) -> str:
-        """Limpia todo el índice."""
+        """Clear the entire index."""
         index = self._get_index()
         if index is None:
-            return "Error: sentence-transformers no instalado."
+            return "Error: sentence-transformers not installed."
 
         index.clear()
-        return "Índice limpiado completamente."
+        return "Index cleared completely."
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "stats")
         query = kwargs.get("query")
         content = kwargs.get("content")

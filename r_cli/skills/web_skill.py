@@ -1,11 +1,11 @@
 """
-Skill de Web Scraping para R CLI.
+Web Scraping Skill for R CLI.
 
-Permite extraer información de páginas web:
-- Obtener texto de URLs
-- Extraer enlaces
-- Descargar contenido
-- Parsear HTML
+Extract information from web pages:
+- Get text from URLs
+- Extract links
+- Download content
+- Parse HTML
 """
 
 import re
@@ -18,32 +18,32 @@ from r_cli.core.llm import Tool
 
 
 class WebSkill(Skill):
-    """Skill para web scraping y extracción de contenido web."""
+    """Skill for web scraping and web content extraction."""
 
     name = "web"
     description = "Web scraping: extract text, links and content from web pages"
 
-    # User agent para requests
+    # User agent for requests
     USER_AGENT = "R-CLI/1.0 (Local AI Assistant)"
 
-    # Timeout para requests
+    # Timeout for requests
     TIMEOUT = 30
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
                 name="fetch_webpage",
-                description="Obtiene el contenido de una página web",
+                description="Get the content of a web page",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL de la página web",
+                            "description": "URL of the web page",
                         },
                         "extract_text": {
                             "type": "boolean",
-                            "description": "Si extraer solo texto (sin HTML)",
+                            "description": "Whether to extract only text (no HTML)",
                         },
                     },
                     "required": ["url"],
@@ -52,17 +52,17 @@ class WebSkill(Skill):
             ),
             Tool(
                 name="extract_links",
-                description="Extrae todos los enlaces de una página web",
+                description="Extract all links from a web page",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL de la página web",
+                            "description": "URL of the web page",
                         },
                         "filter_pattern": {
                             "type": "string",
-                            "description": "Patrón regex para filtrar enlaces",
+                            "description": "Regex pattern to filter links",
                         },
                     },
                     "required": ["url"],
@@ -71,17 +71,17 @@ class WebSkill(Skill):
             ),
             Tool(
                 name="download_file",
-                description="Descarga un archivo de una URL",
+                description="Download a file from a URL",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL del archivo a descargar",
+                            "description": "URL of the file to download",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el archivo",
+                            "description": "Path where to save the file",
                         },
                     },
                     "required": ["url"],
@@ -90,13 +90,13 @@ class WebSkill(Skill):
             ),
             Tool(
                 name="extract_tables",
-                description="Extrae tablas de una página web como texto",
+                description="Extract tables from a web page as text",
                 parameters={
                     "type": "object",
                     "properties": {
                         "url": {
                             "type": "string",
-                            "description": "URL de la página web",
+                            "description": "URL of the web page",
                         },
                     },
                     "required": ["url"],
@@ -106,38 +106,38 @@ class WebSkill(Skill):
         ]
 
     def _validate_url(self, url: str) -> tuple[bool, str]:
-        """Valida que la URL sea segura."""
+        """Validate that the URL is safe."""
         try:
             parsed = urlparse(url)
 
-            # Solo HTTP/HTTPS
+            # Only HTTP/HTTPS
             if parsed.scheme not in ("http", "https"):
-                return False, "Solo se permiten URLs HTTP/HTTPS"
+                return False, "Only HTTP/HTTPS URLs are allowed"
 
-            # No permitir IPs locales o localhost
+            # Do not allow local IPs or localhost
             hostname = parsed.hostname or ""
             if hostname in ("localhost", "127.0.0.1", "0.0.0.0"):
-                return False, "No se permiten URLs locales"
+                return False, "Local URLs are not allowed"
 
-            # No permitir rangos de IP privados
+            # Do not allow private IP ranges
             if hostname.startswith(("192.168.", "10.", "172.")):
-                return False, "No se permiten rangos de IP privados"
+                return False, "Private IP ranges are not allowed"
 
             return True, ""
         except Exception as e:
-            return False, f"URL inválida: {e}"
+            return False, f"Invalid URL: {e}"
 
     def fetch_webpage(self, url: str, extract_text: bool = True) -> str:
-        """Obtiene el contenido de una página web."""
+        """Get the content of a web page."""
         try:
             import httpx
 
-            # Validar URL
+            # Validate URL
             valid, error = self._validate_url(url)
             if not valid:
                 return f"Error: {error}"
 
-            # Hacer request
+            # Make request
             headers = {"User-Agent": self.USER_AGENT}
             response = httpx.get(url, headers=headers, timeout=self.TIMEOUT, follow_redirects=True)
             response.raise_for_status()
@@ -150,75 +150,75 @@ class WebSkill(Skill):
 
                     soup = BeautifulSoup(content, "html.parser")
 
-                    # Remover scripts y estilos
+                    # Remove scripts and styles
                     for tag in soup(["script", "style", "nav", "footer", "header"]):
                         tag.decompose()
 
-                    # Extraer texto
+                    # Extract text
                     text = soup.get_text(separator="\n", strip=True)
 
-                    # Limpiar líneas vacías múltiples
+                    # Clean multiple empty lines
                     lines = [line.strip() for line in text.split("\n") if line.strip()]
                     text = "\n".join(lines)
 
-                    # Limitar tamaño
+                    # Limit size
                     if len(text) > 10000:
-                        text = text[:10000] + "\n\n... (contenido truncado)"
+                        text = text[:10000] + "\n\n... (content truncated)"
 
-                    return f"Contenido de {url}:\n\n{text}"
+                    return f"Content from {url}:\n\n{text}"
 
                 except ImportError:
-                    return "Error: beautifulsoup4 no instalado. Ejecuta: pip install beautifulsoup4"
+                    return "Error: beautifulsoup4 not installed. Run: pip install beautifulsoup4"
             else:
-                # Retornar HTML crudo (limitado)
+                # Return raw HTML (limited)
                 if len(content) > 20000:
-                    content = content[:20000] + "\n<!-- truncado -->"
+                    content = content[:20000] + "\n<!-- truncated -->"
                 return content
 
         except ImportError:
-            return "Error: httpx no instalado. Ejecuta: pip install httpx"
+            return "Error: httpx not installed. Run: pip install httpx"
         except httpx.TimeoutException:
-            return f"Error: Timeout al conectar a {url}"
+            return f"Error: Timeout connecting to {url}"
         except httpx.HTTPStatusError as e:
             return f"Error HTTP {e.response.status_code}: {e}"
         except Exception as e:
             return f"Error fetching page: {e}"
 
     def extract_links(self, url: str, filter_pattern: Optional[str] = None) -> str:
-        """Extrae enlaces de una página web."""
+        """Extract links from a web page."""
         try:
             import httpx
             from bs4 import BeautifulSoup
 
-            # Validar URL
+            # Validate URL
             valid, error = self._validate_url(url)
             if not valid:
                 return f"Error: {error}"
 
-            # Obtener página
+            # Get page
             headers = {"User-Agent": self.USER_AGENT}
             response = httpx.get(url, headers=headers, timeout=self.TIMEOUT, follow_redirects=True)
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, "html.parser")
 
-            # Extraer enlaces
+            # Extract links
             links = []
             for a in soup.find_all("a", href=True):
                 href = a["href"]
-                text = a.get_text(strip=True)[:50]  # Limitar texto
+                text = a.get_text(strip=True)[:50]  # Limit text
 
-                # Convertir a URL absoluta
+                # Convert to absolute URL
                 absolute_url = urljoin(url, href)
 
-                # Filtrar si hay patrón
+                # Filter if pattern provided
                 if filter_pattern:
                     if not re.search(filter_pattern, absolute_url, re.IGNORECASE):
                         continue
 
                 links.append((absolute_url, text))
 
-            # Eliminar duplicados manteniendo orden
+            # Remove duplicates maintaining order
             seen = set()
             unique_links = []
             for link, text in links:
@@ -227,96 +227,96 @@ class WebSkill(Skill):
                     unique_links.append((link, text))
 
             if not unique_links:
-                return "No se encontraron enlaces."
+                return "No links found."
 
-            result = [f"Enlaces encontrados en {url}:\n"]
-            for link, text in unique_links[:50]:  # Limitar a 50
+            result = [f"Links found in {url}:\n"]
+            for link, text in unique_links[:50]:  # Limit to 50
                 if text:
                     result.append(f"  • {text}: {link}")
                 else:
                     result.append(f"  • {link}")
 
             if len(unique_links) > 50:
-                result.append(f"\n... y {len(unique_links) - 50} enlaces más")
+                result.append(f"\n... and {len(unique_links) - 50} more links")
 
             return "\n".join(result)
 
         except ImportError as e:
             if "httpx" in str(e):
-                return "Error: httpx no instalado. Ejecuta: pip install httpx"
-            return "Error: beautifulsoup4 no instalado. Ejecuta: pip install beautifulsoup4"
+                return "Error: httpx not installed. Run: pip install httpx"
+            return "Error: beautifulsoup4 not installed. Run: pip install beautifulsoup4"
         except Exception as e:
-            return f"Error extrayendo enlaces: {e}"
+            return f"Error extracting links: {e}"
 
     def download_file(self, url: str, output_path: Optional[str] = None) -> str:
-        """Descarga un archivo de una URL."""
+        """Download a file from a URL."""
         try:
             import httpx
 
-            # Validar URL
+            # Validate URL
             valid, error = self._validate_url(url)
             if not valid:
                 return f"Error: {error}"
 
-            # Determinar nombre de archivo
+            # Determine file name
             if output_path:
                 out_path = Path(output_path)
             else:
-                # Extraer nombre de la URL
+                # Extract name from URL
                 parsed = urlparse(url)
                 filename = Path(parsed.path).name or "downloaded_file"
                 out_path = Path(self.output_dir) / filename
 
-            # Crear directorio si no existe
+            # Create directory if it doesn't exist
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Descargar con streaming
+            # Download with streaming
             headers = {"User-Agent": self.USER_AGENT}
             with httpx.stream(
                 "GET", url, headers=headers, timeout=self.TIMEOUT, follow_redirects=True
             ) as response:
                 response.raise_for_status()
 
-                # Verificar tamaño
+                # Check size
                 content_length = response.headers.get("content-length")
                 if content_length and int(content_length) > 100_000_000:  # 100MB
-                    return "Error: Archivo demasiado grande (>100MB)"
+                    return "Error: File too large (>100MB)"
 
-                # Escribir archivo
+                # Write file
                 total_size = 0
                 with open(out_path, "wb") as f:
                     for chunk in response.iter_bytes(chunk_size=8192):
                         f.write(chunk)
                         total_size += len(chunk)
 
-                        # Límite de seguridad
+                        # Safety limit
                         if total_size > 100_000_000:
                             f.close()
                             out_path.unlink()
-                            return "Error: Descarga cancelada, archivo demasiado grande"
+                            return "Error: Download cancelled, file too large"
 
             size_mb = total_size / (1024 * 1024)
-            return f"✅ Archivo descargado: {out_path} ({size_mb:.2f} MB)"
+            return f"File downloaded: {out_path} ({size_mb:.2f} MB)"
 
         except ImportError:
-            return "Error: httpx no instalado. Ejecuta: pip install httpx"
+            return "Error: httpx not installed. Run: pip install httpx"
         except httpx.HTTPStatusError as e:
             return f"Error HTTP {e.response.status_code}"
         except Exception as e:
-            return f"Error descargando archivo: {e}"
+            return f"Error downloading file: {e}"
 
     def extract_tables(self, url: str) -> str:
-        """Extrae tablas de una página web."""
+        """Extract tables from a web page."""
         try:
             import httpx
             from bs4 import BeautifulSoup
 
-            # Validar URL
+            # Validate URL
             valid, error = self._validate_url(url)
             if not valid:
                 return f"Error: {error}"
 
-            # Obtener página
+            # Get page
             headers = {"User-Agent": self.USER_AGENT}
             response = httpx.get(url, headers=headers, timeout=self.TIMEOUT, follow_redirects=True)
             response.raise_for_status()
@@ -325,39 +325,39 @@ class WebSkill(Skill):
             tables = soup.find_all("table")
 
             if not tables:
-                return "No se encontraron tablas en la página."
+                return "No tables found on the page."
 
-            result = [f"Se encontraron {len(tables)} tabla(s):\n"]
+            result = [f"Found {len(tables)} table(s):\n"]
 
-            for i, table in enumerate(tables[:5], 1):  # Máximo 5 tablas
-                result.append(f"\n--- Tabla {i} ---")
+            for i, table in enumerate(tables[:5], 1):  # Maximum 5 tables
+                result.append(f"\n--- Table {i} ---")
 
                 rows = table.find_all("tr")
-                for row in rows[:20]:  # Máximo 20 filas por tabla
+                for row in rows[:20]:  # Maximum 20 rows per table
                     cells = row.find_all(["th", "td"])
-                    cell_texts = [cell.get_text(strip=True)[:30] for cell in cells]  # Limitar texto
+                    cell_texts = [cell.get_text(strip=True)[:30] for cell in cells]  # Limit text
                     result.append(" | ".join(cell_texts))
 
                 if len(rows) > 20:
-                    result.append(f"... ({len(rows)} filas total)")
+                    result.append(f"... ({len(rows)} rows total)")
 
             if len(tables) > 5:
-                result.append(f"\n... y {len(tables) - 5} tablas más")
+                result.append(f"\n... and {len(tables) - 5} more tables")
 
             return "\n".join(result)
 
         except ImportError as e:
             if "httpx" in str(e):
-                return "Error: httpx no instalado. Ejecuta: pip install httpx"
-            return "Error: beautifulsoup4 no instalado. Ejecuta: pip install beautifulsoup4"
+                return "Error: httpx not installed. Run: pip install httpx"
+            return "Error: beautifulsoup4 not installed. Run: pip install beautifulsoup4"
         except Exception as e:
-            return f"Error extrayendo tablas: {e}"
+            return f"Error extracting tables: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         url = kwargs.get("url", "")
         if not url:
-            return "Error: Se requiere una URL"
+            return "Error: URL required"
 
         action = kwargs.get("action", "fetch")
 

@@ -1,12 +1,12 @@
 """
-Skill de generación y análisis de código para R CLI.
+Code Skill for R CLI.
 
-Funcionalidades:
-- Generar código desde descripción
-- Analizar código existente
-- Refactorizar
-- Explicar código
-- Ejecutar scripts Python
+Features:
+- Generate code from description
+- Analyze existing code
+- Refactor
+- Explain code
+- Run Python scripts
 """
 
 import os
@@ -20,12 +20,12 @@ from r_cli.core.llm import Tool
 
 
 class CodeSkill(Skill):
-    """Skill para generación y análisis de código."""
+    """Skill for code generation and analysis."""
 
     name = "code"
     description = "Generate, analyze and execute code (Python, JavaScript, etc.)"
 
-    # Lenguajes soportados con sus extensiones
+    # Supported languages with their extensions
     LANGUAGES = {
         "python": {"ext": ".py", "cmd": "python3", "comment": "#"},
         "javascript": {"ext": ".js", "cmd": "node", "comment": "//"},
@@ -38,22 +38,22 @@ class CodeSkill(Skill):
         return [
             Tool(
                 name="write_code",
-                description="Escribe código a un archivo",
+                description="Write code to a file",
                 parameters={
                     "type": "object",
                     "properties": {
                         "code": {
                             "type": "string",
-                            "description": "El código a escribir",
+                            "description": "The code to write",
                         },
                         "filename": {
                             "type": "string",
-                            "description": "Nombre del archivo (ej: script.py)",
+                            "description": "Filename (e.g.: script.py)",
                         },
                         "language": {
                             "type": "string",
                             "enum": ["python", "javascript", "typescript", "bash", "sql"],
-                            "description": "Lenguaje de programación",
+                            "description": "Programming language",
                         },
                     },
                     "required": ["code", "filename"],
@@ -62,17 +62,17 @@ class CodeSkill(Skill):
             ),
             Tool(
                 name="run_python",
-                description="Ejecuta código Python y retorna el resultado",
+                description="Execute Python code and return the result",
                 parameters={
                     "type": "object",
                     "properties": {
                         "code": {
                             "type": "string",
-                            "description": "Código Python a ejecutar",
+                            "description": "Python code to execute",
                         },
                         "timeout": {
                             "type": "integer",
-                            "description": "Timeout en seconds (default: 30)",
+                            "description": "Timeout in seconds (default: 30)",
                         },
                     },
                     "required": ["code"],
@@ -81,13 +81,13 @@ class CodeSkill(Skill):
             ),
             Tool(
                 name="analyze_code",
-                description="Analiza código y proporciona información sobre él",
+                description="Analyze code and provide information about it",
                 parameters={
                     "type": "object",
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Ruta al archivo de código",
+                            "description": "Path to the code file",
                         },
                     },
                     "required": ["file_path"],
@@ -96,17 +96,17 @@ class CodeSkill(Skill):
             ),
             Tool(
                 name="run_script",
-                description="Ejecuta un script existente",
+                description="Execute an existing script",
                 parameters={
                     "type": "object",
                     "properties": {
                         "file_path": {
                             "type": "string",
-                            "description": "Ruta al script a ejecutar",
+                            "description": "Path to the script to execute",
                         },
                         "args": {
                             "type": "string",
-                            "description": "Argumentos para el script",
+                            "description": "Arguments for the script",
                         },
                     },
                     "required": ["file_path"],
@@ -121,9 +121,9 @@ class CodeSkill(Skill):
         filename: str,
         language: Optional[str] = None,
     ) -> str:
-        """Escribe código a un archivo."""
+        """Write code to a file."""
         try:
-            # Determinar lenguaje por extensión si no se especifica
+            # Determine language by extension if not specified
             if not language:
                 ext = Path(filename).suffix.lower()
                 for lang, info in self.LANGUAGES.items():
@@ -131,15 +131,15 @@ class CodeSkill(Skill):
                         language = lang
                         break
 
-            # Ruta de salida
+            # Output path
             out_path = Path(self.output_dir) / filename
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Escribir archivo
+            # Write file
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(code)
 
-            # Hacer ejecutable si es bash
+            # Make executable if bash
             if language == "bash":
                 os.chmod(out_path, 0o755)
 
@@ -150,9 +150,9 @@ class CodeSkill(Skill):
             return f"Error writing code: {e}"
 
     def run_python(self, code: str, timeout: int = 30) -> str:
-        """Ejecuta código Python en un entorno aislado."""
+        """Execute Python code in an isolated environment."""
         try:
-            # Crear archivo temporal
+            # Create temporary file
             with tempfile.NamedTemporaryFile(
                 mode="w", suffix=".py", delete=False, encoding="utf-8"
             ) as f:
@@ -160,7 +160,7 @@ class CodeSkill(Skill):
                 temp_path = f.name
 
             try:
-                # Ejecutar
+                # Execute
                 result = subprocess.run(
                     ["python3", temp_path],
                     check=False,
@@ -183,33 +183,33 @@ class CodeSkill(Skill):
                 if result.returncode != 0:
                     output.append(f"\n❌ Exit code: {result.returncode}")
                 else:
-                    output.append("\n✅ Ejecución exitosa")
+                    output.append("\n✅ Execution successful")
 
-                return "\n".join(output) if output else "✅ Ejecutado (sin output)"
+                return "\n".join(output) if output else "✅ Executed (no output)"
 
             finally:
-                # Limpiar archivo temporal
+                # Clean up temporary file
                 os.unlink(temp_path)
 
         except subprocess.TimeoutExpired:
             return f"⏰ Timeout: Script exceeded {timeout} seconds"
         except Exception as e:
-            return f"Error ejecutando Python: {e}"
+            return f"Error executing Python: {e}"
 
     def analyze_code(self, file_path: str) -> str:
-        """Analiza un archivo de código."""
+        """Analyze a code file."""
         try:
             path = Path(file_path)
 
             if not path.exists():
-                return f"Error: Archivo no encontrado: {file_path}"
+                return f"Error: File not found: {file_path}"
 
-            # Leer contenido
+            # Read content
             with open(path, encoding="utf-8", errors="replace") as f:
                 content = f.read()
                 lines = content.split("\n")
 
-            # Detectar lenguaje
+            # Detect language
             ext = path.suffix.lower()
             language = None
             for lang, info in self.LANGUAGES.items():
@@ -217,18 +217,18 @@ class CodeSkill(Skill):
                     language = lang
                     break
 
-            # Análisis básico
+            # Basic analysis
             analysis = [
-                f"📊 Análisis de: {path.name}",
+                f"📊 Analysis of: {path.name}",
                 "",
-                f"Lenguaje: {language or 'Desconocido'}",
-                f"Líneas totales: {len(lines)}",
-                f"Líneas de código: {len([l for l in lines if l.strip() and not l.strip().startswith('#')])}",
-                f"Líneas vacías: {len([l for l in lines if not l.strip()])}",
+                f"Language: {language or 'Unknown'}",
+                f"Total lines: {len(lines)}",
+                f"Code lines: {len([l for l in lines if l.strip() and not l.strip().startswith('#')])}",
+                f"Empty lines: {len([l for l in lines if not l.strip()])}",
                 f"Size: {len(content)} bytes",
             ]
 
-            # Análisis específico por lenguaje
+            # Language-specific analysis
             if language == "python":
                 analysis.extend(self._analyze_python(content, lines))
             elif language in ["javascript", "typescript"]:
@@ -240,35 +240,35 @@ class CodeSkill(Skill):
             return f"Error analyzing code: {e}"
 
     def _analyze_python(self, content: str, lines: list) -> list:
-        """Análisis específico de Python."""
-        analysis = ["\n📦 Estructura Python:"]
+        """Python-specific analysis."""
+        analysis = ["\n📦 Python Structure:"]
 
         # Imports
         imports = [l for l in lines if l.strip().startswith(("import ", "from "))]
         if imports:
             analysis.append(f"  Imports: {len(imports)}")
 
-        # Funciones
+        # Functions
         functions = [l for l in lines if l.strip().startswith("def ")]
         if functions:
-            analysis.append(f"  Funciones: {len(functions)}")
+            analysis.append(f"  Functions: {len(functions)}")
             for f in functions[:5]:
                 name = f.strip().split("(")[0].replace("def ", "")
                 analysis.append(f"    • {name}()")
 
-        # Clases
+        # Classes
         classes = [l for l in lines if l.strip().startswith("class ")]
         if classes:
-            analysis.append(f"  Clases: {len(classes)}")
+            analysis.append(f"  Classes: {len(classes)}")
             for c in classes[:5]:
                 name = c.strip().split("(")[0].split(":")[0].replace("class ", "")
                 analysis.append(f"    • {name}")
 
-        # Comentarios
+        # Comments
         comments = [l for l in lines if l.strip().startswith("#")]
-        analysis.append(f"  Comentarios: {len(comments)}")
+        analysis.append(f"  Comments: {len(comments)}")
 
-        # Docstrings (aproximado)
+        # Docstrings (approximate)
         docstrings = content.count('"""') + content.count("'''")
         if docstrings:
             analysis.append(f"  Docstrings: ~{docstrings // 2}")
@@ -276,19 +276,19 @@ class CodeSkill(Skill):
         return analysis
 
     def _analyze_js(self, content: str, lines: list) -> list:
-        """Análisis específico de JavaScript/TypeScript."""
-        analysis = ["\n📦 Estructura JS/TS:"]
+        """JavaScript/TypeScript-specific analysis."""
+        analysis = ["\n📦 JS/TS Structure:"]
 
         # Imports
         imports = [l for l in lines if "import " in l or "require(" in l]
         if imports:
             analysis.append(f"  Imports: {len(imports)}")
 
-        # Funciones
+        # Functions
         functions = [
             l for l in lines if "function " in l or "=>" in l or l.strip().startswith("const ")
         ]
-        analysis.append(f"  Declaraciones: ~{len(functions)}")
+        analysis.append(f"  Declarations: ~{len(functions)}")
 
         # Exports
         exports = [l for l in lines if "export " in l]
@@ -298,14 +298,14 @@ class CodeSkill(Skill):
         return analysis
 
     def run_script(self, file_path: str, args: Optional[str] = None) -> str:
-        """Ejecuta un script existente."""
+        """Execute an existing script."""
         try:
             path = Path(file_path)
 
             if not path.exists():
-                return f"Error: Script no encontrado: {file_path}"
+                return f"Error: Script not found: {file_path}"
 
-            # Detectar lenguaje
+            # Detect language
             ext = path.suffix.lower()
             language = None
             cmd = None
@@ -317,14 +317,14 @@ class CodeSkill(Skill):
                     break
 
             if not cmd:
-                return f"Error: I dont know how to run {ext}"
+                return f"Error: I don't know how to run {ext}"
 
-            # Construir comando
+            # Build command
             command = cmd.split() + [str(path)]
             if args:
                 command.extend(args.split())
 
-            # Ejecutar
+            # Execute
             result = subprocess.run(
                 command,
                 check=False,
@@ -338,7 +338,7 @@ class CodeSkill(Skill):
 
             if result.stdout:
                 output.append("📤 Output:")
-                output.append(result.stdout[:2000])  # Limitar output
+                output.append(result.stdout[:2000])  # Limit output
 
             if result.stderr:
                 output.append("⚠️ Stderr:")
@@ -347,17 +347,17 @@ class CodeSkill(Skill):
             if result.returncode != 0:
                 output.append(f"\n❌ Exit code: {result.returncode}")
             else:
-                output.append("\n✅ Ejecución exitosa")
+                output.append("\n✅ Execution successful")
 
-            return "\n".join(output) if output else "✅ Ejecutado (sin output)"
+            return "\n".join(output) if output else "✅ Executed (no output)"
 
         except subprocess.TimeoutExpired:
             return "⏰ Timeout: Script exceeded 60 seconds"
         except Exception as e:
-            return f"Error ejecutando script: {e}"
+            return f"Error executing script: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "write")
 
         if action == "write":

@@ -1,11 +1,11 @@
 """
-Skill de Filesystem para R CLI.
+Filesystem Skill for R CLI.
 
-Operaciones seguras de files:
-- Listar directorios
-- Leer files
-- Escribir files
-- Buscar files
+Safe file operations:
+- List directories
+- Read files
+- Write files
+- Search files
 """
 
 import logging
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class FilesystemSkill(Skill):
-    """Skill para operaciones de filesystem."""
+    """Skill for filesystem operations."""
 
     name = "fs"
     description = "File operations: list, read, write, search"
@@ -29,17 +29,17 @@ class FilesystemSkill(Skill):
         return [
             Tool(
                 name="list_directory",
-                description="Lista files y carpetas en un directorio",
+                description="List files and folders in a directory",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del directorio (default: directorio actual)",
+                            "description": "Directory path (default: current directory)",
                         },
                         "pattern": {
                             "type": "string",
-                            "description": "Patrón glob para filtrar (ej: *.pdf, *.py)",
+                            "description": "Glob pattern to filter (e.g.: *.pdf, *.py)",
                         },
                     },
                 },
@@ -47,17 +47,17 @@ class FilesystemSkill(Skill):
             ),
             Tool(
                 name="read_file",
-                description="Lee el contenido de un archivo de texto",
+                description="Read the content of a text file",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del archivo a leer",
+                            "description": "Path to the file to read",
                         },
                         "max_lines": {
                             "type": "integer",
-                            "description": "Máximo de lines a leer (default: 100)",
+                            "description": "Maximum lines to read (default: 100)",
                         },
                     },
                     "required": ["path"],
@@ -66,21 +66,21 @@ class FilesystemSkill(Skill):
             ),
             Tool(
                 name="write_file",
-                description="Escribe contenido a un archivo",
+                description="Write content to a file",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el archivo",
+                            "description": "Path where to save the file",
                         },
                         "content": {
                             "type": "string",
-                            "description": "Contenido a escribir",
+                            "description": "Content to write",
                         },
                         "append": {
                             "type": "boolean",
-                            "description": "Si agregar al final en vez de sobrescribir",
+                            "description": "Whether to append instead of overwrite",
                         },
                     },
                     "required": ["path", "content"],
@@ -89,21 +89,21 @@ class FilesystemSkill(Skill):
             ),
             Tool(
                 name="search_files",
-                description="Busca files por nombre o contenido",
+                description="Search files by name or content",
                 parameters={
                     "type": "object",
                     "properties": {
                         "directory": {
                             "type": "string",
-                            "description": "Directorio donde buscar",
+                            "description": "Directory to search in",
                         },
                         "pattern": {
                             "type": "string",
-                            "description": "Patrón de nombre (ej: *.py, report*)",
+                            "description": "Name pattern (e.g.: *.py, report*)",
                         },
                         "content": {
                             "type": "string",
-                            "description": "Texto a buscar dentro de files",
+                            "description": "Text to search inside files",
                         },
                     },
                     "required": ["directory"],
@@ -112,13 +112,13 @@ class FilesystemSkill(Skill):
             ),
             Tool(
                 name="file_info",
-                description="Obtiene información de un archivo (tamaño, fecha, tipo)",
+                description="Get file information (size, date, type)",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta del archivo",
+                            "description": "File path",
                         },
                     },
                     "required": ["path"],
@@ -128,102 +128,102 @@ class FilesystemSkill(Skill):
         ]
 
     def list_directory(self, path: Optional[str] = None, pattern: Optional[str] = None) -> str:
-        """Lista contenido de un directorio."""
+        """List directory contents."""
         try:
             dir_path = Path(path) if path else Path.cwd()
 
             if not dir_path.exists():
-                return f"Error: El directorio no existe: {dir_path}"
+                return f"Error: Directory does not exist: {dir_path}"
 
             if not dir_path.is_dir():
-                return f"Error: No es un directorio: {dir_path}"
+                return f"Error: Not a directory: {dir_path}"
 
-            # Obtener files
+            # Get files
             if pattern:
                 items = list(dir_path.glob(pattern))
             else:
                 items = list(dir_path.iterdir())
 
-            # Ordenar: carpetas primero, luego files
+            # Sort: folders first, then files
             dirs = sorted([i for i in items if i.is_dir()])
             files = sorted([i for i in items if i.is_file()])
 
-            result = [f"Contenido de: {dir_path}\n"]
+            result = [f"Contents of: {dir_path}\n"]
 
             if dirs:
-                result.append("📁 Carpetas:")
-                for d in dirs[:20]:  # Limitar a 20
+                result.append("📁 Folders:")
+                for d in dirs[:20]:  # Limit to 20
                     result.append(f"  {d.name}/")
 
             if files:
-                result.append("\n📄 Archivos:")
-                for f in files[:30]:  # Limitar a 30
+                result.append("\n📄 Files:")
+                for f in files[:30]:  # Limit to 30
                     size = f.stat().st_size
                     size_str = self._format_size(size)
                     result.append(f"  {f.name} ({size_str})")
 
             if len(dirs) > 20 or len(files) > 30:
-                result.append(f"\n... y más ({len(dirs)} carpetas, {len(files)} files total)")
+                result.append(f"\n... and more ({len(dirs)} folders, {len(files)} files total)")
 
             return "\n".join(result)
 
         except PermissionError:
-            return f"Error: Sin permisos para acceder a {path}"
+            return f"Error: No permission to access {path}"
         except Exception as e:
-            return f"Error listando directorio: {e}"
+            return f"Error listing directory: {e}"
 
     def read_file(self, path: str, max_lines: int = 100) -> str:
-        """Lee contenido de un archivo."""
+        """Read file content."""
         try:
             file_path = Path(path)
 
             if not file_path.exists():
-                return f"Error: Archivo no encontrado: {path}"
+                return f"Error: File not found: {path}"
 
             if not file_path.is_file():
-                return f"Error: No es un archivo: {path}"
+                return f"Error: Not a file: {path}"
 
-            # Verificar tamaño
+            # Check size
             size = file_path.stat().st_size
             if size > 1_000_000:  # 1MB
-                return f"Error: Archivo muy grande ({self._format_size(size)}). Usa max_lines para leer parcialmente."
+                return f"Error: File too large ({self._format_size(size)}). Use max_lines to read partially."
 
-            # Leer
+            # Read
             with open(file_path, encoding="utf-8", errors="replace") as f:
                 lines = f.readlines()
 
             if len(lines) > max_lines:
                 content = "".join(lines[:max_lines])
-                return f"{content}\n\n... (showing {max_lines} de {len(lines)} lines)"
+                return f"{content}\n\n... (showing {max_lines} of {len(lines)} lines)"
             else:
                 return "".join(lines)
 
         except UnicodeDecodeError:
-            return "Error: El archivo no es texto legible (puede ser binario)"
+            return "Error: File is not readable text (may be binary)"
         except PermissionError:
-            return f"Error: Sin permisos para leer {path}"
+            return f"Error: No permission to read {path}"
         except Exception as e:
-            return f"Error leyendo archivo: {e}"
+            return f"Error reading file: {e}"
 
     def write_file(self, path: str, content: str, append: bool = False) -> str:
-        """Escribe contenido a un archivo."""
+        """Write content to a file."""
         try:
             file_path = Path(path)
 
-            # Crear directorio padre si no existe
+            # Create parent directory if it doesn't exist
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
             mode = "a" if append else "w"
             with open(file_path, mode, encoding="utf-8") as f:
                 f.write(content)
 
-            action = "agregado a" if append else "escrito en"
-            return f"✅ Contenido {action}: {file_path}"
+            action = "appended to" if append else "written to"
+            return f"✅ Content {action}: {file_path}"
 
         except PermissionError:
-            return f"Error: Sin permisos para escribir en {path}"
+            return f"Error: No permission to write to {path}"
         except Exception as e:
-            return f"Error escribiendo archivo: {e}"
+            return f"Error writing file: {e}"
 
     def search_files(
         self,
@@ -231,23 +231,23 @@ class FilesystemSkill(Skill):
         pattern: Optional[str] = None,
         content: Optional[str] = None,
     ) -> str:
-        """Busca files por nombre o contenido."""
+        """Search files by name or content."""
         try:
             dir_path = Path(directory)
 
             if not dir_path.exists():
-                return f"Error: Directorio no existe: {directory}"
+                return f"Error: Directory does not exist: {directory}"
 
-            # Buscar por patrón de nombre
+            # Search by name pattern
             if pattern:
-                matches = list(dir_path.rglob(pattern))[:50]  # Limitar resultados
+                matches = list(dir_path.rglob(pattern))[:50]  # Limit results
             else:
                 matches = list(dir_path.rglob("*"))[:100]
 
-            # Filtrar solo files
+            # Filter only files
             matches = [m for m in matches if m.is_file()]
 
-            # Si hay búsqueda de contenido, filtrar
+            # If content search, filter
             if content:
                 content_matches = []
                 for match in matches:
@@ -261,59 +261,59 @@ class FilesystemSkill(Skill):
                 matches = content_matches
 
             if not matches:
-                return "No se encontraron files que coincidan."
+                return "No matching files found."
 
-            result = [f"Encontrados {len(matches)} files:\n"]
+            result = [f"Found {len(matches)} files:\n"]
             for m in matches[:20]:
                 rel_path = m.relative_to(dir_path) if dir_path in m.parents else m
                 result.append(f"  📄 {rel_path}")
 
             if len(matches) > 20:
-                result.append(f"\n  ... y {len(matches) - 20} más")
+                result.append(f"\n  ... and {len(matches) - 20} more")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error buscando: {e}"
+            return f"Error searching: {e}"
 
     def file_info(self, path: str) -> str:
-        """Obtiene información detallada de un archivo."""
+        """Get detailed file information."""
         try:
             file_path = Path(path)
 
             if not file_path.exists():
-                return f"Error: No existe: {path}"
+                return f"Error: Does not exist: {path}"
 
             stat = file_path.stat()
 
             info = [
-                f"📄 Información de: {file_path.name}",
+                f"📄 Information for: {file_path.name}",
                 "",
-                f"Ruta completa: {file_path.absolute()}",
-                f"Tipo: {'Directorio' if file_path.is_dir() else 'Archivo'}",
+                f"Full path: {file_path.absolute()}",
+                f"Type: {'Directory' if file_path.is_dir() else 'File'}",
                 f"Size: {self._format_size(stat.st_size)}",
-                f"Modificado: {datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}",
-                f"Creado: {datetime.fromtimestamp(stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S')}",
+                f"Modified: {datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}",
+                f"Created: {datetime.fromtimestamp(stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S')}",
             ]
 
             if file_path.is_file():
-                info.append(f"Extensión: {file_path.suffix or '(sin extensión)'}")
+                info.append(f"Extension: {file_path.suffix or '(no extension)'}")
 
-                # Contar lines si es texto
+                # Count lines if text
                 try:
                     with open(file_path, encoding="utf-8") as f:
                         lines = sum(1 for _ in f)
-                    info.append(f"Líneas: {lines}")
+                    info.append(f"Lines: {lines}")
                 except Exception as e:
                     logger.debug(f"Could not count lines in {file_path}: {e}")
 
             return "\n".join(info)
 
         except Exception as e:
-            return f"Error obteniendo info: {e}"
+            return f"Error getting info: {e}"
 
     def _format_size(self, size: int) -> str:
-        """Formatea tamaño en bytes a formato legible."""
+        """Format size in bytes to readable format."""
         for unit in ["B", "KB", "MB", "GB"]:
             if size < 1024:
                 return f"{size:.1f} {unit}"
@@ -321,7 +321,7 @@ class FilesystemSkill(Skill):
         return f"{size:.1f} TB"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "list")
 
         if action == "list":

@@ -1,7 +1,7 @@
 """
-Skill de Plugins para R CLI.
+Plugin Skill for R CLI.
 
-Permite gestionar plugins: crear, instalar, habilitar, deshabilitar y eliminar.
+Manage plugins: create, install, enable, disable and remove.
 """
 
 from pathlib import Path
@@ -12,7 +12,7 @@ from r_cli.core.plugins import PluginManager
 
 
 class PluginSkill(Skill):
-    """Skill para gestión de plugins."""
+    """Skill for plugin management."""
 
     name = "plugin"
     description = "Manage community plugins for R CLI"
@@ -28,21 +28,21 @@ class PluginSkill(Skill):
         return [
             Tool(
                 name="plugin_create",
-                description="Crea un nuevo plugin desde template",
+                description="Create a new plugin from template",
                 parameters={
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Nombre del plugin (solo letras, números, guiones bajos)",
+                            "description": "Plugin name (letters, numbers, underscores only)",
                         },
                         "description": {
                             "type": "string",
-                            "description": "Descripción del plugin",
+                            "description": "Plugin description",
                         },
                         "author": {
                             "type": "string",
-                            "description": "Nombre del autor",
+                            "description": "Author name",
                         },
                     },
                     "required": ["name"],
@@ -51,17 +51,17 @@ class PluginSkill(Skill):
             ),
             Tool(
                 name="plugin_install",
-                description="Instala un plugin desde directorio local o GitHub",
+                description="Install a plugin from local directory or GitHub",
                 parameters={
                     "type": "object",
                     "properties": {
                         "source": {
                             "type": "string",
-                            "description": "Ruta local o URL de GitHub del plugin",
+                            "description": "Local path or GitHub URL of the plugin",
                         },
                         "force": {
                             "type": "boolean",
-                            "description": "Forzar reinstalación si ya existe",
+                            "description": "Force reinstall if already exists",
                         },
                     },
                     "required": ["source"],
@@ -70,13 +70,13 @@ class PluginSkill(Skill):
             ),
             Tool(
                 name="plugin_uninstall",
-                description="Desinstala un plugin",
+                description="Uninstall a plugin",
                 parameters={
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Nombre del plugin a desinstalar",
+                            "description": "Name of the plugin to uninstall",
                         },
                     },
                     "required": ["name"],
@@ -85,13 +85,13 @@ class PluginSkill(Skill):
             ),
             Tool(
                 name="plugin_enable",
-                description="Habilita un plugin instalado",
+                description="Enable an installed plugin",
                 parameters={
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Nombre del plugin",
+                            "description": "Plugin name",
                         },
                     },
                     "required": ["name"],
@@ -100,13 +100,13 @@ class PluginSkill(Skill):
             ),
             Tool(
                 name="plugin_disable",
-                description="Deshabilita un plugin",
+                description="Disable a plugin",
                 parameters={
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Nombre del plugin",
+                            "description": "Plugin name",
                         },
                     },
                     "required": ["name"],
@@ -115,19 +115,19 @@ class PluginSkill(Skill):
             ),
             Tool(
                 name="plugin_list",
-                description="Lista todos los plugins instalados",
+                description="List all installed plugins",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_plugins,
             ),
             Tool(
                 name="plugin_info",
-                description="Muestra información detallada de un plugin",
+                description="Show detailed plugin information",
                 parameters={
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Nombre del plugin",
+                            "description": "Plugin name",
                         },
                     },
                     "required": ["name"],
@@ -136,13 +136,13 @@ class PluginSkill(Skill):
             ),
             Tool(
                 name="plugin_validate",
-                description="Valida la estructura de un plugin",
+                description="Validate the structure of a plugin",
                 parameters={
                     "type": "object",
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Ruta al directorio del plugin",
+                            "description": "Path to the plugin directory",
                         },
                     },
                     "required": ["path"],
@@ -154,10 +154,10 @@ class PluginSkill(Skill):
     def create_plugin(
         self,
         name: str,
-        description: str = "Mi plugin personalizado",
+        description: str = "My custom plugin",
         author: str = "",
     ) -> str:
-        """Crea un nuevo plugin."""
+        """Create a new plugin."""
         return self.manager.create_plugin(name, description, author)
 
     def install_plugin(
@@ -165,31 +165,31 @@ class PluginSkill(Skill):
         source: str,
         force: bool = False,
     ) -> str:
-        """Instala un plugin."""
+        """Install a plugin."""
         return self.manager.install_plugin(source, force)
 
     def uninstall_plugin(self, name: str) -> str:
-        """Desinstala un plugin."""
+        """Uninstall a plugin."""
         return self.manager.uninstall_plugin(name)
 
     def enable_plugin(self, name: str) -> str:
-        """Habilita un plugin."""
+        """Enable a plugin."""
         return self.manager.enable_plugin(name)
 
     def disable_plugin(self, name: str) -> str:
-        """Deshabilita un plugin."""
+        """Disable a plugin."""
         return self.manager.disable_plugin(name)
 
     def list_plugins(self) -> str:
-        """Lista plugins instalados."""
+        """List installed plugins."""
         return self.manager.list_plugins()
 
     def plugin_info(self, name: str) -> str:
-        """Información de un plugin."""
+        """Get plugin information."""
         return self.manager.get_plugin_info(name)
 
     def validate_plugin(self, path: str) -> str:
-        """Valida un plugin."""
+        """Validate a plugin."""
         plugin_path = Path(path).expanduser()
         if not plugin_path.is_dir():
             return f"Error: '{path}' is not a valid directory"
@@ -198,7 +198,7 @@ class PluginSkill(Skill):
         return message
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "list")
 
         if action == "list":
@@ -206,41 +206,41 @@ class PluginSkill(Skill):
         elif action == "create":
             name = kwargs.get("name")
             if not name:
-                return "Error: Se requiere --name para crear un plugin"
+                return "Error: --name is required to create a plugin"
             return self.create_plugin(
                 name=name,
-                description=kwargs.get("description", "Mi plugin"),
+                description=kwargs.get("description", "My plugin"),
                 author=kwargs.get("author", ""),
             )
         elif action == "install":
             source = kwargs.get("source")
             if not source:
-                return "Error: Se requiere --source para instalar"
+                return "Error: --source is required to install"
             return self.install_plugin(source, kwargs.get("force", False))
         elif action == "uninstall" or action == "remove":
             name = kwargs.get("name")
             if not name:
-                return "Error: Se requiere --name para desinstalar"
+                return "Error: --name is required to uninstall"
             return self.uninstall_plugin(name)
         elif action == "enable":
             name = kwargs.get("name")
             if not name:
-                return "Error: Se requiere --name"
+                return "Error: --name is required"
             return self.enable_plugin(name)
         elif action == "disable":
             name = kwargs.get("name")
             if not name:
-                return "Error: Se requiere --name"
+                return "Error: --name is required"
             return self.disable_plugin(name)
         elif action == "info":
             name = kwargs.get("name")
             if not name:
-                return "Error: Se requiere --name"
+                return "Error: --name is required"
             return self.plugin_info(name)
         elif action == "validate":
             path = kwargs.get("path")
             if not path:
-                return "Error: Se requiere --path"
+                return "Error: --path is required"
             return self.validate_plugin(path)
         else:
             return self.list_plugins()

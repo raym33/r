@@ -1,14 +1,14 @@
 """
-Skill de Diseño para R CLI.
+Design Skill for R CLI.
 
-Genera imágenes con Stable Diffusion localmente.
-Soporta múltiples backends: ComfyUI, Automatic1111, diffusers.
+Generate images with Stable Diffusion locally.
+Supports multiple backends: ComfyUI, Automatic1111, diffusers.
 
-Requisitos:
-- diffusers (básico) o
-- ComfyUI / Automatic1111 API (avanzado)
-- 8GB+ VRAM para SD 1.5
-- 12GB+ VRAM para SDXL
+Requirements:
+- diffusers (basic) or
+- ComfyUI / Automatic1111 API (advanced)
+- 8GB+ VRAM for SD 1.5
+- 12GB+ VRAM for SDXL
 """
 
 import base64
@@ -27,12 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 class DesignSkill(Skill):
-    """Skill para generación de imágenes con Stable Diffusion."""
+    """Skill for image generation with Stable Diffusion."""
 
     name = "design"
     description = "Generate images with Stable Diffusion locally"
 
-    # Modelos populares
+    # Popular models
     MODELS = {
         "sd-1.5": {
             "name": "Stable Diffusion 1.5",
@@ -56,7 +56,7 @@ class DesignSkill(Skill):
         },
     }
 
-    # Estilos predefinidos
+    # Predefined styles
     STYLES = {
         "photorealistic": "photorealistic, highly detailed, 8k uhd, professional photography",
         "anime": "anime style, studio ghibli, vibrant colors, detailed",
@@ -70,7 +70,7 @@ class DesignSkill(Skill):
         "pixel-art": "pixel art, 16-bit, retro game style, detailed sprites",
     }
 
-    # Sizes comunes
+    # Common sizes
     SIZES = {
         "square": (512, 512),
         "square-hd": (1024, 1024),
@@ -82,7 +82,7 @@ class DesignSkill(Skill):
         "ultrawide": (1024, 512),
     }
 
-    # Backends soportados
+    # Supported backends
     BACKENDS = ["diffusers", "comfyui", "automatic1111"]
 
     # Memory thresholds (in GB)
@@ -217,7 +217,7 @@ class DesignSkill(Skill):
         )
 
     def _check_diffusers(self) -> bool:
-        """Verifica si diffusers está disponible."""
+        """Check if diffusers is available."""
         try:
             import diffusers
             import torch
@@ -227,7 +227,7 @@ class DesignSkill(Skill):
             return False
 
     def _check_comfyui(self) -> bool:
-        """Verifica si ComfyUI API está disponible."""
+        """Check if ComfyUI API is available."""
         try:
             response = requests.get("http://127.0.0.1:8188/history", timeout=2)
             return response.status_code == 200
@@ -236,7 +236,7 @@ class DesignSkill(Skill):
             return False
 
     def _check_a1111(self) -> bool:
-        """Verifica si Automatic1111 API está disponible."""
+        """Check if Automatic1111 API is available."""
         try:
             response = requests.get("http://127.0.0.1:7860/sdapi/v1/sd-models", timeout=2)
             return response.status_code == 200
@@ -245,7 +245,7 @@ class DesignSkill(Skill):
             return False
 
     def _detect_backend(self) -> str:
-        """Detecta el mejor backend disponible."""
+        """Detect the best available backend."""
         if self._a1111_available:
             return "automatic1111"
         elif self._comfyui_available:
@@ -258,31 +258,31 @@ class DesignSkill(Skill):
         return [
             Tool(
                 name="generate_image",
-                description="Genera una imagen a partir de un prompt usando Stable Diffusion",
+                description="Generate an image from a prompt using Stable Diffusion",
                 parameters={
                     "type": "object",
                     "properties": {
                         "prompt": {
                             "type": "string",
-                            "description": "Descripción de la imagen a generar",
+                            "description": "Description of the image to generate",
                         },
                         "negative_prompt": {
                             "type": "string",
-                            "description": "Lo que NO quieres en la imagen",
+                            "description": "What you DON'T want in the image",
                         },
                         "style": {
                             "type": "string",
                             "enum": list(self.STYLES.keys()),
-                            "description": "Estilo predefinido a aplicar",
+                            "description": "Predefined style to apply",
                         },
                         "size": {
                             "type": "string",
                             "enum": list(self.SIZES.keys()),
-                            "description": "Size de la imagen (default: square)",
+                            "description": "Image size (default: square)",
                         },
                         "steps": {
                             "type": "integer",
-                            "description": "Pasos de inferencia (default: 30)",
+                            "description": "Inference steps (default: 30)",
                         },
                         "cfg_scale": {
                             "type": "number",
@@ -290,11 +290,11 @@ class DesignSkill(Skill):
                         },
                         "seed": {
                             "type": "integer",
-                            "description": "Semilla para reproducibilidad (-1 = random)",
+                            "description": "Seed for reproducibility (-1 = random)",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar la imagen",
+                            "description": "Path where to save the image",
                         },
                     },
                     "required": ["prompt"],
@@ -303,25 +303,25 @@ class DesignSkill(Skill):
             ),
             Tool(
                 name="img2img",
-                description="Genera variaciones de una imagen existente",
+                description="Generate variations of an existing image",
                 parameters={
                     "type": "object",
                     "properties": {
                         "image_path": {
                             "type": "string",
-                            "description": "Ruta a la imagen base",
+                            "description": "Path to the base image",
                         },
                         "prompt": {
                             "type": "string",
-                            "description": "Descripción de las modificaciones",
+                            "description": "Description of modifications",
                         },
                         "strength": {
                             "type": "number",
-                            "description": "Fuerza de la transformación (0.0-1.0, default: 0.75)",
+                            "description": "Transformation strength (0.0-1.0, default: 0.75)",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar la imagen",
+                            "description": "Path where to save the image",
                         },
                     },
                     "required": ["image_path", "prompt"],
@@ -330,21 +330,21 @@ class DesignSkill(Skill):
             ),
             Tool(
                 name="upscale_image",
-                description="Aumenta la resolución de una imagen",
+                description="Increase the resolution of an image",
                 parameters={
                     "type": "object",
                     "properties": {
                         "image_path": {
                             "type": "string",
-                            "description": "Ruta a la imagen a escalar",
+                            "description": "Path to the image to upscale",
                         },
                         "scale": {
                             "type": "number",
-                            "description": "Factor de escala (2, 4, default: 2)",
+                            "description": "Scale factor (2, 4, default: 2)",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar la imagen",
+                            "description": "Path where to save the image",
                         },
                     },
                     "required": ["image_path"],
@@ -353,31 +353,31 @@ class DesignSkill(Skill):
             ),
             Tool(
                 name="list_styles",
-                description="Lista los estilos predefinidos disponibles",
+                description="List available predefined styles",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_styles,
             ),
             Tool(
                 name="list_models",
-                description="Lista los modelos Stable Diffusion disponibles",
+                description="List available Stable Diffusion models",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_models,
             ),
             Tool(
                 name="backend_status",
-                description="Muestra el estado del backend de generación",
+                description="Show generation backend status",
                 parameters={"type": "object", "properties": {}},
                 handler=self.backend_status,
             ),
             Tool(
                 name="vram_status",
-                description="Muestra el estado actual de la memoria GPU/VRAM",
+                description="Show current GPU/VRAM memory status",
                 parameters={"type": "object", "properties": {}},
                 handler=self.get_vram_status,
             ),
             Tool(
                 name="unload_design_model",
-                description="Descarga el modelo de memoria GPU para liberar VRAM",
+                description="Unload model from GPU memory to free VRAM",
                 parameters={"type": "object", "properties": {}},
                 handler=self.unload_model,
             ),
@@ -394,19 +394,19 @@ class DesignSkill(Skill):
         seed: int = -1,
         output_path: Optional[str] = None,
     ) -> str:
-        """Genera una imagen con Stable Diffusion."""
-        # Aplicar estilo si se especifica
+        """Generate an image with Stable Diffusion."""
+        # Apply style if specified
         if style and style in self.STYLES:
             prompt = f"{prompt}, {self.STYLES[style]}"
 
-        # Obtener dimensiones
+        # Get dimensions
         width, height = self.SIZES.get(size, (512, 512))
 
-        # Negative prompt por defecto
+        # Default negative prompt
         if not negative_prompt:
             negative_prompt = "blurry, bad quality, distorted, ugly, deformed"
 
-        # Determinar ruta de salida
+        # Determine output path
         if output_path:
             out_path = Path(output_path)
         else:
@@ -415,7 +415,7 @@ class DesignSkill(Skill):
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Generar según backend disponible
+        # Generate according to available backend
         if self._active_backend == "automatic1111":
             return self._generate_a1111(
                 prompt, negative_prompt, width, height, steps, cfg_scale, seed, out_path
@@ -429,7 +429,7 @@ class DesignSkill(Skill):
                 prompt, negative_prompt, width, height, steps, cfg_scale, seed, out_path
             )
         else:
-            return "Error: No hay backend de generación disponible.\n\nOpciones:\n1. Instalar diffusers: pip install diffusers torch\n2. Ejecutar Automatic1111 en localhost:7860\n3. Ejecutar ComfyUI en localhost:8188"
+            return "Error: No generation backend available.\n\nOptions:\n1. Install diffusers: pip install diffusers torch\n2. Run Automatic1111 on localhost:7860\n3. Run ComfyUI on localhost:8188"
 
     def _generate_diffusers(
         self,
@@ -502,13 +502,13 @@ class DesignSkill(Skill):
             # Cleanup intermediate GPU memory (but keep model loaded)
             self._cleanup_gpu_memory()
 
-            return f"Imagen generada: {out_path}\nPrompt: {prompt}\nSize: {width}x{height}"
+            return f"Image generated: {out_path}\nPrompt: {prompt}\nSize: {width}x{height}"
 
         except Exception as e:
             # On error, cleanup and report
             self._cleanup_gpu_memory()
             logger.error(f"Error generating image: {e}")
-            return f"Error generando imagen con diffusers: {e}"
+            return f"Error generating image with diffusers: {e}"
 
     def _generate_a1111(
         self,
@@ -552,10 +552,10 @@ class DesignSkill(Skill):
             info = json.loads(result.get("info", "{}"))
             actual_seed = info.get("seed", seed)
 
-            return f"Imagen generada: {out_path}\nPrompt: {prompt}\nSize: {width}x{height}\nSeed: {actual_seed}"
+            return f"Image generated: {out_path}\nPrompt: {prompt}\nSize: {width}x{height}\nSeed: {actual_seed}"
 
         except Exception as e:
-            return f"Error generando imagen con A1111: {e}"
+            return f"Error generating image with A1111: {e}"
 
     def _generate_comfyui(
         self,
@@ -568,9 +568,9 @@ class DesignSkill(Skill):
         seed: int,
         out_path: Path,
     ) -> str:
-        """Genera imagen usando ComfyUI API."""
+        """Generate image using ComfyUI API."""
         try:
-            # Workflow básico para ComfyUI
+            # Basic workflow for ComfyUI
             workflow = {
                 "3": {
                     "class_type": "KSampler",
@@ -613,7 +613,7 @@ class DesignSkill(Skill):
                 },
             }
 
-            # Enviar workflow
+            # Send workflow
             response = requests.post(
                 "http://127.0.0.1:8188/prompt",
                 json={"prompt": workflow},
@@ -623,12 +623,12 @@ class DesignSkill(Skill):
             if response.status_code != 200:
                 return f"Error ComfyUI API: {response.status_code}"
 
-            # ComfyUI guarda en su directorio output
-            # Por simplicidad, informamos dónde buscar
+            # ComfyUI saves to its output directory
+            # For simplicity, we inform where to look
             return f"Image generating in ComfyUI...\nPrompt: {prompt}\nLook for: ComfyUI/output/r_cli_*.png"
 
         except Exception as e:
-            return f"Error generando imagen con ComfyUI: {e}"
+            return f"Error generating image with ComfyUI: {e}"
 
     def img2img(
         self,
@@ -637,12 +637,12 @@ class DesignSkill(Skill):
         strength: float = 0.75,
         output_path: Optional[str] = None,
     ) -> str:
-        """Genera variaciones de una imagen existente."""
+        """Generate variations of an existing image."""
         input_path = Path(image_path)
         if not input_path.exists():
-            return f"Error: Imagen no encontrada: {image_path}"
+            return f"Error: Image not found: {image_path}"
 
-        # Determinar ruta de salida
+        # Determine output path
         if output_path:
             out_path = Path(output_path)
         else:
@@ -656,7 +656,7 @@ class DesignSkill(Skill):
         elif self._active_backend == "diffusers":
             return self._img2img_diffusers(input_path, prompt, strength, out_path)
         else:
-            return "Error: img2img requiere Automatic1111 o diffusers"
+            return "Error: img2img requires Automatic1111 or diffusers"
 
     def _img2img_diffusers(
         self,
@@ -665,13 +665,13 @@ class DesignSkill(Skill):
         strength: float,
         out_path: Path,
     ) -> str:
-        """img2img usando diffusers."""
+        """img2img using diffusers."""
         try:
             import torch
             from diffusers import StableDiffusionImg2ImgPipeline
             from PIL import Image
 
-            # Determinar dispositivo
+            # Determine device
             if torch.cuda.is_available():
                 device = "cuda"
             elif torch.backends.mps.is_available():
@@ -679,7 +679,7 @@ class DesignSkill(Skill):
             else:
                 device = "cpu"
 
-            # Cargar modelo
+            # Load model
             model_id = "runwayml/stable-diffusion-v1-5"
             pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
                 model_id,
@@ -687,11 +687,11 @@ class DesignSkill(Skill):
             )
             pipe = pipe.to(device)
 
-            # Cargar imagen
+            # Load image
             init_image = Image.open(input_path).convert("RGB")
             init_image = init_image.resize((512, 512))
 
-            # Generar
+            # Generate
             image = pipe(
                 prompt=prompt,
                 image=init_image,
@@ -699,13 +699,13 @@ class DesignSkill(Skill):
                 guidance_scale=7.5,
             ).images[0]
 
-            # Guardar
+            # Save
             image.save(str(out_path))
 
-            return f"Imagen generada: {out_path}\nBase: {input_path}\nStrength: {strength}"
+            return f"Image generated: {out_path}\nBase: {input_path}\nStrength: {strength}"
 
         except Exception as e:
-            return f"Error en img2img: {e}"
+            return f"Error in img2img: {e}"
 
     def _img2img_a1111(
         self,
@@ -714,9 +714,9 @@ class DesignSkill(Skill):
         strength: float,
         out_path: Path,
     ) -> str:
-        """img2img usando Automatic1111 API."""
+        """img2img using Automatic1111 API."""
         try:
-            # Leer imagen y convertir a base64
+            # Read image and convert to base64
             with open(input_path, "rb") as f:
                 image_b64 = base64.b64encode(f.read()).decode()
 
@@ -743,10 +743,10 @@ class DesignSkill(Skill):
             with open(out_path, "wb") as f:
                 f.write(image_data)
 
-            return f"Imagen generada: {out_path}\nBase: {input_path}\nStrength: {strength}"
+            return f"Image generated: {out_path}\nBase: {input_path}\nStrength: {strength}"
 
         except Exception as e:
-            return f"Error en img2img: {e}"
+            return f"Error in img2img: {e}"
 
     def upscale_image(
         self,
@@ -754,12 +754,12 @@ class DesignSkill(Skill):
         scale: float = 2,
         output_path: Optional[str] = None,
     ) -> str:
-        """Aumenta la resolución de una imagen."""
+        """Increase the resolution of an image."""
         input_path = Path(image_path)
         if not input_path.exists():
-            return f"Error: Imagen no encontrada: {image_path}"
+            return f"Error: Image not found: {image_path}"
 
-        # Determinar ruta de salida
+        # Determine output path
         if output_path:
             out_path = Path(output_path)
         else:
@@ -768,11 +768,11 @@ class DesignSkill(Skill):
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Usar A1111 si está disponible (tiene mejores upscalers)
+        # Use A1111 if available (has better upscalers)
         if self._active_backend == "automatic1111":
             return self._upscale_a1111(input_path, scale, out_path)
         else:
-            # Fallback: upscale simple con PIL
+            # Fallback: simple upscale with PIL
             return self._upscale_pil(input_path, scale, out_path)
 
     def _upscale_pil(
@@ -781,7 +781,7 @@ class DesignSkill(Skill):
         scale: float,
         out_path: Path,
     ) -> str:
-        """Upscale básico con PIL."""
+        """Basic upscale with PIL."""
         try:
             from PIL import Image
 
@@ -790,10 +790,10 @@ class DesignSkill(Skill):
             upscaled = img.resize(new_size, Image.Resampling.LANCZOS)
             upscaled.save(str(out_path))
 
-            return f"Imagen escalada: {out_path}\nOriginal: {img.width}x{img.height}\nNuevo: {new_size[0]}x{new_size[1]}"
+            return f"Image upscaled: {out_path}\nOriginal: {img.width}x{img.height}\nNew: {new_size[0]}x{new_size[1]}"
 
         except Exception as e:
-            return f"Error escalando imagen: {e}"
+            return f"Error upscaling image: {e}"
 
     def _upscale_a1111(
         self,
@@ -801,7 +801,7 @@ class DesignSkill(Skill):
         scale: float,
         out_path: Path,
     ) -> str:
-        """Upscale usando Automatic1111 API."""
+        """Upscale using Automatic1111 API."""
         try:
             with open(input_path, "rb") as f:
                 image_b64 = base64.b64encode(f.read()).decode()
@@ -827,45 +827,45 @@ class DesignSkill(Skill):
             with open(out_path, "wb") as f:
                 f.write(image_data)
 
-            return f"Imagen escalada (R-ESRGAN): {out_path}\nFactor: {scale}x"
+            return f"Image upscaled (R-ESRGAN): {out_path}\nFactor: {scale}x"
 
         except Exception:
             return self._upscale_pil(input_path, scale, out_path)
 
     def list_styles(self) -> str:
-        """Lista los estilos predefinidos."""
-        result = ["Estilos disponibles:\n"]
+        """List predefined styles."""
+        result = ["Available styles:\n"]
 
         for style, desc in self.STYLES.items():
             result.append(f"  - {style}: {desc[:50]}...")
 
-        result.append("\nSizes disponibles:")
+        result.append("\nAvailable sizes:")
         for size, (w, h) in self.SIZES.items():
             result.append(f"  - {size}: {w}x{h}")
 
-        result.append("\nUso: generate_image(prompt, style='cyberpunk', size='landscape')")
+        result.append("\nUsage: generate_image(prompt, style='cyberpunk', size='landscape')")
 
         return "\n".join(result)
 
     def list_models(self) -> str:
-        """Lista los modelos Stable Diffusion."""
-        result = ["Modelos Stable Diffusion:\n"]
+        """List Stable Diffusion models."""
+        result = ["Stable Diffusion Models:\n"]
 
         for model_id, info in self.MODELS.items():
             result.append(f"  - {model_id}: {info['name']} ({info['vram']} VRAM)")
 
-        result.append("\nBackends soportados:")
+        result.append("\nSupported backends:")
         result.append("  - diffusers: pip install diffusers torch")
-        result.append("  - automatic1111: Ejecutar en localhost:7860")
-        result.append("  - comfyui: Ejecutar en localhost:8188")
+        result.append("  - automatic1111: Run on localhost:7860")
+        result.append("  - comfyui: Run on localhost:8188")
 
         return "\n".join(result)
 
     def backend_status(self) -> str:
-        """Muestra el estado del backend."""
-        result = ["Estado de backends de generación:\n"]
+        """Show backend status."""
+        result = ["Generation backends status:\n"]
 
-        # Actualizar estado
+        # Update status
         self._diffusers_available = self._check_diffusers()
         self._comfyui_available = self._check_comfyui()
         self._a1111_available = self._check_a1111()
@@ -879,19 +879,19 @@ class DesignSkill(Skill):
 
         for backend, available in status.items():
             icon = "OK" if available else "NO"
-            active = " (activo)" if backend == self._active_backend else ""
+            active = " (active)" if backend == self._active_backend else ""
             result.append(f"  - {backend}: {icon}{active}")
 
         if self._active_backend == "none":
-            result.append("\nNingún backend disponible. Opciones:")
+            result.append("\nNo backend available. Options:")
             result.append("  1. pip install diffusers torch")
-            result.append("  2. Ejecutar Automatic1111 WebUI")
-            result.append("  3. Ejecutar ComfyUI")
+            result.append("  2. Run Automatic1111 WebUI")
+            result.append("  3. Run ComfyUI")
 
         return "\n".join(result)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         prompt = kwargs.get("prompt")
         image_path = kwargs.get("image")
         upscale = kwargs.get("upscale")
@@ -923,4 +923,4 @@ class DesignSkill(Skill):
                 output_path=kwargs.get("output"),
             )
         else:
-            return "Error: Especifica --prompt para generar, --image --prompt para img2img, o --upscale para escalar"
+            return "Error: Specify --prompt to generate, --image --prompt for img2img, or --upscale to upscale"

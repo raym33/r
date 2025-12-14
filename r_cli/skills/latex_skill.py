@@ -1,13 +1,13 @@
 """
-Skill de LaTeX para R CLI.
+LaTeX Skill for R CLI.
 
-Genera documentos LaTeX profesionales y los compila a PDF.
-Ideal para:
-- Documentos académicos
-- Papers científicos
-- Informes técnicos
-- Fórmulas matemáticas
-- CVs profesionales
+Generate professional LaTeX documents and compile them to PDF.
+Ideal for:
+- Academic documents
+- Scientific papers
+- Technical reports
+- Mathematical formulas
+- Professional CVs
 """
 
 import shutil
@@ -22,12 +22,12 @@ from r_cli.core.llm import Tool
 
 
 class LaTeXSkill(Skill):
-    """Skill para generación y compilación de documentos LaTeX."""
+    """Skill for generating and compiling LaTeX documents."""
 
     name = "latex"
     description = "Generate and compile LaTeX documents to professional PDF"
 
-    # Templates LaTeX predefinidos
+    # Predefined LaTeX templates
     TEMPLATES = {
         "article": r"""
 \documentclass[11pt,a4paper]{article}
@@ -179,28 +179,28 @@ class LaTeXSkill(Skill):
         self._check_latex_installed()
 
     def _check_latex_installed(self) -> bool:
-        """Verifica si LaTeX está instalado."""
+        """Check if LaTeX is installed."""
         return shutil.which("pdflatex") is not None
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
                 name="compile_latex",
-                description="Compila código LaTeX a PDF",
+                description="Compile LaTeX code to PDF",
                 parameters={
                     "type": "object",
                     "properties": {
                         "latex_code": {
                             "type": "string",
-                            "description": "Código LaTeX completo a compilar",
+                            "description": "Complete LaTeX code to compile",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el PDF (opcional)",
+                            "description": "Path where to save the PDF (optional)",
                         },
                         "filename": {
                             "type": "string",
-                            "description": "Nombre del archivo sin extensión",
+                            "description": "Filename without extension",
                         },
                     },
                     "required": ["latex_code"],
@@ -209,30 +209,30 @@ class LaTeXSkill(Skill):
             ),
             Tool(
                 name="create_document",
-                description="Crea un documento LaTeX desde contenido usando una plantilla",
+                description="Create a LaTeX document from content using a template",
                 parameters={
                     "type": "object",
                     "properties": {
                         "content": {
                             "type": "string",
-                            "description": "Contenido del documento (puede ser texto plano o LaTeX)",
+                            "description": "Document content (can be plain text or LaTeX)",
                         },
                         "title": {
                             "type": "string",
-                            "description": "Título del documento",
+                            "description": "Document title",
                         },
                         "author": {
                             "type": "string",
-                            "description": "Autor del documento",
+                            "description": "Document author",
                         },
                         "template": {
                             "type": "string",
                             "enum": ["article", "report", "minimal", "academic", "cv", "letter"],
-                            "description": "Plantilla a usar (default: article)",
+                            "description": "Template to use (default: article)",
                         },
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar el PDF",
+                            "description": "Path where to save the PDF",
                         },
                     },
                     "required": ["content"],
@@ -241,13 +241,13 @@ class LaTeXSkill(Skill):
             ),
             Tool(
                 name="markdown_to_latex",
-                description="Convierte Markdown a LaTeX",
+                description="Convert Markdown to LaTeX",
                 parameters={
                     "type": "object",
                     "properties": {
                         "markdown": {
                             "type": "string",
-                            "description": "Texto en Markdown a convertir",
+                            "description": "Markdown text to convert",
                         },
                     },
                     "required": ["markdown"],
@@ -256,23 +256,23 @@ class LaTeXSkill(Skill):
             ),
             Tool(
                 name="list_latex_templates",
-                description="Lista las plantillas LaTeX disponibles",
+                description="List available LaTeX templates",
                 parameters={"type": "object", "properties": {}},
                 handler=self.list_templates,
             ),
             Tool(
                 name="render_equation",
-                description="Renderiza una ecuación matemática a PDF",
+                description="Render a mathematical equation to PDF",
                 parameters={
                     "type": "object",
                     "properties": {
                         "equation": {
                             "type": "string",
-                            "description": "Ecuación en formato LaTeX (sin $)",
+                            "description": "Equation in LaTeX format (without $)",
                         },
                         "display": {
                             "type": "boolean",
-                            "description": "Si usar modo display (centrado, más grande)",
+                            "description": "Whether to use display mode (centered, larger)",
                         },
                     },
                     "required": ["equation"],
@@ -287,19 +287,19 @@ class LaTeXSkill(Skill):
         output_path: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> str:
-        """Compila código LaTeX a PDF."""
+        """Compile LaTeX code to PDF."""
         if not self._check_latex_installed():
-            return "Error: pdflatex no está instalado. Instala TeX Live o MiKTeX."
+            return "Error: pdflatex is not installed. Install TeX Live or MiKTeX."
 
         try:
-            # Crear directorio temporal
+            # Create temporary directory
             with tempfile.TemporaryDirectory() as tmpdir:
-                # Escribir archivo .tex
+                # Write .tex file
                 tex_file = Path(tmpdir) / "document.tex"
                 with open(tex_file, "w", encoding="utf-8") as f:
                     f.write(latex_code)
 
-                # Compilar (2 veces para referencias)
+                # Compile (2 times for references)
                 for _ in range(2):
                     result = subprocess.run(
                         [
@@ -315,39 +315,39 @@ class LaTeXSkill(Skill):
                         timeout=60,
                     )
 
-                # Verificar si se generó el PDF
+                # Check if PDF was generated
                 pdf_temp = Path(tmpdir) / "document.pdf"
                 if not pdf_temp.exists():
-                    # Extraer errores del log
+                    # Extract errors from log
                     log_file = Path(tmpdir) / "document.log"
-                    error_msg = "Error de compilación LaTeX"
+                    error_msg = "LaTeX compilation error"
                     if log_file.exists():
                         log_content = log_file.read_text()
-                        # Buscar líneas de error
+                        # Find error lines
                         errors = [l for l in log_content.split("\n") if l.startswith("!")]
                         if errors:
                             error_msg = "\n".join(errors[:5])
-                    return f"Error compilando LaTeX:\n{error_msg}"
+                    return f"Error compiling LaTeX:\n{error_msg}"
 
-                # Determinar ruta de salida
+                # Determine output path
                 if output_path:
                     out_path = Path(output_path)
                 else:
                     name = filename or f"latex_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     out_path = Path(self.output_dir) / f"{name}.pdf"
 
-                # Crear directorio si no existe
+                # Create directory if it doesn't exist
                 out_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Copiar PDF a destino
+                # Copy PDF to destination
                 shutil.copy(pdf_temp, out_path)
 
-                return f"PDF compilado exitosamente: {out_path}"
+                return f"PDF compiled successfully: {out_path}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout compilando LaTeX (>60s)"
+            return "Error: Timeout compiling LaTeX (>60s)"
         except Exception as e:
-            return f"Error compilando LaTeX: {e}"
+            return f"Error compiling LaTeX: {e}"
 
     def create_document(
         self,
@@ -358,17 +358,17 @@ class LaTeXSkill(Skill):
         output_path: Optional[str] = None,
         **kwargs,
     ) -> str:
-        """Crea un documento usando una plantilla."""
+        """Create a document using a template."""
         try:
-            # Obtener plantilla
+            # Get template
             if template not in self.TEMPLATES:
-                return f"Error: Plantilla no encontrada. Disponibles: {list(self.TEMPLATES.keys())}"
+                return f"Error: Template not found. Available: {list(self.TEMPLATES.keys())}"
 
             latex_template = self.TEMPLATES[template]
 
-            # Valores por defecto
+            # Default values
             replacements = {
-                "title": title or "Documento",
+                "title": title or "Document",
                 "author": author or "",
                 "date": datetime.now().strftime("%B %d, %Y"),
                 "content": content,
@@ -380,20 +380,20 @@ class LaTeXSkill(Skill):
                 "closing": kwargs.get("closing", "Sincerely,"),
             }
 
-            # Reemplazar placeholders
+            # Replace placeholders
             latex_code = latex_template
             for key, value in replacements.items():
                 latex_code = latex_code.replace("{{" + key + "}}", value)
 
-            # Compilar
+            # Compile
             filename = title.replace(" ", "_")[:30] if title else None
             return self.compile_latex(latex_code, output_path, filename)
 
         except Exception as e:
-            return f"Error creando documento: {e}"
+            return f"Error creating document: {e}"
 
     def markdown_to_latex(self, markdown: str) -> str:
-        """Convierte Markdown básico a LaTeX."""
+        """Convert basic Markdown to LaTeX."""
         try:
             latex = markdown
 
@@ -402,15 +402,15 @@ class LaTeXSkill(Skill):
             latex = self._replace_pattern(latex, r"^## (.+)$", r"\\subsection{\1}")
             latex = self._replace_pattern(latex, r"^# (.+)$", r"\\section{\1}")
 
-            # Bold e italic
+            # Bold and italic
             latex = self._replace_pattern(latex, r"\*\*(.+?)\*\*", r"\\textbf{\1}")
             latex = self._replace_pattern(latex, r"\*(.+?)\*", r"\\textit{\1}")
             latex = self._replace_pattern(latex, r"_(.+?)_", r"\\textit{\1}")
 
-            # Código inline
+            # Inline code
             latex = self._replace_pattern(latex, r"`(.+?)`", r"\\texttt{\1}")
 
-            # Listas
+            # Lists
             lines = latex.split("\n")
             new_lines = []
             in_list = False
@@ -433,21 +433,21 @@ class LaTeXSkill(Skill):
 
             latex = "\n".join(new_lines)
 
-            # Escapar caracteres especiales que no fueron procesados
+            # Escape special characters that were not processed
             special_chars = ["&", "%", "$", "#", "_"]
             for char in special_chars:
-                # Solo escapar si no está ya escapado
+                # Only escape if not already escaped
                 latex = latex.replace(f"\\{char}", f"__ESCAPED_{char}__")
                 latex = latex.replace(char, f"\\{char}")
                 latex = latex.replace(f"__ESCAPED_{char}__", f"\\{char}")
 
-            return f"Conversion completada:\n\n{latex}"
+            return f"Conversion completed:\n\n{latex}"
 
         except Exception as e:
-            return f"Error convirtiendo Markdown: {e}"
+            return f"Error converting Markdown: {e}"
 
     def _replace_pattern(self, text: str, pattern: str, replacement: str) -> str:
-        """Reemplaza patrones regex."""
+        """Replace regex patterns."""
         import re
 
         return re.sub(pattern, replacement, text, flags=re.MULTILINE)
@@ -457,7 +457,7 @@ class LaTeXSkill(Skill):
         equation: str,
         display: bool = True,
     ) -> str:
-        """Renderiza una ecuación matemática a PDF."""
+        """Render a mathematical equation to PDF."""
         if display:
             content = f"\\[\n{equation}\n\\]"
         else:
@@ -478,26 +478,26 @@ class LaTeXSkill(Skill):
         return self.compile_latex(latex_code, filename=f"equation_{hash(equation) % 10000}")
 
     def list_templates(self) -> str:
-        """Lista las plantillas disponibles."""
-        result = ["Plantillas LaTeX disponibles:\n"]
+        """List available templates."""
+        result = ["Available LaTeX templates:\n"]
 
         descriptions = {
-            "article": "Artículo estándar - papers, informes cortos",
-            "report": "Reporte con capítulos - documentos largos, tesis",
-            "minimal": "Mínimo - solo contenido, sin formato",
-            "academic": "Académico - teoremas, abstract, bibliografía",
-            "cv": "Curriculum Vitae - formato profesional",
-            "letter": "Carta formal",
+            "article": "Standard article - papers, short reports",
+            "report": "Report with chapters - long documents, thesis",
+            "minimal": "Minimal - content only, no formatting",
+            "academic": "Academic - theorems, abstract, bibliography",
+            "cv": "Curriculum Vitae - professional format",
+            "letter": "Formal letter",
         }
 
         for name, desc in descriptions.items():
             result.append(f"  - {name}: {desc}")
 
-        result.append("\nUso: create_document(content, template='academic')")
+        result.append("\nUsage: create_document(content, template='academic')")
         return "\n".join(result)
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         content = kwargs.get("content", "")
         latex_code = kwargs.get("latex", "")
 
@@ -512,4 +512,4 @@ class LaTeXSkill(Skill):
                 output_path=kwargs.get("output"),
             )
         else:
-            return "Error: Se requiere contenido o código LaTeX"
+            return "Error: Content or LaTeX code is required"

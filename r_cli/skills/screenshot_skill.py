@@ -1,10 +1,10 @@
 """
-Skill de Captura de Pantalla para R CLI.
+Screenshot Capture Skill for R CLI.
 
-Permite capturar:
-- Pantalla completa
-- Ventana activa
-- Región seleccionada
+Allows capturing:
+- Full screen
+- Active window
+- Selected region
 """
 
 import platform
@@ -18,7 +18,7 @@ from r_cli.core.llm import Tool
 
 
 class ScreenshotSkill(Skill):
-    """Skill para capturas de pantalla."""
+    """Skill for screen captures."""
 
     name = "screenshot"
     description = "Screenshots: full screen, active window or region"
@@ -27,22 +27,22 @@ class ScreenshotSkill(Skill):
         return [
             Tool(
                 name="take_screenshot",
-                description="Captura una imagen de la pantalla",
+                description="Capture an image of the screen",
                 parameters={
                     "type": "object",
                     "properties": {
                         "output_path": {
                             "type": "string",
-                            "description": "Ruta donde guardar la captura (default: auto-generada)",
+                            "description": "Path to save the capture (default: auto-generated)",
                         },
                         "mode": {
                             "type": "string",
                             "enum": ["full", "window", "region"],
-                            "description": "Modo de captura: full (pantalla completa), window (ventana activa), region (selección manual)",
+                            "description": "Capture mode: full (full screen), window (active window), region (manual selection)",
                         },
                         "delay": {
                             "type": "integer",
-                            "description": "Segundos de espera antes de capturar (default: 0)",
+                            "description": "Seconds to wait before capturing (default: 0)",
                         },
                     },
                 },
@@ -50,13 +50,13 @@ class ScreenshotSkill(Skill):
             ),
             Tool(
                 name="list_screenshots",
-                description="Lista las capturas de pantalla recientes",
+                description="List recent screenshots",
                 parameters={
                     "type": "object",
                     "properties": {
                         "count": {
                             "type": "integer",
-                            "description": "Número máximo de capturas a listar (default: 10)",
+                            "description": "Maximum number of screenshots to list (default: 10)",
                         },
                     },
                 },
@@ -65,12 +65,12 @@ class ScreenshotSkill(Skill):
         ]
 
     def _generate_filename(self) -> str:
-        """Genera un nombre de archivo con timestamp."""
+        """Generate a filename with timestamp."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"screenshot_{timestamp}.png"
 
     def _get_screenshot_dir(self) -> Path:
-        """Obtiene el directorio para guardar capturas."""
+        """Get the directory for saving screenshots."""
         screenshot_dir = Path(self.output_dir) / "screenshots"
         screenshot_dir.mkdir(parents=True, exist_ok=True)
         return screenshot_dir
@@ -81,15 +81,15 @@ class ScreenshotSkill(Skill):
         mode: str = "full",
         delay: int = 0,
     ) -> str:
-        """Captura la pantalla."""
+        """Capture the screen."""
         try:
-            # Determinar ruta de salida
+            # Determine output path
             if output_path:
                 out_path = Path(output_path).expanduser()
             else:
                 out_path = self._get_screenshot_dir() / self._generate_filename()
 
-            # Crear directorio padre si no existe
+            # Create parent directory if it doesn't exist
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
             system = platform.system()
@@ -101,24 +101,24 @@ class ScreenshotSkill(Skill):
             elif system == "Windows":
                 return self._screenshot_windows(out_path, mode, delay)
             else:
-                return f"Sistema operativo no soportado: {system}"
+                return f"Unsupported operating system: {system}"
 
         except Exception as e:
-            return f"Error capturando pantalla: {e}"
+            return f"Error capturing screen: {e}"
 
     def _screenshot_linux(self, output: Path, mode: str, delay: int) -> str:
-        """Captura de pantalla en Linux usando diferentes herramientas."""
-        # Intentar con diferentes herramientas en orden de preferencia
+        """Screenshot on Linux using different tools."""
+        # Try different tools in order of preference
         tools = ["gnome-screenshot", "scrot", "import", "spectacle"]
 
         for tool in tools:
             if self._command_exists(tool):
                 return self._run_linux_tool(tool, output, mode, delay)
 
-        return "Error: No se encontró ninguna herramienta de captura.\nInstala una con:\n  sudo apt install gnome-screenshot  # GNOME\n  sudo apt install scrot             # Genérico\n  sudo apt install imagemagick       # ImageMagick"
+        return "Error: No screenshot tool found.\nInstall one with:\n  sudo apt install gnome-screenshot  # GNOME\n  sudo apt install scrot             # Generic\n  sudo apt install imagemagick       # ImageMagick"
 
     def _run_linux_tool(self, tool: str, output: Path, mode: str, delay: int) -> str:
-        """Ejecuta herramienta de captura específica en Linux."""
+        """Run specific screenshot tool on Linux."""
         try:
             if tool == "gnome-screenshot":
                 cmd = ["gnome-screenshot", "-f", str(output)]
@@ -145,9 +145,9 @@ class ScreenshotSkill(Skill):
                 if mode == "full":
                     cmd.extend(["-window", "root"])
                 elif mode == "window":
-                    # Captura ventana bajo el cursor
+                    # Capture window under cursor
                     pass
-                # region es el comportamiento por defecto
+                # region is the default behavior
                 cmd.append(str(output))
 
             elif tool == "spectacle":
@@ -158,34 +158,34 @@ class ScreenshotSkill(Skill):
                 elif mode == "region":
                     cmd.append("-r")
                 if delay > 0:
-                    cmd.extend(["-d", str(delay * 1000)])  # Spectacle usa ms
+                    cmd.extend(["-d", str(delay * 1000)])  # Spectacle uses ms
 
             else:
-                return f"Herramienta no soportada: {tool}"
+                return f"Unsupported tool: {tool}"
 
             result = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0 and output.exists():
                 size = output.stat().st_size / 1024
-                return f"✅ Screenshot saved: {output}\n   Size: {size:.1f} KB"
+                return f"Screenshot saved: {output}\n   Size: {size:.1f} KB"
             else:
-                return f"Error: {result.stderr or 'Captura cancelada'}"
+                return f"Error: {result.stderr or 'Capture cancelled'}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout esperando la captura"
+            return "Error: Timeout waiting for capture"
         except Exception as e:
-            return f"Error ejecutando {tool}: {e}"
+            return f"Error running {tool}: {e}"
 
     def _screenshot_macos(self, output: Path, mode: str, delay: int) -> str:
-        """Captura de pantalla en macOS usando screencapture."""
+        """Screenshot on macOS using screencapture."""
         try:
             cmd = ["screencapture"]
 
             if mode == "window":
-                cmd.append("-w")  # Ventana
+                cmd.append("-w")  # Window
             elif mode == "region":
-                cmd.append("-i")  # Interactivo
-            # full es el comportamiento por defecto
+                cmd.append("-i")  # Interactive
+            # full is the default behavior
 
             if delay > 0:
                 cmd.extend(["-T", str(delay)])
@@ -196,19 +196,19 @@ class ScreenshotSkill(Skill):
 
             if result.returncode == 0 and output.exists():
                 size = output.stat().st_size / 1024
-                return f"✅ Screenshot saved: {output}\n   Size: {size:.1f} KB"
+                return f"Screenshot saved: {output}\n   Size: {size:.1f} KB"
             else:
-                return f"Error: {result.stderr or 'Captura cancelada'}"
+                return f"Error: {result.stderr or 'Capture cancelled'}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout esperando la captura"
+            return "Error: Timeout waiting for capture"
         except Exception as e:
-            return f"Error ejecutando screencapture: {e}"
+            return f"Error running screencapture: {e}"
 
     def _screenshot_windows(self, output: Path, mode: str, delay: int) -> str:
-        """Captura de pantalla en Windows usando PowerShell o PIL."""
+        """Screenshot on Windows using PowerShell or PIL."""
         try:
-            # Intentar con PIL primero (más confiable)
+            # Try PIL first (more reliable)
             try:
                 import time
 
@@ -221,20 +221,20 @@ class ScreenshotSkill(Skill):
                     screenshot = ImageGrab.grab()
                     screenshot.save(str(output))
                     size = output.stat().st_size / 1024
-                    return f"✅ Screenshot saved: {output}\n   Size: {size:.1f} KB"
+                    return f"Screenshot saved: {output}\n   Size: {size:.1f} KB"
                 else:
-                    return "Error: PIL solo soporta captura de pantalla completa en Windows"
+                    return "Error: PIL only supports full screen capture on Windows"
 
             except ImportError:
                 pass
 
-            # Fallback a PowerShell
+            # Fallback to PowerShell
             if delay > 0:
                 import time
 
                 time.sleep(delay)
 
-            # PowerShell script para captura
+            # PowerShell script for capture
             ps_script = f"""
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Screen]::PrimaryScreen | ForEach-Object {{
@@ -254,17 +254,17 @@ Add-Type -AssemblyName System.Windows.Forms
 
             if result.returncode == 0 and output.exists():
                 size = output.stat().st_size / 1024
-                return f"✅ Screenshot saved: {output}\n   Size: {size:.1f} KB"
+                return f"Screenshot saved: {output}\n   Size: {size:.1f} KB"
             else:
-                return f"Error: {result.stderr or 'Error capturando pantalla'}"
+                return f"Error: {result.stderr or 'Error capturing screen'}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout capturando pantalla"
+            return "Error: Timeout capturing screen"
         except Exception as e:
-            return f"Error en Windows: {e}"
+            return f"Error on Windows: {e}"
 
     def _command_exists(self, command: str) -> bool:
-        """Verifica si un comando existe en el sistema."""
+        """Check if a command exists on the system."""
         try:
             subprocess.run(
                 ["which", command],
@@ -277,11 +277,11 @@ Add-Type -AssemblyName System.Windows.Forms
             return False
 
     def list_screenshots(self, count: int = 10) -> str:
-        """Lista las capturas de pantalla recientes."""
+        """List recent screenshots."""
         try:
             screenshot_dir = self._get_screenshot_dir()
 
-            # Buscar files de imagen
+            # Search for image files
             patterns = ["*.png", "*.jpg", "*.jpeg"]
             files = []
 
@@ -289,12 +289,12 @@ Add-Type -AssemblyName System.Windows.Forms
                 files.extend(screenshot_dir.glob(pattern))
 
             if not files:
-                return f"No hay capturas en: {screenshot_dir}"
+                return f"No screenshots in: {screenshot_dir}"
 
-            # Ordenar por fecha de modificación (más reciente primero)
+            # Sort by modification date (most recent first)
             files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
 
-            result = [f"📸 Capturas de pantalla recientes ({screenshot_dir}):\n"]
+            result = [f"Recent screenshots ({screenshot_dir}):\n"]
 
             for f in files[:count]:
                 stat = f.stat()
@@ -303,15 +303,15 @@ Add-Type -AssemblyName System.Windows.Forms
                 result.append(f"  {f.name:<30} {size:>8.1f} KB  {date}")
 
             if len(files) > count:
-                result.append(f"\n  ... y {len(files) - count} capturas más")
+                result.append(f"\n  ... and {len(files) - count} more screenshots")
 
             return "\n".join(result)
 
         except Exception as e:
-            return f"Error listando capturas: {e}"
+            return f"Error listing screenshots: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "capture")
 
         if action == "capture":

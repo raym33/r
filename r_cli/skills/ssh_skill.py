@@ -1,10 +1,10 @@
 """
-Skill de SSH para R CLI.
+SSH Skill for R CLI.
 
-Conexiones SSH remotas:
-- Ejecutar comandos remotos
-- Gestionar conexiones
-- Transferir files (SCP)
+Remote SSH connections:
+- Execute remote commands
+- Manage connections
+- Transfer files (SCP)
 """
 
 import os
@@ -17,7 +17,7 @@ from r_cli.core.llm import Tool
 
 
 class SSHSkill(Skill):
-    """Skill para operaciones SSH."""
+    """Skill for SSH operations."""
 
     name = "ssh"
     description = "SSH: execute remote commands, transfer files"
@@ -28,25 +28,25 @@ class SSHSkill(Skill):
         return [
             Tool(
                 name="ssh_exec",
-                description="Ejecuta un comando en un servidor remoto via SSH",
+                description="Execute a command on a remote server via SSH",
                 parameters={
                     "type": "object",
                     "properties": {
                         "host": {
                             "type": "string",
-                            "description": "Host o user@host",
+                            "description": "Host or user@host",
                         },
                         "command": {
                             "type": "string",
-                            "description": "Comando a ejecutar",
+                            "description": "Command to execute",
                         },
                         "port": {
                             "type": "integer",
-                            "description": "Puerto SSH (default: 22)",
+                            "description": "SSH port (default: 22)",
                         },
                         "identity_file": {
                             "type": "string",
-                            "description": "Ruta a la clave privada SSH",
+                            "description": "Path to SSH private key",
                         },
                     },
                     "required": ["host", "command"],
@@ -55,25 +55,25 @@ class SSHSkill(Skill):
             ),
             Tool(
                 name="scp_upload",
-                description="Sube un archivo a un servidor remoto",
+                description="Upload a file to a remote server",
                 parameters={
                     "type": "object",
                     "properties": {
                         "local_path": {
                             "type": "string",
-                            "description": "Ruta del archivo local",
+                            "description": "Local file path",
                         },
                         "remote_path": {
                             "type": "string",
-                            "description": "Destino remoto (user@host:/path)",
+                            "description": "Remote destination (user@host:/path)",
                         },
                         "port": {
                             "type": "integer",
-                            "description": "Puerto SSH (default: 22)",
+                            "description": "SSH port (default: 22)",
                         },
                         "identity_file": {
                             "type": "string",
-                            "description": "Ruta a la clave privada SSH",
+                            "description": "Path to SSH private key",
                         },
                     },
                     "required": ["local_path", "remote_path"],
@@ -82,25 +82,25 @@ class SSHSkill(Skill):
             ),
             Tool(
                 name="scp_download",
-                description="Descarga un archivo de un servidor remoto",
+                description="Download a file from a remote server",
                 parameters={
                     "type": "object",
                     "properties": {
                         "remote_path": {
                             "type": "string",
-                            "description": "Origen remoto (user@host:/path)",
+                            "description": "Remote source (user@host:/path)",
                         },
                         "local_path": {
                             "type": "string",
-                            "description": "Destino local",
+                            "description": "Local destination",
                         },
                         "port": {
                             "type": "integer",
-                            "description": "Puerto SSH (default: 22)",
+                            "description": "SSH port (default: 22)",
                         },
                         "identity_file": {
                             "type": "string",
-                            "description": "Ruta a la clave privada SSH",
+                            "description": "Path to SSH private key",
                         },
                     },
                     "required": ["remote_path"],
@@ -109,17 +109,17 @@ class SSHSkill(Skill):
             ),
             Tool(
                 name="ssh_test",
-                description="Prueba la conexión SSH a un servidor",
+                description="Test SSH connection to a server",
                 parameters={
                     "type": "object",
                     "properties": {
                         "host": {
                             "type": "string",
-                            "description": "Host o user@host",
+                            "description": "Host or user@host",
                         },
                         "port": {
                             "type": "integer",
-                            "description": "Puerto SSH (default: 22)",
+                            "description": "SSH port (default: 22)",
                         },
                     },
                     "required": ["host"],
@@ -128,22 +128,22 @@ class SSHSkill(Skill):
             ),
             Tool(
                 name="ssh_keygen",
-                description="Genera un nuevo par de claves SSH",
+                description="Generate a new SSH key pair",
                 parameters={
                     "type": "object",
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Nombre del archivo de clave (default: id_rsa)",
+                            "description": "Key file name (default: id_rsa)",
                         },
                         "type": {
                             "type": "string",
                             "enum": ["rsa", "ed25519", "ecdsa"],
-                            "description": "Tipo de clave (default: ed25519)",
+                            "description": "Key type (default: ed25519)",
                         },
                         "comment": {
                             "type": "string",
-                            "description": "Comentario para la clave",
+                            "description": "Comment for the key",
                         },
                     },
                 },
@@ -151,7 +151,7 @@ class SSHSkill(Skill):
             ),
             Tool(
                 name="list_ssh_keys",
-                description="Lista las claves SSH disponibles",
+                description="List available SSH keys",
                 parameters={
                     "type": "object",
                     "properties": {},
@@ -166,7 +166,7 @@ class SSHSkill(Skill):
         port: int = 22,
         identity_file: Optional[str] = None,
     ) -> list[str]:
-        """Construye argumentos comunes de SSH."""
+        """Build common SSH arguments."""
         args = []
 
         if port != 22:
@@ -177,7 +177,7 @@ class SSHSkill(Skill):
             if key_path.exists():
                 args.extend(["-i", str(key_path)])
 
-        # Opciones de seguridad
+        # Security options
         args.extend(
             [
                 "-o",
@@ -198,13 +198,13 @@ class SSHSkill(Skill):
         port: int = 22,
         identity_file: Optional[str] = None,
     ) -> str:
-        """Ejecuta un comando remoto via SSH."""
+        """Execute a remote command via SSH."""
         try:
-            # Validar comando para seguridad básica
+            # Validate command for basic security
             dangerous_patterns = ["rm -rf /", "mkfs", "dd if=/dev/zero", "> /dev/sda"]
             for pattern in dangerous_patterns:
                 if pattern in command:
-                    return "Error: Comando potencialmente destructivo detectado"
+                    return "Error: Potentially destructive command detected"
 
             args = ["ssh"] + self._build_ssh_args(host, port, identity_file)
             args.append(host)
@@ -222,26 +222,26 @@ class SSHSkill(Skill):
             if result.returncode != 0:
                 error = result.stderr.strip()
                 if "Permission denied" in error:
-                    return "Error: Permiso denegado. Verifica tu clave SSH o credenciales."
+                    return "Error: Permission denied. Check your SSH key or credentials."
                 elif "Connection refused" in error:
-                    return f"Error: Connection refused a {host}:{port}"
+                    return f"Error: Connection refused at {host}:{port}"
                 elif "Host key verification failed" in error:
-                    return "Error: Verificación de host fallida. Ejecuta 'ssh-keygen -R hostname' si confías en el servidor."
+                    return "Error: Host key verification failed. Run 'ssh-keygen -R hostname' if you trust the server."
                 return f"Error: {error}"
 
             if not output:
-                return "Comando ejecutado (sin output)"
+                return "Command executed (no output)"
 
-            # Limitar tamaño
+            # Limit size
             if len(output) > 10000:
-                output = output[:10000] + "\n\n... (output truncado)"
+                output = output[:10000] + "\n\n... (output truncated)"
 
-            return f"Resultado:\n\n{output}"
+            return f"Result:\n\n{output}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout ejecutando comando remoto"
+            return "Error: Timeout executing remote command"
         except FileNotFoundError:
-            return "Error: SSH no está instalado"
+            return "Error: SSH is not installed"
         except Exception as e:
             return f"Error: {e}"
 
@@ -252,16 +252,16 @@ class SSHSkill(Skill):
         port: int = 22,
         identity_file: Optional[str] = None,
     ) -> str:
-        """Sube un archivo via SCP."""
+        """Upload a file via SCP."""
         try:
             path = Path(local_path).expanduser()
 
             if not path.exists():
-                return f"Error: Archivo local no encontrado: {local_path}"
+                return f"Error: Local file not found: {local_path}"
 
-            # Verificar tamaño
+            # Check size
             if path.is_file() and path.stat().st_size > 100 * 1024 * 1024:  # 100MB
-                return "Error: Archivo muy grande (>100MB). Usa rsync para files grandes."
+                return "Error: File too large (>100MB). Use rsync for large files."
 
             args = ["scp", "-r"]
 
@@ -289,16 +289,16 @@ class SSHSkill(Skill):
                 check=False,
                 capture_output=True,
                 text=True,
-                timeout=300,  # 5 minutos para transferencia
+                timeout=300,  # 5 minutes for transfer
             )
 
             if result.returncode == 0:
-                return f"✅ Archivo subido: {path.name} -> {remote_path}"
+                return f"File uploaded: {path.name} -> {remote_path}"
             else:
                 return f"Error: {result.stderr.strip()}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout en la transferencia"
+            return "Error: Transfer timeout"
         except Exception as e:
             return f"Error: {e}"
 
@@ -309,13 +309,13 @@ class SSHSkill(Skill):
         port: int = 22,
         identity_file: Optional[str] = None,
     ) -> str:
-        """Descarga un archivo via SCP."""
+        """Download a file via SCP."""
         try:
-            # Determinar destino local
+            # Determine local destination
             if local_path:
                 dest = Path(local_path).expanduser()
             else:
-                # Extraer nombre del archivo remoto
+                # Extract filename from remote path
                 filename = remote_path.split(":")[-1].split("/")[-1]
                 dest = Path(self.output_dir) / filename
 
@@ -351,17 +351,17 @@ class SSHSkill(Skill):
             )
 
             if result.returncode == 0:
-                return f"✅ Archivo descargado: {dest}"
+                return f"File downloaded: {dest}"
             else:
                 return f"Error: {result.stderr.strip()}"
 
         except subprocess.TimeoutExpired:
-            return "Error: Timeout en la transferencia"
+            return "Error: Transfer timeout"
         except Exception as e:
             return f"Error: {e}"
 
     def ssh_test(self, host: str, port: int = 22) -> str:
-        """Prueba la conexión SSH."""
+        """Test SSH connection."""
         try:
             args = ["ssh"] + self._build_ssh_args(host, port)
             args.extend([host, "echo 'SSH OK'"])
@@ -375,21 +375,21 @@ class SSHSkill(Skill):
             )
 
             if result.returncode == 0:
-                return f"✅ SSH connection successful a {host}:{port}"
+                return f"SSH connection successful to {host}:{port}"
             else:
                 error = result.stderr.strip()
                 if "Permission denied" in error:
-                    return f"❌ Authentication failed para {host}"
+                    return f"Authentication failed for {host}"
                 elif "Connection refused" in error:
-                    return f"❌ Connection refused at {host}:{port}"
+                    return f"Connection refused at {host}:{port}"
                 elif "Connection timed out" in error:
-                    return f"❌ Timeout conectando a {host}"
-                return f"❌ Error: {error}"
+                    return f"Timeout connecting to {host}"
+                return f"Error: {error}"
 
         except subprocess.TimeoutExpired:
-            return f"❌ Timeout conectando a {host}:{port}"
+            return f"Timeout connecting to {host}:{port}"
         except Exception as e:
-            return f"❌ Error: {e}"
+            return f"Error: {e}"
 
     def ssh_keygen(
         self,
@@ -397,7 +397,7 @@ class SSHSkill(Skill):
         type: str = "ed25519",
         comment: Optional[str] = None,
     ) -> str:
-        """Genera un par de claves SSH."""
+        """Generate an SSH key pair."""
         try:
             ssh_dir = Path.home() / ".ssh"
             ssh_dir.mkdir(mode=0o700, exist_ok=True)
@@ -405,7 +405,7 @@ class SSHSkill(Skill):
             key_path = ssh_dir / name
 
             if key_path.exists():
-                return f"Error: La clave ya existe: {key_path}\nUsa un nombre diferente."
+                return f"Error: Key already exists: {key_path}\nUse a different name."
 
             args = [
                 "ssh-keygen",
@@ -414,7 +414,7 @@ class SSHSkill(Skill):
                 "-f",
                 str(key_path),
                 "-N",
-                "",  # Sin passphrase
+                "",  # No passphrase
             ]
 
             if comment:
@@ -429,52 +429,52 @@ class SSHSkill(Skill):
             )
 
             if result.returncode == 0:
-                # Leer clave pública
+                # Read public key
                 pub_key = (key_path.with_suffix(".pub")).read_text().strip()
 
-                return f"""✅ Par de claves generado:
+                return f"""Key pair generated:
 
-Clave privada: {key_path}
-Clave pública: {key_path}.pub
+Private key: {key_path}
+Public key: {key_path}.pub
 
-Clave pública (para copiar a servidores):
+Public key (to copy to servers):
 {pub_key}
 
-Para agregar a un servidor:
+To add to a server:
   ssh-copy-id -i {key_path}.pub user@host
 """
             else:
-                return f"Error generando claves: {result.stderr}"
+                return f"Error generating keys: {result.stderr}"
 
         except Exception as e:
             return f"Error: {e}"
 
     def list_ssh_keys(self) -> str:
-        """Lista las claves SSH disponibles."""
+        """List available SSH keys."""
         try:
             ssh_dir = Path.home() / ".ssh"
 
             if not ssh_dir.exists():
-                return "No existe el directorio ~/.ssh"
+                return "Directory ~/.ssh does not exist"
 
             keys = []
             for f in ssh_dir.iterdir():
                 if f.suffix == ".pub":
                     private_key = f.with_suffix("")
                     if private_key.exists():
-                        # Leer tipo de clave
+                        # Read key type
                         content = f.read_text().strip()
                         key_type = content.split()[0] if content else "unknown"
                         keys.append((private_key.name, key_type))
 
             if not keys:
-                return "No se encontraron claves SSH.\n\nGenera una con:\n  ssh-keygen -t ed25519"
+                return "No SSH keys found.\n\nGenerate one with:\n  ssh-keygen -t ed25519"
 
-            result = ["🔑 Claves SSH disponibles:\n"]
+            result = ["Available SSH keys:\n"]
             for name, key_type in sorted(keys):
                 result.append(f"  {name} ({key_type})")
 
-            result.append(f"\nUbicación: {ssh_dir}")
+            result.append(f"\nLocation: {ssh_dir}")
 
             return "\n".join(result)
 
@@ -482,14 +482,14 @@ Para agregar a un servidor:
             return f"Error: {e}"
 
     def execute(self, **kwargs) -> str:
-        """Ejecución directa del skill."""
+        """Direct skill execution."""
         action = kwargs.get("action", "list_keys")
 
         if action == "exec":
             host = kwargs.get("host", "")
             command = kwargs.get("command", "")
             if not host or not command:
-                return "Error: Se requiere host y command"
+                return "Error: host and command required"
             return self.ssh_exec(host, command)
         elif action == "upload":
             return self.scp_upload(kwargs.get("local", ""), kwargs.get("remote", ""))
