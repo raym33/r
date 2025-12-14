@@ -33,8 +33,7 @@ jobs:
         run: ruff format --check .
 
       - name: Run mypy
-        run: mypy r_cli --ignore-missing-imports || echo "::warning::mypy found type errors (non-blocking)"
-        continue-on-error: true
+        run: mypy r_cli --ignore-missing-imports
 
   test:
     name: Test (Python ${{ matrix.python-version }})
