@@ -25,6 +25,8 @@ console = Console()
 
 def create_agent(config: Optional[Config] = None) -> Agent:
     """Crea y configura el agente."""
+    if config is None:
+        config = Config.load()
     agent = Agent(config)
     agent.load_skills()
     return agent
