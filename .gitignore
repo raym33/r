@@ -81,3 +81,29 @@ venv.bak/
 *.env
 .env.*
 credentials.json
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Ruff
+.ruff_cache/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Build artifacts
+*.egg-info/
+MANIFEST
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local development
+*.local
+*.log
+output/
