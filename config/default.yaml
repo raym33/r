@@ -1,0 +1,55 @@
+# R CLI - Configuración por defecto
+# Copia este archivo a ~/.r-cli/config.yaml para personalizar
+
+# Configuración del LLM
+llm:
+  # Opciones: lm-studio, ollama, custom
+  provider: lm-studio
+
+  # URL del servidor LLM
+  # LM Studio: http://localhost:1234/v1
+  # Ollama: http://localhost:11434/v1
+  base_url: http://localhost:1234/v1
+
+  # API key (no necesaria para LM Studio/Ollama)
+  api_key: not-needed
+
+  # Modelo a usar (el nombre depende de lo que tengas cargado)
+  model: local-model
+
+  # Creatividad (0.0 = determinístico, 1.0 = creativo)
+  temperature: 0.7
+
+  # Máximo de tokens por respuesta
+  max_tokens: 4096
+
+  # Modelos especializados (opcional)
+  # coder_model: deepseek-coder
+  # vision_model: llama-vision
+
+# Configuración de RAG (Retrieval Augmented Generation)
+rag:
+  enabled: true
+  chunk_size: 1000
+  chunk_overlap: 200
+  collection_name: r_cli_knowledge
+  persist_directory: ~/.r-cli/vectordb
+
+# Configuración de UI
+ui:
+  # Tema: ps2, matrix, minimal, retro, cyberpunk
+  theme: ps2
+
+  # Mostrar proceso de razonamiento del agente
+  show_thinking: true
+
+  # Mostrar llamadas a herramientas
+  show_tool_calls: true
+
+  # Velocidad de animaciones (segundos por frame)
+  animation_speed: 0.05
+
+# Directorios
+home_dir: ~/.r-cli
+skills_dir: ~/.r-cli/skills
+output_dir: ~/r-cli-output

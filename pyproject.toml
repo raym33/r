@@ -1,0 +1,66 @@
+[project]
+name = "r-cli"
+version = "0.1.0"
+description = "R CLI - Local AI Operating System powered by open source LLMs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "R CLI Team" }
+]
+keywords = ["ai", "cli", "agent", "local", "llm", "productivity"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "openai>=1.0.0",           # Compatible con LM Studio/Ollama
+    "rich>=13.0.0",            # UI terminal bonita
+    "click>=8.0.0",            # CLI framework
+    "pydantic>=2.0.0",         # Validación de datos
+    "chromadb>=0.4.0",         # Vector DB local para RAG
+    "pypdf>=3.0.0",            # Lectura PDFs
+    "fpdf2>=2.7.0",            # Generación PDFs
+    "python-docx>=1.0.0",      # Documentos Word
+    "pandas>=2.0.0",           # Análisis datos
+    "duckdb>=0.9.0",           # SQL analytics local
+    "jinja2>=3.0.0",           # Templates
+    "pyyaml>=6.0.0",           # Configuración
+    "httpx>=0.25.0",           # HTTP async
+    "pillow>=10.0.0",          # Imágenes
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+]
+audio = [
+    "faster-whisper>=0.10.0",  # Transcripción local
+    "piper-tts>=1.0.0",        # TTS local
+]
+design = [
+    "diffusers>=0.25.0",       # Stable Diffusion
+    "torch>=2.0.0",
+]
+
+[project.scripts]
+r = "r_cli.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
