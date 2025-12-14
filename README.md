@@ -92,6 +92,8 @@ python -m r_cli.main code "sorting function" --run
 | `ocr` | Extract text from images/scanned PDFs | `r ocr image.png --lang eng` |
 | `voice` | Transcribe audio (Whisper) + TTS (Piper) | `r voice --audio file.mp3` |
 | `design` | Generate images with Stable Diffusion | `r design "cyberpunk city" --style anime` |
+| `calendar` | Local calendar & tasks (SQLite) | `r calendar --action today` |
+| `multiagent` | Multi-agent orchestration | `r multiagent --task "complex task"` |
 | `resume` | Summarize long documents | `r resume file.pdf` |
 | `sql` | SQL queries on CSVs/DBs | `r sql data.csv "SELECT *"` |
 | `code` | Generate and execute code | `r code "hello world" --run` |
@@ -161,7 +163,8 @@ class MySkill(Skill):
 - [x] OCR text extraction (Tesseract)
 - [x] Voice mode (Whisper + Piper TTS)
 - [x] Stable Diffusion integration for design
-- [ ] Multi-agent orchestration
+- [x] Calendar & tasks with SQLite
+- [x] Multi-agent orchestration
 - [ ] Plugin marketplace
 - [ ] Local embeddings with sentence-transformers
 

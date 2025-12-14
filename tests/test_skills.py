@@ -15,6 +15,8 @@ from r_cli.skills.latex_skill import LaTeXSkill
 from r_cli.skills.ocr_skill import OCRSkill
 from r_cli.skills.voice_skill import VoiceSkill
 from r_cli.skills.design_skill import DesignSkill
+from r_cli.skills.calendar_skill import CalendarSkill
+from r_cli.skills.multiagent_skill import MultiAgentSkill
 
 
 @pytest.fixture
@@ -417,6 +419,131 @@ class TestDesignSkill:
         if skill._active_backend == "none":
             result = skill.generate_image("test prompt")
             assert "Error" in result or "backend" in result.lower()
+
+
+class TestCalendarSkill:
+    """Tests para CalendarSkill."""
+
+    def test_init_database(self, temp_dir, config):
+        """Test inicialización de base de datos."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        # La base de datos debe existir
+        assert skill.db_path.exists()
+
+    def test_add_event(self, temp_dir, config):
+        """Test añadir evento."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        result = skill.add_event(
+            title="Reunión de prueba",
+            start_time="2025-01-15 10:00",
+            description="Test event",
+            category="work",
+        )
+
+        assert "Evento creado" in result
+        assert "Reunión de prueba" in result
+
+    def test_add_task(self, temp_dir, config):
+        """Test añadir tarea."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        result = skill.add_task(
+            title="Tarea de prueba",
+            due_date="2025-01-20",
+            priority=1,
+        )
+
+        assert "Tarea creada" in result
+        assert "Tarea de prueba" in result
+
+    def test_today_summary(self, temp_dir, config):
+        """Test resumen de hoy."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        result = skill.today_summary()
+
+        assert "Resumen de hoy" in result
+        assert "EVENTOS" in result
+        assert "TAREAS" in result
+
+    def test_week_summary(self, temp_dir, config):
+        """Test resumen semanal."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        result = skill.week_summary()
+
+        assert "Resumen de la semana" in result
+        assert "Lunes" in result
+        assert "Domingo" in result
+
+    def test_complete_task(self, temp_dir, config):
+        """Test completar tarea."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        # Añadir tarea
+        skill.add_task(title="Tarea para completar")
+
+        # Completar (ID 1)
+        result = skill.complete_task(1)
+
+        assert "completada" in result.lower() or "Tarea" in result
+
+    def test_list_events_empty(self, temp_dir, config):
+        """Test listar eventos vacío."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+
+        result = skill.list_events(date="2099-12-31")
+
+        assert "No hay eventos" in result
+
+    def test_export_ical_empty(self, temp_dir, config):
+        """Test exportar iCal vacío."""
+        config.home_dir = temp_dir
+        skill = CalendarSkill(config)
+        skill.output_dir = temp_dir
+
+        result = skill.export_ical(start_date="2099-01-01", end_date="2099-12-31")
+
+        assert "No hay eventos" in result
+
+
+class TestMultiAgentSkill:
+    """Tests para MultiAgentSkill."""
+
+    def test_list_agents(self, config):
+        """Test listar agentes."""
+        skill = MultiAgentSkill(config)
+
+        result = skill.list_agents()
+
+        assert "Agentes disponibles" in result
+        assert "coordinator" in result.lower() or "Coordinator" in result
+        assert "coder" in result.lower() or "Coder" in result
+
+    def test_get_history_empty(self, config):
+        """Test historial vacío."""
+        skill = MultiAgentSkill(config)
+
+        result = skill.get_history()
+
+        assert "historial" in result.lower() or "No hay" in result
+
+    def test_clear_agents(self, config):
+        """Test limpiar agentes."""
+        skill = MultiAgentSkill(config)
+
+        result = skill.clear_agents()
+
+        assert "limpiado" in result.lower() or "Historial" in result
 
 
 if __name__ == "__main__":

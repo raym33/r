@@ -17,6 +17,8 @@ Skills incluidos:
 - fs: Operaciones de filesystem
 - voice: Transcripción con Whisper y TTS con Piper
 - design: Generación de imágenes con Stable Diffusion
+- calendar: Gestión de calendario local con SQLite
+- multiagent: Orquestación de múltiples agentes especializados
 """
 
 from typing import Type
@@ -32,6 +34,8 @@ from r_cli.skills.latex_skill import LaTeXSkill
 from r_cli.skills.ocr_skill import OCRSkill
 from r_cli.skills.voice_skill import VoiceSkill
 from r_cli.skills.design_skill import DesignSkill
+from r_cli.skills.calendar_skill import CalendarSkill
+from r_cli.skills.multiagent_skill import MultiAgentSkill
 
 
 def get_all_skills() -> list[Type[Skill]]:
@@ -46,6 +50,8 @@ def get_all_skills() -> list[Type[Skill]]:
         OCRSkill,
         VoiceSkill,
         DesignSkill,
+        CalendarSkill,
+        MultiAgentSkill,
     ]
 
 
@@ -60,4 +66,6 @@ __all__ = [
     "OCRSkill",
     "VoiceSkill",
     "DesignSkill",
+    "CalendarSkill",
+    "MultiAgentSkill",
 ]
