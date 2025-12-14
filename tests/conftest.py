@@ -261,7 +261,9 @@ def skip_without_ollama() -> None:
     import subprocess
 
     try:
-        result = subprocess.run(["ollama", "--version"], check=False, capture_output=True, timeout=5)
+        result = subprocess.run(
+            ["ollama", "--version"], check=False, capture_output=True, timeout=5
+        )
         if result.returncode != 0:
             pytest.skip("Ollama not installed")
     except (FileNotFoundError, subprocess.TimeoutExpired):
