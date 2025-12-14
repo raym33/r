@@ -172,6 +172,13 @@ Contributions are welcome!
 
 MIT License - Use R CLI however you want.
 
+## 👤 Author
+
+Created by Ramón Guillamón
+
+- Twitter/X: [@learntouseai](https://x.com/learntouseai)
+- Email: [learntouseai@gmail.com](mailto:learntouseai@gmail.com)
+
 ---
 
 **R CLI** - Because your AI should be yours. 🔒

@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "R CLI Team" }
+    { name = "Ramón Guillamón", email = "learntouseai@gmail.com" }
 ]
 keywords = ["ai", "cli", "agent", "local", "llm", "productivity"]
 classifiers = [
