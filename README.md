@@ -1,8 +1,8 @@
 # R CLI 🚀
 
-**Tu AI Operating System local** - 100% privado, 100% offline, 100% tuyo.
+**Your Local AI Operating System** - 100% private, 100% offline, 100% yours.
 
-R CLI es un agente AI en terminal potenciado por LLMs open source locales (LM Studio, Ollama). Inspirado en el CEO CLI viral de Paul Klein, pero diseñado para funcionar **completamente offline**.
+R CLI is a terminal-based AI agent powered by local open source LLMs (LM Studio, Ollama). Inspired by Paul Klein's viral CEO CLI, but designed to run **completely offline**.
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
@@ -15,91 +15,91 @@ R CLI es un agente AI en terminal potenciado por LLMs open source locales (LM St
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-## ✨ Características
+## ✨ Features
 
-- 🔒 **100% Local** - Tus datos nunca salen de tu máquina
-- 🚀 **Skills modulares** - PDF, SQL, código, resúmenes y más
-- 🎮 **UI épica** - Animaciones estilo PS2/Matrix en terminal
-- 🧠 **RAG integrado** - Base de conocimiento persistente
-- 🔌 **Extensible** - Crea tus propios skills fácilmente
-- 💰 **Gratis** - Sin APIs de pago ni suscripciones
+- 🔒 **100% Local** - Your data never leaves your machine
+- 🚀 **Modular Skills** - PDF, SQL, code generation, summaries and more
+- 🎮 **Epic UI** - PS2/Matrix-style terminal animations
+- 🧠 **Built-in RAG** - Persistent knowledge base
+- 🔌 **Extensible** - Create your own skills easily
+- 💰 **Free** - No paid APIs or subscriptions
 
-## 🛠️ Requisitos
+## 🛠️ Requirements
 
 - Python 3.10+
-- [LM Studio](https://lmstudio.ai/) o [Ollama](https://ollama.ai/)
-- 16GB+ RAM (24GB VRAM recomendado para modelos grandes)
+- [LM Studio](https://lmstudio.ai/) or [Ollama](https://ollama.ai/)
+- 16GB+ RAM (24GB VRAM recommended for large models)
 
-### Modelos recomendados
+### Recommended Models
 
-| Modelo | VRAM | Uso |
-|--------|------|-----|
-| Qwen2.5-7B | 8GB | Rápido, tareas simples |
-| Qwen2.5-32B | 20GB | Equilibrado |
-| Qwen2.5-72B (Q4) | 24GB | Máxima calidad |
-| DeepSeek-Coder | 16GB | Especializado en código |
+| Model | VRAM | Use Case |
+|-------|------|----------|
+| Qwen2.5-7B | 8GB | Fast, simple tasks |
+| Qwen2.5-32B | 20GB | Balanced |
+| Qwen2.5-72B (Q4) | 24GB | Maximum quality |
+| DeepSeek-Coder | 16GB | Code specialized |
 
-## 📦 Instalación
+## 📦 Installation
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tuusuario/r-cli.git
-cd r-cli
+# Clone the repository
+git clone https://github.com/raym33/r.git
+cd r
 
-# Instalar con pip
+# Install with pip
 pip install -e .
 
-# O con uv (más rápido)
+# Or with uv (faster)
 uv pip install -e .
 ```
 
-## 🚀 Uso rápido
+## 🚀 Quick Start
 
-### 1. Inicia tu servidor LLM
+### 1. Start your LLM server
 
 **LM Studio:**
-1. Abre LM Studio
-2. Carga un modelo (ej: Qwen2.5-32B-Instruct)
-3. Inicia el servidor local (puerto 1234)
+1. Open LM Studio
+2. Load a model (e.g., Qwen2.5-32B-Instruct)
+3. Start the local server (port 1234)
 
 **Ollama:**
 ```bash
 ollama run qwen2.5:32b
 ```
 
-### 2. Lanza R CLI
+### 2. Launch R CLI
 
 ```bash
-# Modo interactivo
-r
+# Interactive mode
+python -m r_cli.main
 
-# Chat directo
-r chat "Explica qué es machine learning"
+# Direct chat
+python -m r_cli.main chat "Explain what machine learning is"
 
-# Skills directos
-r pdf "Mi informe sobre IA" --title "Informe Q4"
-r sql ventas.csv "SELECT * FROM data WHERE año = 2024"
-r resume documento.pdf --style detailed
-r code "función para ordenar lista" --run
+# Direct skills
+python -m r_cli.main pdf "My AI report" --title "Q4 Report"
+python -m r_cli.main sql sales.csv "SELECT * FROM data WHERE year = 2024"
+python -m r_cli.main resume document.pdf --style detailed
+python -m r_cli.main code "sorting function" --run
 ```
 
-## 📚 Skills disponibles
+## 📚 Available Skills
 
-| Skill | Descripción | Ejemplo |
+| Skill | Description | Example |
 |-------|-------------|---------|
-| `pdf` | Genera documentos PDF | `r pdf "contenido" --template business` |
-| `resume` | Resume documentos largos | `r resume archivo.pdf` |
-| `sql` | Consultas SQL sobre CSVs/DBs | `r sql data.csv "SELECT *"` |
-| `code` | Genera y ejecuta código | `r code "hola mundo" --run` |
-| `fs` | Operaciones de archivos | `r ls --pattern "*.py"` |
+| `pdf` | Generate PDF documents | `r pdf "content" --template business` |
+| `resume` | Summarize long documents | `r resume file.pdf` |
+| `sql` | SQL queries on CSVs/DBs | `r sql data.csv "SELECT *"` |
+| `code` | Generate and execute code | `r code "hello world" --run` |
+| `fs` | File operations | `r ls --pattern "*.py"` |
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-Crea `~/.r-cli/config.yaml`:
+Create `~/.r-cli/config.yaml`:
 
 ```yaml
 llm:
-  provider: lm-studio  # o 'ollama'
+  provider: lm-studio  # or 'ollama'
   base_url: http://localhost:1234/v1
   model: local-model
   temperature: 0.7
@@ -112,66 +112,66 @@ rag:
   persist_directory: ~/.r-cli/vectordb
 ```
 
-## 🎨 Temas
+## 🎨 Themes
 
 ```bash
-r --theme matrix   # Verde estilo Matrix
-r --theme ps2      # Azul PlayStation 2
-r --theme minimal  # Limpio y simple
-r --theme retro    # CRT vintage
+python -m r_cli.main --theme matrix   # Green Matrix style
+python -m r_cli.main --theme ps2      # Blue PlayStation 2
+python -m r_cli.main --theme minimal  # Clean and simple
+python -m r_cli.main --theme retro    # CRT vintage
 ```
 
-## 🔧 Crear tu propio Skill
+## 🔧 Create Your Own Skill
 
 ```python
-# ~/.r-cli/skills/mi_skill.py
+# ~/.r-cli/skills/my_skill.py
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
 
-class MiSkill(Skill):
-    name = "mi_skill"
-    description = "Mi skill personalizado"
+class MySkill(Skill):
+    name = "my_skill"
+    description = "My custom skill"
 
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
-                name="mi_funcion",
-                description="Hace algo útil",
+                name="my_function",
+                description="Does something useful",
                 parameters={...},
-                handler=self.mi_funcion,
+                handler=self.my_function,
             )
         ]
 
-    def mi_funcion(self, arg1: str) -> str:
-        return f"Resultado: {arg1}"
+    def my_function(self, arg1: str) -> str:
+        return f"Result: {arg1}"
 ```
 
 ## 🗺️ Roadmap
 
-- [x] Core agentic con LM Studio/Ollama
+- [x] Agentic core with LM Studio/Ollama
 - [x] Skills: PDF, SQL, Code, Resume, Filesystem
-- [x] UI con animaciones PS2/Matrix
-- [x] RAG persistente
+- [x] UI with PS2/Matrix animations
+- [x] Persistent RAG
 - [ ] Voice mode (Whisper + Piper TTS)
-- [ ] Integración Stable Diffusion para diseño
+- [ ] Stable Diffusion integration for design
 - [ ] Multi-agent orchestration
 - [ ] Plugin marketplace
 
-## 🤝 Contribuir
+## 🤝 Contributing
 
-¡Las contribuciones son bienvenidas!
+Contributions are welcome!
 
-1. Fork el repositorio
-2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agrega nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+1. Fork the repository
+2. Create a branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -m 'Add new feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
 
-## 📄 Licencia
+## 📄 License
 
-MIT License - Usa R CLI como quieras.
+MIT License - Use R CLI however you want.
 
 ---
 
-**R CLI** - Porque tu IA debería ser tuya. 🔒
+**R CLI** - Because your AI should be yours. 🔒
