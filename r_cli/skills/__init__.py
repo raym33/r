@@ -21,6 +21,11 @@ Skills incluidos:
 - multiagent: Orquestación de múltiples agentes especializados
 - plugin: Sistema de plugins para la comunidad
 - rag: Búsqueda semántica con embeddings locales
+- web: Web scraping con BeautifulSoup
+- git: Operaciones Git
+- clipboard: Gestión del portapapeles del sistema
+- archive: Compresión/extracción ZIP, TAR, TAR.GZ
+- screenshot: Capturas de pantalla
 """
 
 from typing import Type
@@ -40,6 +45,11 @@ from r_cli.skills.calendar_skill import CalendarSkill
 from r_cli.skills.multiagent_skill import MultiAgentSkill
 from r_cli.skills.plugin_skill import PluginSkill
 from r_cli.skills.rag_skill import RAGSkill
+from r_cli.skills.web_skill import WebSkill
+from r_cli.skills.git_skill import GitSkill
+from r_cli.skills.clipboard_skill import ClipboardSkill
+from r_cli.skills.archive_skill import ArchiveSkill
+from r_cli.skills.screenshot_skill import ScreenshotSkill
 
 
 def get_all_skills() -> list[Type[Skill]]:
@@ -58,6 +68,11 @@ def get_all_skills() -> list[Type[Skill]]:
         MultiAgentSkill,
         PluginSkill,
         RAGSkill,
+        WebSkill,
+        GitSkill,
+        ClipboardSkill,
+        ArchiveSkill,
+        ScreenshotSkill,
     ]
 
 
@@ -76,4 +91,9 @@ __all__ = [
     "MultiAgentSkill",
     "PluginSkill",
     "RAGSkill",
+    "WebSkill",
+    "GitSkill",
+    "ClipboardSkill",
+    "ArchiveSkill",
+    "ScreenshotSkill",
 ]
