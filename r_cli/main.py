@@ -13,8 +13,8 @@ from typing import Optional
 
 import click
 from rich.console import Console
-from rich.table import Table
 from rich.prompt import Prompt
+from rich.table import Table
 
 from r_cli import __version__
 from r_cli.core.agent import Agent
@@ -40,7 +40,8 @@ SKILL_CATEGORIES = {
 def get_all_skill_names() -> list[str]:
     """Get all available skill names."""
     from r_cli.skills import get_all_skills
-    return [skill_class.name for skill_class in get_all_skills() if hasattr(skill_class, 'name')]
+
+    return [skill_class.name for skill_class in get_all_skills() if hasattr(skill_class, "name")]
 
 
 def select_skills_interactive() -> list[str]:
@@ -68,7 +69,9 @@ def select_skills_interactive() -> list[str]:
 
     console.print(table)
 
-    console.print("\n[dim]Enter numbers separated by commas (e.g., 1,2,3) or a letter option.[/dim]")
+    console.print(
+        "\n[dim]Enter numbers separated by commas (e.g., 1,2,3) or a letter option.[/dim]"
+    )
     choice = Prompt.ask("\n[bold]Select skills to load[/bold]", default="M")
 
     choice = choice.strip().upper()
@@ -112,7 +115,9 @@ def select_skills_interactive() -> list[str]:
         return ["pdf", "code", "sql"]
 
 
-def create_agent(config: Optional[Config] = None, selected_skills: Optional[list[str]] = None) -> Agent:
+def create_agent(
+    config: Optional[Config] = None, selected_skills: Optional[list[str]] = None
+) -> Agent:
     """Create and configure the agent."""
     if config is None:
         config = Config.load()
@@ -131,9 +136,7 @@ def create_agent(config: Optional[Config] = None, selected_skills: Optional[list
 @click.option("--version", "-v", is_flag=True, help="Show version")
 @click.option("--theme", "-t", default="ps2", help="Visual theme (ps2, matrix, minimal)")
 @click.option("--no-animation", is_flag=True, help="Disable animations")
-@click.option(
-    "--stream/--no-stream", default=True, help="Enable/disable response streaming"
-)
+@click.option("--stream/--no-stream", default=True, help="Enable/disable response streaming")
 @click.pass_context
 def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool):
     """
