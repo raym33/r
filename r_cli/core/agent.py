@@ -185,8 +185,6 @@ class Agent:
         Yields:
             Chunks de texto de la respuesta
         """
-        from collections.abc import Iterator
-
         # Agregar a memoria
         self.memory.add_short_term(user_input, entry_type="user_input")
 

@@ -40,9 +40,9 @@ from urllib.parse import urlparse
 
 import yaml
 
-logger = logging.getLogger(__name__)
-
 from r_cli.core.agent import Skill
+
+logger = logging.getLogger(__name__)
 
 # Regex para validar URLs de GitHub
 GITHUB_URL_PATTERN = re.compile(r"^https?://github\.com/[\w\-\.]+/[\w\-\.]+/?$")

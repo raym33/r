@@ -253,7 +253,7 @@ class LLMClient:
             for i, msg in enumerate(self.messages):
                 if msg.role != "system":
                     self.messages.pop(i)
-                    logger.info(f"Truncated message to stay within token limit")
+                    logger.info("Truncated message to stay within token limit")
                     break
 
     def _check_connection(self) -> bool:

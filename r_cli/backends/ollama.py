@@ -15,9 +15,9 @@ from typing import Iterator, Optional
 
 import requests
 
-logger = logging.getLogger(__name__)
-
 from r_cli.backends.base import LLMBackend, Message, Tool, ToolCall
+
+logger = logging.getLogger(__name__)
 
 
 class OllamaBackend(LLMBackend):

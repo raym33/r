@@ -131,7 +131,7 @@ class DesignSkill(Skill):
 
         return info
 
-    def _check_vram_available(self, required_gb: float = None) -> tuple[bool, str]:
+    def _check_vram_available(self, required_gb: Optional[float] = None) -> tuple[bool, str]:
         """Checks if enough VRAM is available for generation."""
         if required_gb is None:
             required_gb = self.MIN_VRAM_REQUIRED
