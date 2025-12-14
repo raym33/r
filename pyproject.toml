@@ -1,6 +1,6 @@
 [project]
 name = "r-cli-ai"
-version = "0.1.0"
+version = "0.2.0"
 description = "R CLI - Your Local AI Operating System. 100% private, 100% offline, 100% yours."
 readme = "README.md"
 requires-python = ">=3.10"
