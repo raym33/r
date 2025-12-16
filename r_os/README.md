@@ -1,6 +1,8 @@
-# R OS - AI Operating System for Edge Devices
+# R OS - Terminal UI for Edge Devices (Experimental)
 
-R OS transforms R CLI into a complete AI operating system for Raspberry Pi and Android devices. Run a private, offline AI assistant with voice control, hardware integration, and a beautiful terminal UI.
+R OS is a terminal-based interface (TUI) for R CLI, designed for Raspberry Pi and edge devices. It provides an Android-like visual experience in the terminal using [Textual](https://textual.textualize.io/).
+
+**Note:** This is NOT an operating system. It's a TUI that runs on top of your existing OS and provides a visual interface to R CLI's skills.
 
 ## Features
 
@@ -21,9 +23,9 @@ Complete hands-free assistant with:
 - **Speech-to-Text**: Whisper.cpp (optimized for Pi), faster-whisper
 - **Text-to-Speech**: Piper TTS, espeak
 
-### Android Simulator
+### Android-style TUI
 
-Terminal-based Android-like UI built with Textual:
+Terminal-based interface that mimics Android's look:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -67,7 +69,7 @@ pip install r-cli-ai[simulator]
 
 ## Usage
 
-### Launch Simulator
+### Launch
 
 ```bash
 r-os                    # Default Material theme

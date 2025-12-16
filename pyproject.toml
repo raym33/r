@@ -1,7 +1,7 @@
 [project]
 name = "r-cli-ai"
 version = "0.3.1"
-description = "R CLI - Your Local AI Operating System. 100% private, 100% offline, 100% yours."
+description = "R CLI - Local AI Agent Runtime. Tool orchestrator connecting local LLMs to 74 system tools via function calling."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
