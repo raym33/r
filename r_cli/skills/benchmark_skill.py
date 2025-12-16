@@ -197,7 +197,8 @@ class BenchmarkSkill(Skill):
             start_time = time.time()
             proc = subprocess.run(
                 cmd,
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=self.TIMEOUT,
             )
@@ -261,7 +262,8 @@ class BenchmarkSkill(Skill):
             for i in range(warmup):
                 subprocess.run(
                     command,
-                    check=False, shell=True,
+                    check=False,
+                    shell=True,
                     capture_output=True,
                     timeout=self.TIMEOUT,
                 )
@@ -272,7 +274,8 @@ class BenchmarkSkill(Skill):
 
                 proc = subprocess.run(
                     command,
-                    check=False, shell=True,
+                    check=False,
+                    shell=True,
                     capture_output=True,
                     timeout=self.TIMEOUT,
                 )
@@ -311,6 +314,7 @@ class BenchmarkSkill(Skill):
             avg_mem = sum(max_rss) / len(max_rss)
             # Convert to MB (macOS returns bytes, Linux returns KB)
             import platform
+
             if platform.system() == "Darwin":
                 avg_mem_mb = avg_mem / (1024 * 1024)
             else:
@@ -320,17 +324,19 @@ class BenchmarkSkill(Skill):
 
         # Store in history
         benchmark_name = name or f"cmd_{len(self._benchmark_history)}"
-        self._benchmark_history.append({
-            "name": benchmark_name,
-            "type": "command",
-            "command": command,
-            "avg_time": avg_time,
-            "min_time": min_time,
-            "max_time": max_time,
-            "std_dev": std_dev,
-            "runs": runs,
-            "timestamp": time.time(),
-        })
+        self._benchmark_history.append(
+            {
+                "name": benchmark_name,
+                "type": "command",
+                "command": command,
+                "avg_time": avg_time,
+                "min_time": min_time,
+                "max_time": max_time,
+                "std_dev": std_dev,
+                "runs": runs,
+                "timestamp": time.time(),
+            }
+        )
 
         result.append(f"\nBenchmark saved as: {benchmark_name}")
 
@@ -376,11 +382,11 @@ class BenchmarkSkill(Skill):
             # Format time appropriately
             def format_time(t):
                 if t < 1e-6:
-                    return f"{t*1e9:.2f} ns"
+                    return f"{t * 1e9:.2f} ns"
                 elif t < 1e-3:
-                    return f"{t*1e6:.2f} µs"
+                    return f"{t * 1e6:.2f} µs"
                 elif t < 1:
-                    return f"{t*1e3:.2f} ms"
+                    return f"{t * 1e3:.2f} ms"
                 else:
                     return f"{t:.3f} s"
 
@@ -391,16 +397,18 @@ class BenchmarkSkill(Skill):
 
             # Store in history
             benchmark_name = name or f"python_{len(self._benchmark_history)}"
-            self._benchmark_history.append({
-                "name": benchmark_name,
-                "type": "python",
-                "code": code[:100],
-                "avg_time": avg,
-                "min_time": best,
-                "max_time": worst,
-                "iterations": iterations,
-                "timestamp": time.time(),
-            })
+            self._benchmark_history.append(
+                {
+                    "name": benchmark_name,
+                    "type": "python",
+                    "code": code[:100],
+                    "avg_time": avg,
+                    "min_time": best,
+                    "max_time": worst,
+                    "iterations": iterations,
+                    "timestamp": time.time(),
+                }
+            )
 
             result.append(f"\nBenchmark saved as: {benchmark_name}")
 
@@ -515,7 +523,8 @@ for stat in top_stats:
             try:
                 proc = subprocess.run(
                     ["python", temp_path],
-                    check=False, capture_output=True,
+                    check=False,
+                    capture_output=True,
                     text=True,
                     timeout=self.TIMEOUT,
                 )
@@ -550,6 +559,7 @@ for stat in top_stats:
 
                 usage = resource.getrusage(resource.RUSAGE_CHILDREN)
                 import platform
+
                 if platform.system() == "Darwin":
                     max_rss_mb = usage.ru_maxrss / (1024 * 1024)
                 else:

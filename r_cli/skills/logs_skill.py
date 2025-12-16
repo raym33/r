@@ -164,7 +164,8 @@ class LogsSkill(Skill):
         try:
             result = subprocess.run(
                 ["docker", "inspect", source],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 timeout=10,
             )
             return result.returncode == 0
@@ -196,7 +197,8 @@ class LogsSkill(Skill):
 
             result = subprocess.run(
                 cmd,
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=self.TIMEOUT,
             )
@@ -368,7 +370,9 @@ class LogsSkill(Skill):
             summary.append("  Status: WARNING - Few errors detected")
         else:
             error_rate = len(errors) / total_lines * 100
-            summary.append(f"  Status: UNHEALTHY - {len(errors)} errors ({error_rate:.1f}% of logs)")
+            summary.append(
+                f"  Status: UNHEALTHY - {len(errors)} errors ({error_rate:.1f}% of logs)"
+            )
 
         return "\n".join(summary)
 
@@ -385,13 +389,15 @@ class LogsSkill(Skill):
         try:
             inspect_result = subprocess.run(
                 ["docker", "inspect", "--format", "{{json .State}}", container],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=30,
             )
 
             if inspect_result.returncode == 0:
                 import json
+
                 state = json.loads(inspect_result.stdout)
                 analysis.append("## Container State")
                 analysis.append(f"  Status: {state.get('Status', 'unknown')}")
@@ -405,7 +411,8 @@ class LogsSkill(Skill):
                 # Restart count
                 inspect_full = subprocess.run(
                     ["docker", "inspect", "--format", "{{.RestartCount}}", container],
-                    check=False, capture_output=True,
+                    check=False,
+                    capture_output=True,
                     text=True,
                     timeout=10,
                 )
@@ -437,13 +444,19 @@ class LogsSkill(Skill):
             try:
                 events_result = subprocess.run(
                     [
-                        "docker", "events",
-                        "--filter", f"container={container}",
-                        "--since", "1h",
-                        "--until", "0s",
-                        "--format", "{{.Time}} {{.Action}}: {{.Actor.Attributes.exitCode}}"
+                        "docker",
+                        "events",
+                        "--filter",
+                        f"container={container}",
+                        "--since",
+                        "1h",
+                        "--until",
+                        "0s",
+                        "--format",
+                        "{{.Time}} {{.Action}}: {{.Actor.Attributes.exitCode}}",
                     ],
-                    check=False, capture_output=True,
+                    check=False,
+                    capture_output=True,
                     text=True,
                     timeout=10,
                 )
@@ -460,7 +473,8 @@ class LogsSkill(Skill):
             try:
                 result = subprocess.run(
                     ["docker", "compose", "-f", compose_file, "ps", "--format", "json"],
-                    check=False, capture_output=True,
+                    check=False,
+                    capture_output=True,
                     text=True,
                     timeout=30,
                 )
@@ -538,10 +552,14 @@ class LogsSkill(Skill):
             tests2 = extract_tests(content2)
 
             result.append("## Run 1 Summary")
-            result.append(f"  Passed: {len(tests1['passed'])}, Failed: {len(tests1['failed'])}, Skipped: {len(tests1['skipped'])}")
+            result.append(
+                f"  Passed: {len(tests1['passed'])}, Failed: {len(tests1['failed'])}, Skipped: {len(tests1['skipped'])}"
+            )
 
             result.append("\n## Run 2 Summary")
-            result.append(f"  Passed: {len(tests2['passed'])}, Failed: {len(tests2['failed'])}, Skipped: {len(tests2['skipped'])}")
+            result.append(
+                f"  Passed: {len(tests2['passed'])}, Failed: {len(tests2['failed'])}, Skipped: {len(tests2['skipped'])}"
+            )
 
             # Find regressions (passed in 1, failed in 2)
             regressions = set(tests1["passed"]) & set(tests2["failed"])

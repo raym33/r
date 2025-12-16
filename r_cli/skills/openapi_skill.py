@@ -219,6 +219,7 @@ class OpenAPISkill(Skill):
         # Try YAML
         try:
             import yaml
+
             return yaml.safe_load(content)
         except ImportError:
             pass
@@ -231,6 +232,7 @@ class OpenAPISkill(Skill):
         """Fetch content from URL."""
         try:
             import httpx
+
             response = httpx.get(url, timeout=self.TIMEOUT, follow_redirects=True)
             response.raise_for_status()
             return response.text
@@ -238,7 +240,8 @@ class OpenAPISkill(Skill):
             # Fallback to curl
             result = subprocess.run(
                 ["curl", "-s", "-L", url],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=self.TIMEOUT,
             )
@@ -434,7 +437,9 @@ class OpenAPISkill(Skill):
                 cmd.extend(["-d", json.dumps(body)])
             cmd.append(url)
 
-            proc = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=self.TIMEOUT)
+            proc = subprocess.run(
+                cmd, check=False, capture_output=True, text=True, timeout=self.TIMEOUT
+            )
             result.append(f"Response:\n{proc.stdout[:2000]}")
 
         except Exception as e:
@@ -450,10 +455,18 @@ class OpenAPISkill(Skill):
         """Auto-discover local services."""
         if ports is None:
             ports = [
-                3000, 3001, 4000, 5000, 5001,  # Node.js, Flask
-                8000, 8080, 8888,              # Django, FastAPI, Spring
-                9000, 9090,                    # Various
-                80, 443,                       # Standard HTTP/HTTPS
+                3000,
+                3001,
+                4000,
+                5000,
+                5001,  # Node.js, Flask
+                8000,
+                8080,
+                8888,  # Django, FastAPI, Spring
+                9000,
+                9090,  # Various
+                80,
+                443,  # Standard HTTP/HTTPS
             ]
 
         result = ["=== Service Discovery ===\n"]
@@ -462,24 +475,28 @@ class OpenAPISkill(Skill):
         for port in ports:
             try:
                 import httpx
+
                 # Try to connect
                 for path in ["", "/api", "/docs", "/swagger", "/openapi.json"]:
                     url = f"http://localhost:{port}{path}"
                     try:
                         response = httpx.get(url, timeout=2, follow_redirects=True)
                         if response.status_code < 500:
-                            discovered.append({
-                                "port": port,
-                                "path": path,
-                                "status": response.status_code,
-                                "url": url,
-                            })
+                            discovered.append(
+                                {
+                                    "port": port,
+                                    "path": path,
+                                    "status": response.status_code,
+                                    "url": url,
+                                }
+                            )
                             break
                     except Exception:
                         continue
             except ImportError:
                 # Fallback: just check if port is open
                 import socket
+
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(1)
                 if sock.connect_ex(("localhost", port)) == 0:

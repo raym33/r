@@ -22,7 +22,9 @@ class SQLSkill(Skill):
     """Skill for natural language SQL queries and database introspection."""
 
     name = "sql"
-    description = "SQL queries, schema introspection, database management (SQLite, DuckDB, PostgreSQL)"
+    description = (
+        "SQL queries, schema introspection, database management (SQLite, DuckDB, PostgreSQL)"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,6 +49,7 @@ class SQLSkill(Skill):
         """Get PostgreSQL connection."""
         try:
             import psycopg2
+
             return psycopg2.connect(connection_string)
         except ImportError:
             return None
@@ -384,9 +387,7 @@ class SQLSkill(Skill):
         except Exception as e:
             return f"Error executing query: {e}"
 
-    def query_postgres(
-        self, connection_string: str, query: str, limit: int = 100
-    ) -> str:
+    def query_postgres(self, connection_string: str, query: str, limit: int = 100) -> str:
         """Execute SQL on PostgreSQL."""
         try:
             import psycopg2
@@ -509,7 +510,9 @@ class SQLSkill(Skill):
                     result.append("  Columns:")
                     for _, row in schema.iterrows():
                         nullable = "NULL" if row.get("null") == "YES" else "NOT NULL"
-                        result.append(f"    - {row['column_name']}: {row['column_type']} {nullable}")
+                        result.append(
+                            f"    - {row['column_name']}: {row['column_type']} {nullable}"
+                        )
 
                     # Row count
                     count = self.duckdb.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -520,6 +523,7 @@ class SQLSkill(Skill):
                     return "Error: connection_string required for PostgreSQL"
 
                 import psycopg2
+
                 conn = psycopg2.connect(connection_string)
                 cursor = conn.cursor()
 
@@ -538,7 +542,8 @@ class SQLSkill(Skill):
                     result.append(f"\n## Table: {table}")
 
                     # Columns with constraints
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT
                             c.column_name,
                             c.data_type,
@@ -552,7 +557,9 @@ class SQLSkill(Skill):
                             ON kcu.constraint_name = tc.constraint_name
                         WHERE c.table_name = %s
                         ORDER BY c.ordinal_position
-                    """, (table,))
+                    """,
+                        (table,),
+                    )
 
                     result.append("  Columns:")
                     for row in cursor.fetchall():
@@ -560,10 +567,13 @@ class SQLSkill(Skill):
                         constraint_str = f" [{constraint}]" if constraint else ""
                         nullable_str = "NULL" if nullable == "YES" else "NOT NULL"
                         default_str = f" DEFAULT {default}" if default else ""
-                        result.append(f"    - {col_name}: {data_type} {nullable_str}{default_str}{constraint_str}")
+                        result.append(
+                            f"    - {col_name}: {data_type} {nullable_str}{default_str}{constraint_str}"
+                        )
 
                     # Foreign keys
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT
                             kcu.column_name,
                             ccu.table_name AS foreign_table,
@@ -575,7 +585,9 @@ class SQLSkill(Skill):
                             ON ccu.constraint_name = tc.constraint_name
                         WHERE tc.constraint_type = 'FOREIGN KEY'
                             AND tc.table_name = %s
-                    """, (table,))
+                    """,
+                        (table,),
+                    )
 
                     fks = cursor.fetchall()
                     if fks:
@@ -672,6 +684,7 @@ class SQLSkill(Skill):
                     return "Error: connection_string required for PostgreSQL"
 
                 import psycopg2
+
                 conn = psycopg2.connect(connection_string)
                 cursor = conn.cursor()
 
@@ -820,7 +833,9 @@ class SQLSkill(Skill):
                 for _, row in tables.iterrows():
                     table_name = row["name"]
                     try:
-                        count = self.duckdb.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+                        count = self.duckdb.execute(
+                            f"SELECT COUNT(*) FROM {table_name}"
+                        ).fetchone()[0]
                         output.append(f"  - {table_name} ({count:,} rows)")
                     except Exception:
                         output.append(f"  - {table_name}")
@@ -830,6 +845,7 @@ class SQLSkill(Skill):
                     return "Error: connection_string required for PostgreSQL"
 
                 import psycopg2
+
                 conn = psycopg2.connect(connection_string)
                 cursor = conn.cursor()
 
@@ -894,11 +910,13 @@ class SQLSkill(Skill):
                     return "Error: connection_string required"
 
                 import psycopg2
+
                 conn = psycopg2.connect(connection_string)
                 cursor = conn.cursor()
 
                 # Outgoing FKs (this table references others)
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT
                         kcu.column_name,
                         ccu.table_name AS foreign_table,
@@ -910,7 +928,9 @@ class SQLSkill(Skill):
                         ON ccu.constraint_name = tc.constraint_name
                     WHERE tc.constraint_type = 'FOREIGN KEY'
                         AND tc.table_name = %s
-                """, (table_name,))
+                """,
+                    (table_name,),
+                )
 
                 outgoing = cursor.fetchall()
                 if outgoing:
@@ -919,7 +939,8 @@ class SQLSkill(Skill):
                         result.append(f"  {table_name}.{fk[0]} -> {fk[1]}.{fk[2]}")
 
                 # Incoming FKs (other tables reference this)
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT
                         tc.table_name,
                         kcu.column_name,
@@ -931,7 +952,9 @@ class SQLSkill(Skill):
                         ON ccu.constraint_name = tc.constraint_name
                     WHERE tc.constraint_type = 'FOREIGN KEY'
                         AND ccu.table_name = %s
-                """, (table_name,))
+                """,
+                    (table_name,),
+                )
 
                 incoming = cursor.fetchall()
                 if incoming:
@@ -986,6 +1009,7 @@ class SQLSkill(Skill):
                     return "Error: connection_string required"
 
                 import psycopg2
+
                 conn = psycopg2.connect(connection_string)
                 cursor = conn.cursor()
 
