@@ -197,7 +197,7 @@ class BenchmarkSkill(Skill):
             start_time = time.time()
             proc = subprocess.run(
                 cmd,
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=self.TIMEOUT,
             )
@@ -261,7 +261,7 @@ class BenchmarkSkill(Skill):
             for i in range(warmup):
                 subprocess.run(
                     command,
-                    shell=True,
+                    check=False, shell=True,
                     capture_output=True,
                     timeout=self.TIMEOUT,
                 )
@@ -272,7 +272,7 @@ class BenchmarkSkill(Skill):
 
                 proc = subprocess.run(
                     command,
-                    shell=True,
+                    check=False, shell=True,
                     capture_output=True,
                     timeout=self.TIMEOUT,
                 )
@@ -315,7 +315,7 @@ class BenchmarkSkill(Skill):
                 avg_mem_mb = avg_mem / (1024 * 1024)
             else:
                 avg_mem_mb = avg_mem / 1024
-            result.append(f"\n## Memory Usage")
+            result.append("\n## Memory Usage")
             result.append(f"  Max RSS: {avg_mem_mb:.2f} MB")
 
         # Store in history
@@ -480,7 +480,7 @@ class BenchmarkSkill(Skill):
         # Try to use memory_profiler if available
         try:
             # First try with tracemalloc (built-in)
-            profile_code = f'''
+            profile_code = f"""
 import tracemalloc
 import sys
 sys.argv = ["{path}"] + {args.split() if args else []}
@@ -506,7 +506,7 @@ top_stats = snapshot.statistics("lineno")[:10]
 print("TOP_ALLOCATIONS:")
 for stat in top_stats:
     print(f"  {{stat}}")
-'''
+"""
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
                 f.write(profile_code)
@@ -515,7 +515,7 @@ for stat in top_stats:
             try:
                 proc = subprocess.run(
                     ["python", temp_path],
-                    capture_output=True,
+                    check=False, capture_output=True,
                     text=True,
                     timeout=self.TIMEOUT,
                 )
@@ -546,7 +546,7 @@ for stat in top_stats:
             # Fallback: just run with resource tracking
             try:
                 cmd = ["python", str(path)] + (args.split() if args else [])
-                proc = subprocess.run(cmd, capture_output=True, timeout=self.TIMEOUT)
+                proc = subprocess.run(cmd, check=False, capture_output=True, timeout=self.TIMEOUT)
 
                 usage = resource.getrusage(resource.RUSAGE_CHILDREN)
                 import platform

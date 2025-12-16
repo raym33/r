@@ -238,7 +238,7 @@ class OpenAPISkill(Skill):
             # Fallback to curl
             result = subprocess.run(
                 ["curl", "-s", "-L", url],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=self.TIMEOUT,
             )
@@ -252,7 +252,7 @@ class OpenAPISkill(Skill):
             return override.rstrip("/")
 
         # OpenAPI 3.x
-        if "servers" in spec and spec["servers"]:
+        if spec.get("servers"):
             return spec["servers"][0].get("url", "http://localhost").rstrip("/")
 
         # Swagger 2.x
@@ -300,7 +300,7 @@ class OpenAPISkill(Skill):
             info = spec.get("info", {})
             paths = spec.get("paths", {})
             endpoint_count = sum(
-                len([m for m in p.keys() if m in ("get", "post", "put", "delete", "patch")])
+                len([m for m in p if m in ("get", "post", "put", "delete", "patch")])
                 for p in paths.values()
             )
 
@@ -434,7 +434,7 @@ class OpenAPISkill(Skill):
                 cmd.extend(["-d", json.dumps(body)])
             cmd.append(url)
 
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=self.TIMEOUT)
+            proc = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=self.TIMEOUT)
             result.append(f"Response:\n{proc.stdout[:2000]}")
 
         except Exception as e:
@@ -537,7 +537,7 @@ class OpenAPISkill(Skill):
 
         method_lower = method.lower()
         if method_lower not in paths[path]:
-            available = [m for m in paths[path].keys() if m in ("get", "post", "put", "delete", "patch")]
+            available = [m for m in paths[path] if m in ("get", "post", "put", "delete", "patch")]
             return f"Error: Method {method} not available. Available: {available}"
 
         endpoint = paths[path][method_lower]

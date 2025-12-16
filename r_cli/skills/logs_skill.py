@@ -164,7 +164,7 @@ class LogsSkill(Skill):
         try:
             result = subprocess.run(
                 ["docker", "inspect", source],
-                capture_output=True,
+                check=False, capture_output=True,
                 timeout=10,
             )
             return result.returncode == 0
@@ -178,7 +178,7 @@ class LogsSkill(Skill):
             if not p.exists():
                 return f"Error: File not found: {path}"
 
-            with open(p, "r", errors="replace") as f:
+            with open(p, errors="replace") as f:
                 all_lines = f.readlines()
                 return "".join(all_lines[-lines:])
         except Exception as e:
@@ -196,7 +196,7 @@ class LogsSkill(Skill):
 
             result = subprocess.run(
                 cmd,
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=self.TIMEOUT,
             )
@@ -385,7 +385,7 @@ class LogsSkill(Skill):
         try:
             inspect_result = subprocess.run(
                 ["docker", "inspect", "--format", "{{json .State}}", container],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=30,
             )
@@ -405,7 +405,7 @@ class LogsSkill(Skill):
                 # Restart count
                 inspect_full = subprocess.run(
                     ["docker", "inspect", "--format", "{{.RestartCount}}", container],
-                    capture_output=True,
+                    check=False, capture_output=True,
                     text=True,
                     timeout=10,
                 )
@@ -443,7 +443,7 @@ class LogsSkill(Skill):
                         "--until", "0s",
                         "--format", "{{.Time}} {{.Action}}: {{.Actor.Attributes.exitCode}}"
                     ],
-                    capture_output=True,
+                    check=False, capture_output=True,
                     text=True,
                     timeout=10,
                 )
@@ -456,11 +456,11 @@ class LogsSkill(Skill):
 
         # Check compose context if provided
         if compose_file:
-            analysis.append(f"\n## Compose Context")
+            analysis.append("\n## Compose Context")
             try:
                 result = subprocess.run(
                     ["docker", "compose", "-f", compose_file, "ps", "--format", "json"],
-                    capture_output=True,
+                    check=False, capture_output=True,
                     text=True,
                     timeout=30,
                 )
@@ -614,7 +614,7 @@ class LogsSkill(Skill):
             only_in_2 = lines2 - lines1
             common = lines1 & lines2
 
-            result.append(f"## Line Statistics")
+            result.append("## Line Statistics")
             result.append(f"  Source 1: {len(lines1)} unique lines")
             result.append(f"  Source 2: {len(lines2)} unique lines")
             result.append(f"  Common: {len(common)} lines")
