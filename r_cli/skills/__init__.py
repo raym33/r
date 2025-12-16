@@ -45,6 +45,16 @@ Included skills:
 - math: Mathematical operations
 - network: Network utilities
 - system: System information and processes
+- image: Image manipulation with Pillow
+- audio: Audio manipulation with ffmpeg
+- text: Text utilities
+- datetime: Date/time operations
+- color: Color conversion and palettes
+- weather: Weather information
+- currency: Currency conversion
+- barcode: Barcode generation and reading
+- pdftools: Advanced PDF operations
+- cron: Cron expression utilities
 """
 
 from importlib import import_module
@@ -89,6 +99,16 @@ if TYPE_CHECKING:
     from r_cli.skills.math_skill import MathSkill
     from r_cli.skills.network_skill import NetworkSkill
     from r_cli.skills.system_skill import SystemSkill
+    from r_cli.skills.image_skill import ImageSkill
+    from r_cli.skills.audio_skill import AudioSkill
+    from r_cli.skills.text_skill import TextSkill
+    from r_cli.skills.datetime_skill import DateTimeSkill
+    from r_cli.skills.color_skill import ColorSkill
+    from r_cli.skills.weather_skill import WeatherSkill
+    from r_cli.skills.currency_skill import CurrencySkill
+    from r_cli.skills.barcode_skill import BarcodeSkill
+    from r_cli.skills.pdftools_skill import PDFToolsSkill
+    from r_cli.skills.cron_skill import CronSkill
 
 # Registry: class_name -> (module_name, class_name)
 _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
@@ -129,6 +149,16 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "MathSkill": ("r_cli.skills.math_skill", "MathSkill"),
     "NetworkSkill": ("r_cli.skills.network_skill", "NetworkSkill"),
     "SystemSkill": ("r_cli.skills.system_skill", "SystemSkill"),
+    "ImageSkill": ("r_cli.skills.image_skill", "ImageSkill"),
+    "AudioSkill": ("r_cli.skills.audio_skill", "AudioSkill"),
+    "TextSkill": ("r_cli.skills.text_skill", "TextSkill"),
+    "DateTimeSkill": ("r_cli.skills.datetime_skill", "DateTimeSkill"),
+    "ColorSkill": ("r_cli.skills.color_skill", "ColorSkill"),
+    "WeatherSkill": ("r_cli.skills.weather_skill", "WeatherSkill"),
+    "CurrencySkill": ("r_cli.skills.currency_skill", "CurrencySkill"),
+    "BarcodeSkill": ("r_cli.skills.barcode_skill", "BarcodeSkill"),
+    "PDFToolsSkill": ("r_cli.skills.pdftools_skill", "PDFToolsSkill"),
+    "CronSkill": ("r_cli.skills.cron_skill", "CronSkill"),
 }
 
 # Cache for loaded skill classes
@@ -200,5 +230,15 @@ __all__ = [
     "MathSkill",
     "NetworkSkill",
     "SystemSkill",
+    "ImageSkill",
+    "AudioSkill",
+    "TextSkill",
+    "DateTimeSkill",
+    "ColorSkill",
+    "WeatherSkill",
+    "CurrencySkill",
+    "BarcodeSkill",
+    "PDFToolsSkill",
+    "CronSkill",
     "get_all_skills",
 ]
