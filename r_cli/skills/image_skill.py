@@ -240,7 +240,7 @@ class ImageSkill(Skill):
             info["file_size"] = f"{path.stat().st_size / 1024:.1f} KB"
 
             # EXIF data if available
-            if hasattr(img, '_getexif') and img._getexif():
+            if hasattr(img, "_getexif") and img._getexif():
                 exif = img._getexif()
                 if exif:
                     info["has_exif"] = True
@@ -345,10 +345,10 @@ class ImageSkill(Skill):
             out_path = Path(output_path).expanduser()
 
             # Handle RGBA to RGB for JPEG
-            if out_path.suffix.lower() in ['.jpg', '.jpeg'] and img.mode == 'RGBA':
-                img = img.convert('RGB')
+            if out_path.suffix.lower() in [".jpg", ".jpeg"] and img.mode == "RGBA":
+                img = img.convert("RGB")
 
-            if out_path.suffix.lower() in ['.jpg', '.jpeg']:
+            if out_path.suffix.lower() in [".jpg", ".jpeg"]:
                 img.save(out_path, quality=quality)
             else:
                 img.save(out_path)
@@ -371,7 +371,7 @@ class ImageSkill(Skill):
             return f"Error: {error}"
 
         try:
-            from PIL import ImageFilter, ImageOps
+            from PIL import Image, ImageFilter, ImageOps
 
             filter_lower = filter.lower()
 
@@ -386,14 +386,14 @@ class ImageSkill(Skill):
             elif filter_lower == "emboss":
                 result = img.filter(ImageFilter.EMBOSS)
             elif filter_lower == "invert":
-                if img.mode == 'RGBA':
+                if img.mode == "RGBA":
                     r, g, b, a = img.split()
-                    rgb = Image.merge('RGB', (r, g, b))
+                    rgb = Image.merge("RGB", (r, g, b))
                     inverted = ImageOps.invert(rgb)
                     r, g, b = inverted.split()
-                    result = Image.merge('RGBA', (r, g, b, a))
+                    result = Image.merge("RGBA", (r, g, b, a))
                 else:
-                    result = ImageOps.invert(img.convert('RGB'))
+                    result = ImageOps.invert(img.convert("RGB"))
             else:
                 return f"Unknown filter: {filter}. Available: grayscale, blur, sharpen, contour, emboss, invert"
 

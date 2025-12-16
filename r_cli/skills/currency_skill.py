@@ -8,8 +8,8 @@ Currency utilities:
 """
 
 import json
-import urllib.request
 import urllib.error
+import urllib.request
 from typing import Optional
 
 from r_cli.core.agent import Skill
@@ -100,7 +100,7 @@ class CurrencySkill(Skill):
                 headers={"User-Agent": "R-CLI/1.0"}
             )
             with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = json.loads(response.read().decode("utf-8"))
                 if data.get("success", True):
                     return True, data.get("rates", {})
                 return False, {}
@@ -115,7 +115,7 @@ class CurrencySkill(Skill):
                 headers={"User-Agent": "R-CLI/1.0"}
             )
             with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode('utf-8'))
+                data = json.loads(response.read().decode("utf-8"))
                 rates = data.get("rates", {})
                 rates[base.upper()] = 1.0
                 return True, rates

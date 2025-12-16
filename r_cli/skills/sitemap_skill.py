@@ -8,10 +8,10 @@ XML Sitemap utilities:
 """
 
 import json
+import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Optional
-import urllib.request
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -128,7 +128,7 @@ class SitemapSkill(Skill):
         except Exception as e:
             return False, str(e)
 
-    def _get_text(self, elem: ET.Element, tag: str, ns: dict = None) -> Optional[str]:
+    def _get_text(self, elem: ET.Element, tag: str, ns: dict | None = None) -> Optional[str]:
         """Get text from child element."""
         ns = ns or self.NS
         child = elem.find(tag, ns)

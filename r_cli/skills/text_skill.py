@@ -194,7 +194,7 @@ class TextSkill(Skill):
         chars_no_spaces = len(text.replace(" ", "").replace("\n", ""))
 
         # Sentences (rough estimate)
-        sentences = len(re.findall(r'[.!?]+', text))
+        sentences = len(re.findall(r"[.!?]+", text))
 
         return json.dumps({
             "characters": chars,
@@ -220,17 +220,17 @@ class TextSkill(Skill):
         elif case_lower == "swap":
             return text.swapcase()
         elif case_lower == "camel":
-            words = re.split(r'[\s_-]+', text)
-            return words[0].lower() + ''.join(w.capitalize() for w in words[1:])
+            words = re.split(r"[\s_-]+", text)
+            return words[0].lower() + "".join(w.capitalize() for w in words[1:])
         elif case_lower == "snake":
             # Convert camelCase to snake_case
-            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
-            s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
-            return re.sub(r'[\s-]+', '_', s2).lower()
+            s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", text)
+            s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
+            return re.sub(r"[\s-]+", "_", s2).lower()
         elif case_lower == "kebab":
-            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', text)
-            s2 = re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1)
-            return re.sub(r'[\s_]+', '-', s2).lower()
+            s1 = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", text)
+            s2 = re.sub("([a-z0-9])([A-Z])", r"\1-\2", s1)
+            return re.sub(r"[\s_]+", "-", s2).lower()
         else:
             return f"Unknown case: {case}. Available: upper, lower, title, capitalize, swap, camel, snake, kebab"
 
@@ -241,8 +241,8 @@ class TextSkill(Skill):
         lines1 = text1.splitlines(keepends=True)
         lines2 = text2.splitlines(keepends=True)
 
-        diff = difflib.unified_diff(lines1, lines2, fromfile='text1', tofile='text2')
-        result = ''.join(diff)
+        diff = difflib.unified_diff(lines1, lines2, fromfile="text1", tofile="text2")
+        result = "".join(diff)
 
         if not result:
             return "No differences found"
@@ -293,15 +293,15 @@ class TextSkill(Skill):
     def text_slug(self, text: str) -> str:
         """Generate URL slug."""
         # Remove diacritics
-        text = unicodedata.normalize('NFKD', text)
-        text = text.encode('ASCII', 'ignore').decode('ASCII')
+        text = unicodedata.normalize("NFKD", text)
+        text = text.encode("ASCII", "ignore").decode("ASCII")
 
         # Convert to lowercase and replace spaces
         text = text.lower()
-        text = re.sub(r'[^\w\s-]', '', text)
-        text = re.sub(r'[-\s]+', '-', text)
+        text = re.sub(r"[^\w\s-]", "", text)
+        text = re.sub(r"[-\s]+", "-", text)
 
-        return text.strip('-')
+        return text.strip("-")
 
     def text_wrap(self, text: str, width: int = 80) -> str:
         """Wrap text to width."""
@@ -325,8 +325,8 @@ class TextSkill(Skill):
 
     def text_remove_diacritics(self, text: str) -> str:
         """Remove diacritics/accents."""
-        normalized = unicodedata.normalize('NFKD', text)
-        return ''.join(c for c in normalized if not unicodedata.combining(c))
+        normalized = unicodedata.normalize("NFKD", text)
+        return "".join(c for c in normalized if not unicodedata.combining(c))
 
     def execute(self, **kwargs) -> str:
         """Direct skill execution."""

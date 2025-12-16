@@ -1,8 +1,9 @@
 """Tests for LLM backends."""
 
 import json
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from r_cli.backends.base import LLMBackend, Message, Tool, ToolCall
 

@@ -316,7 +316,7 @@ class MIMESkill(Skill):
             (b"\x1f\x8b\x08", "application/gzip"),
             (b"BZh", "application/x-bzip2"),
             (b"\xfd7zXZ\x00", "application/x-xz"),
-            (b"7z\xbc\xaf\'\x1c", "application/x-7z-compressed"),
+            (b"7z\xbc\xaf'\x1c", "application/x-7z-compressed"),
             (b"%PDF", "application/pdf"),
             (b"{\n", "application/json"),
             (b"[", "application/json"),

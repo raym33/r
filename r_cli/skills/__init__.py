@@ -84,73 +84,73 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from r_cli.core.agent import Skill
     from r_cli.skills.archive_skill import ArchiveSkill
+    from r_cli.skills.audio_skill import AudioSkill
+    from r_cli.skills.barcode_skill import BarcodeSkill
     from r_cli.skills.benchmark_skill import BenchmarkSkill
     from r_cli.skills.calendar_skill import CalendarSkill
+    from r_cli.skills.changelog_skill import ChangelogSkill
     from r_cli.skills.clipboard_skill import ClipboardSkill
     from r_cli.skills.code_skill import CodeSkill
+    from r_cli.skills.color_skill import ColorSkill
+    from r_cli.skills.cron_skill import CronSkill
+    from r_cli.skills.crypto_skill import CryptoSkill
+    from r_cli.skills.csv_skill import CSVSkill
+    from r_cli.skills.currency_skill import CurrencySkill
+    from r_cli.skills.datetime_skill import DateTimeSkill
     from r_cli.skills.design_skill import DesignSkill
+    from r_cli.skills.diff_skill import DiffSkill
     from r_cli.skills.docker_skill import DockerSkill
     from r_cli.skills.email_skill import EmailSkill
+    from r_cli.skills.encoding_skill import EncodingSkill
+    from r_cli.skills.env_skill import EnvSkill
+    from r_cli.skills.faker_skill import FakerSkill
     from r_cli.skills.fs_skill import FilesystemSkill
     from r_cli.skills.git_skill import GitSkill
+    from r_cli.skills.html_skill import HTMLSkill
     from r_cli.skills.http_skill import HTTPSkill
+    from r_cli.skills.hublab_skill import HubLabSkill
+    from r_cli.skills.ical_skill import ICalSkill
+    from r_cli.skills.image_skill import ImageSkill
+    from r_cli.skills.ip_skill import IPSkill
     from r_cli.skills.json_skill import JSONSkill
+    from r_cli.skills.jwt_skill import JWTSkill
     from r_cli.skills.latex_skill import LaTeXSkill
     from r_cli.skills.logs_skill import LogsSkill
+    from r_cli.skills.manifest_skill import ManifestSkill
+    from r_cli.skills.markdown_skill import MarkdownSkill
+    from r_cli.skills.math_skill import MathSkill
+    from r_cli.skills.metrics_skill import MetricsSkill
+    from r_cli.skills.mime_skill import MIMESkill
     from r_cli.skills.multiagent_skill import MultiAgentSkill
+    from r_cli.skills.network_skill import NetworkSkill
     from r_cli.skills.ocr_skill import OCRSkill
     from r_cli.skills.openapi_skill import OpenAPISkill
     from r_cli.skills.pdf_skill import PDFSkill
+    from r_cli.skills.pdftools_skill import PDFToolsSkill
     from r_cli.skills.plugin_skill import PluginSkill
+    from r_cli.skills.qr_skill import QRSkill
     from r_cli.skills.rag_skill import RAGSkill
+    from r_cli.skills.regex_skill import RegexSkill
     from r_cli.skills.resume_skill import ResumeSkill
+    from r_cli.skills.rss_skill import RSSSkill
+    from r_cli.skills.schema_skill import SchemaSkill
     from r_cli.skills.screenshot_skill import ScreenshotSkill
+    from r_cli.skills.semver_skill import SemVerSkill
+    from r_cli.skills.sitemap_skill import SitemapSkill
     from r_cli.skills.sql_skill import SQLSkill
     from r_cli.skills.ssh_skill import SSHSkill
-    from r_cli.skills.translate_skill import TranslateSkill
-    from r_cli.skills.voice_skill import VoiceSkill
-    from r_cli.skills.web_skill import WebSkill
-    from r_cli.skills.csv_skill import CSVSkill
-    from r_cli.skills.yaml_skill import YAMLSkill
-    from r_cli.skills.markdown_skill import MarkdownSkill
-    from r_cli.skills.regex_skill import RegexSkill
-    from r_cli.skills.crypto_skill import CryptoSkill
-    from r_cli.skills.qr_skill import QRSkill
-    from r_cli.skills.video_skill import VideoSkill
-    from r_cli.skills.math_skill import MathSkill
-    from r_cli.skills.network_skill import NetworkSkill
     from r_cli.skills.system_skill import SystemSkill
-    from r_cli.skills.image_skill import ImageSkill
-    from r_cli.skills.audio_skill import AudioSkill
-    from r_cli.skills.text_skill import TextSkill
-    from r_cli.skills.datetime_skill import DateTimeSkill
-    from r_cli.skills.color_skill import ColorSkill
-    from r_cli.skills.weather_skill import WeatherSkill
-    from r_cli.skills.currency_skill import CurrencySkill
-    from r_cli.skills.barcode_skill import BarcodeSkill
-    from r_cli.skills.pdftools_skill import PDFToolsSkill
-    from r_cli.skills.cron_skill import CronSkill
-    from r_cli.skills.jwt_skill import JWTSkill
-    from r_cli.skills.html_skill import HTMLSkill
-    from r_cli.skills.xml_skill import XMLSkill
     from r_cli.skills.template_skill import TemplateSkill
-    from r_cli.skills.env_skill import EnvSkill
-    from r_cli.skills.faker_skill import FakerSkill
-    from r_cli.skills.ip_skill import IPSkill
+    from r_cli.skills.text_skill import TextSkill
+    from r_cli.skills.translate_skill import TranslateSkill
     from r_cli.skills.url_skill import URLSkill
-    from r_cli.skills.encoding_skill import EncodingSkill
-    from r_cli.skills.metrics_skill import MetricsSkill
-    from r_cli.skills.diff_skill import DiffSkill
-    from r_cli.skills.schema_skill import SchemaSkill
-    from r_cli.skills.rss_skill import RSSSkill
-    from r_cli.skills.ical_skill import ICalSkill
     from r_cli.skills.vcard_skill import VCardSkill
-    from r_cli.skills.semver_skill import SemVerSkill
-    from r_cli.skills.mime_skill import MIMESkill
-    from r_cli.skills.sitemap_skill import SitemapSkill
-    from r_cli.skills.manifest_skill import ManifestSkill
-    from r_cli.skills.changelog_skill import ChangelogSkill
-    from r_cli.skills.hublab_skill import HubLabSkill
+    from r_cli.skills.video_skill import VideoSkill
+    from r_cli.skills.voice_skill import VoiceSkill
+    from r_cli.skills.weather_skill import WeatherSkill
+    from r_cli.skills.web_skill import WebSkill
+    from r_cli.skills.xml_skill import XMLSkill
+    from r_cli.skills.yaml_skill import YAMLSkill
 
 # Registry: class_name -> (module_name, class_name)
 _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
@@ -257,72 +257,72 @@ def get_all_skills() -> list[type["Skill"]]:
 
 __all__ = [
     "ArchiveSkill",
+    "AudioSkill",
+    "BarcodeSkill",
     "BenchmarkSkill",
+    "CSVSkill",
     "CalendarSkill",
+    "ChangelogSkill",
     "ClipboardSkill",
     "CodeSkill",
+    "ColorSkill",
+    "CronSkill",
+    "CryptoSkill",
+    "CurrencySkill",
+    "DateTimeSkill",
     "DesignSkill",
+    "DiffSkill",
     "DockerSkill",
     "EmailSkill",
+    "EncodingSkill",
+    "EnvSkill",
+    "FakerSkill",
     "FilesystemSkill",
     "GitSkill",
+    "HTMLSkill",
     "HTTPSkill",
+    "HubLabSkill",
+    "ICalSkill",
+    "IPSkill",
+    "ImageSkill",
     "JSONSkill",
+    "JWTSkill",
     "LaTeXSkill",
     "LogsSkill",
+    "MIMESkill",
+    "ManifestSkill",
+    "MarkdownSkill",
+    "MathSkill",
+    "MetricsSkill",
     "MultiAgentSkill",
+    "NetworkSkill",
     "OCRSkill",
     "OpenAPISkill",
     "PDFSkill",
+    "PDFToolsSkill",
     "PluginSkill",
+    "QRSkill",
     "RAGSkill",
+    "RSSSkill",
+    "RegexSkill",
     "ResumeSkill",
     "SQLSkill",
     "SSHSkill",
-    "ScreenshotSkill",
-    "TranslateSkill",
-    "VoiceSkill",
-    "WebSkill",
-    "CSVSkill",
-    "YAMLSkill",
-    "MarkdownSkill",
-    "RegexSkill",
-    "CryptoSkill",
-    "QRSkill",
-    "VideoSkill",
-    "MathSkill",
-    "NetworkSkill",
-    "SystemSkill",
-    "ImageSkill",
-    "AudioSkill",
-    "TextSkill",
-    "DateTimeSkill",
-    "ColorSkill",
-    "WeatherSkill",
-    "CurrencySkill",
-    "BarcodeSkill",
-    "PDFToolsSkill",
-    "CronSkill",
-    "JWTSkill",
-    "HTMLSkill",
-    "XMLSkill",
-    "TemplateSkill",
-    "EnvSkill",
-    "FakerSkill",
-    "IPSkill",
-    "URLSkill",
-    "EncodingSkill",
-    "MetricsSkill",
-    "DiffSkill",
     "SchemaSkill",
-    "RSSSkill",
-    "ICalSkill",
-    "VCardSkill",
+    "ScreenshotSkill",
     "SemVerSkill",
-    "MIMESkill",
     "SitemapSkill",
-    "ManifestSkill",
-    "ChangelogSkill",
-    "HubLabSkill",
+    "SystemSkill",
+    "TemplateSkill",
+    "TextSkill",
+    "TranslateSkill",
+    "URLSkill",
+    "VCardSkill",
+    "VideoSkill",
+    "VoiceSkill",
+    "WeatherSkill",
+    "WebSkill",
+    "XMLSkill",
+    "YAMLSkill",
     "get_all_skills",
 ]

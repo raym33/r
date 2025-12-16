@@ -118,7 +118,7 @@ class QRSkill(Skill):
         """Read QR code from image."""
         try:
             from PIL import Image
-            import pyzbar.pyzbar as pyzbar
+            from pyzbar import pyzbar
 
             path = Path(image_path).expanduser()
             if not path.exists():

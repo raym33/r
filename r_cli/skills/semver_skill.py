@@ -136,13 +136,13 @@ class SemVerSkill(Skill):
             ),
         ]
 
-    def _parse_version(self, version: str) -> Optional[Tuple]:
+    def _parse_version(self, version: str) -> Optional[tuple]:
         """Parse version into components."""
         # Remove leading 'v' if present
         version = version.lstrip("v")
 
         # SemVer regex
-        pattern = r'^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.-]+))?(?:\+([a-zA-Z0-9.-]+))?$'
+        pattern = r"^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.-]+))?(?:\+([a-zA-Z0-9.-]+))?$"
         match = re.match(pattern, version)
 
         if not match:

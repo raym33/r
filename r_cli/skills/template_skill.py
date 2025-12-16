@@ -115,18 +115,18 @@ class TemplateSkill(Skill):
     def _use_jinja2(self):
         """Try to use Jinja2 if available."""
         try:
-            from jinja2 import Template, Environment
+            from jinja2 import Environment, Template
             return Template, Environment
         except ImportError:
             return None, None
 
     def template_render(self, template: str, variables: dict) -> str:
         """Render template with Jinja2."""
-        Template, Environment = self._use_jinja2()
+        template_class, _env_class = self._use_jinja2()
 
-        if Template:
+        if template_class:
             try:
-                t = Template(template)
+                t = template_class(template)
                 return t.render(**variables)
             except Exception as e:
                 return f"Template error: {e}"
@@ -156,22 +156,22 @@ class TemplateSkill(Skill):
         format_vars = set()
 
         # Jinja2 style: {{ var }} and {{ var.attr }}
-        for match in re.finditer(r'\{\{\s*(\w+)(?:\.\w+)*\s*\}\}', template):
+        for match in re.finditer(r"\{\{\s*(\w+)(?:\.\w+)*\s*\}\}", template):
             jinja_vars.add(match.group(1))
 
         # Jinja2 with filters: {{ var|filter }}
-        for match in re.finditer(r'\{\{\s*(\w+)\s*\|', template):
+        for match in re.finditer(r"\{\{\s*(\w+)\s*\|", template):
             jinja_vars.add(match.group(1))
 
         # Python format style: {var}
-        for match in re.finditer(r'\{(\w+)\}', template):
+        for match in re.finditer(r"\{(\w+)\}", template):
             format_vars.add(match.group(1))
 
         # Jinja2 loops and conditions: {% for x in items %}
-        for match in re.finditer(r'\{%\s*for\s+\w+\s+in\s+(\w+)', template):
+        for match in re.finditer(r"\{%\s*for\s+\w+\s+in\s+(\w+)", template):
             jinja_vars.add(match.group(1))
 
-        for match in re.finditer(r'\{%\s*if\s+(\w+)', template):
+        for match in re.finditer(r"\{%\s*if\s+(\w+)", template):
             jinja_vars.add(match.group(1))
 
         return json.dumps({
@@ -182,9 +182,9 @@ class TemplateSkill(Skill):
 
     def template_validate(self, template: str) -> str:
         """Validate Jinja2 template syntax."""
-        Template, Environment = self._use_jinja2()
+        template_class, _env_class = self._use_jinja2()
 
-        if not Template:
+        if not template_class:
             return json.dumps({
                 "valid": None,
                 "error": "Jinja2 not installed. Run: pip install jinja2",

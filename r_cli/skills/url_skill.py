@@ -10,11 +10,18 @@ URL utilities:
 
 import json
 import re
-from urllib.parse import (
-    urlparse, urlunparse, urlencode, parse_qs, parse_qsl,
-    quote, unquote, quote_plus, unquote_plus
-)
 from typing import Optional
+from urllib.parse import (
+    parse_qs,
+    parse_qsl,
+    quote,
+    quote_plus,
+    unquote,
+    unquote_plus,
+    urlencode,
+    urlparse,
+    urlunparse,
+)
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -342,12 +349,12 @@ class URLSkill(Skill):
 
             # Pattern check
             url_pattern = re.compile(
-                r'^(?:(?:https?|ftp)://)?'
-                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
-                r'localhost|'
-                r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-                r'(?::\d+)?'
-                r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+                r"^(?:(?:https?|ftp)://)?"
+                r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|"
+                r"localhost|"
+                r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+                r"(?::\d+)?"
+                r"(?:/?|[/?]\S+)$", re.IGNORECASE)
 
             pattern_valid = bool(url_pattern.match(url))
 

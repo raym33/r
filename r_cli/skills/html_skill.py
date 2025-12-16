@@ -10,9 +10,9 @@ HTML utilities:
 
 import json
 import re
-from typing import Optional
-from html.parser import HTMLParser
 from html import unescape
+from html.parser import HTMLParser
+from typing import Optional
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -162,34 +162,34 @@ class HTMLSkill(Skill):
 
     def html_to_text(self, html: str) -> str:
         """Convert HTML to plain text."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
-        if BeautifulSoup:
-            soup = BeautifulSoup(html, "html.parser")
+        if bs4_class:
+            soup = bs4_class(html, "html.parser")
             # Remove script and style elements
             for element in soup(["script", "style", "head", "meta", "link"]):
                 element.decompose()
             text = soup.get_text(separator="\n", strip=True)
             # Clean up multiple newlines
-            text = re.sub(r'\n\s*\n', '\n\n', text)
+            text = re.sub(r"\n\s*\n", "\n\n", text)
             return text
 
         # Fallback: simple regex-based
-        text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", " ", text)
         text = unescape(text)
-        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
         return text
 
     def html_extract_links(self, html: str) -> str:
         """Extract all links."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
         links = []
 
-        if BeautifulSoup:
-            soup = BeautifulSoup(html, "html.parser")
+        if bs4_class:
+            soup = bs4_class(html, "html.parser")
             for a in soup.find_all("a", href=True):
                 links.append({
                     "href": a["href"],
@@ -207,12 +207,12 @@ class HTMLSkill(Skill):
 
     def html_extract_images(self, html: str) -> str:
         """Extract all image URLs."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
         images = []
 
-        if BeautifulSoup:
-            soup = BeautifulSoup(html, "html.parser")
+        if bs4_class:
+            soup = bs4_class(html, "html.parser")
             for img in soup.find_all("img"):
                 images.append({
                     "src": img.get("src", ""),
@@ -227,12 +227,12 @@ class HTMLSkill(Skill):
 
     def html_extract_meta(self, html: str) -> str:
         """Extract meta tags."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
         meta = {}
 
-        if BeautifulSoup:
-            soup = BeautifulSoup(html, "html.parser")
+        if bs4_class:
+            soup = bs4_class(html, "html.parser")
 
             # Title
             title = soup.find("title")
@@ -248,7 +248,7 @@ class HTMLSkill(Skill):
 
         else:
             # Fallback: regex
-            title_match = re.search(r'<title>([^<]+)</title>', html, re.IGNORECASE)
+            title_match = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
             if title_match:
                 meta["title"] = title_match.group(1).strip()
 
@@ -263,12 +263,12 @@ class HTMLSkill(Skill):
         allowed_tags: str = "p,a,b,i,u,br,ul,ol,li,h1,h2,h3,h4,h5,h6,strong,em,span,div",
     ) -> str:
         """Clean/sanitize HTML."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
-        allowed = set(t.strip().lower() for t in allowed_tags.split(","))
+        allowed = {t.strip().lower() for t in allowed_tags.split(",")}
 
-        if BeautifulSoup:
-            soup = BeautifulSoup(html, "html.parser")
+        if bs4_class:
+            soup = bs4_class(html, "html.parser")
 
             # Remove unwanted tags completely
             for tag in soup(["script", "style", "iframe", "object", "embed"]):
@@ -289,18 +289,18 @@ class HTMLSkill(Skill):
             return str(soup)
 
         # Fallback: aggressive cleaning
-        text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
         return text
 
     def html_extract_tables(self, html: str) -> str:
         """Extract tables as JSON."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
-        if not BeautifulSoup:
+        if not bs4_class:
             return "Error: BeautifulSoup required. Run: pip install beautifulsoup4"
 
-        soup = BeautifulSoup(html, "html.parser")
+        soup = bs4_class(html, "html.parser")
         tables = []
 
         for table in soup.find_all("table"):
@@ -331,25 +331,25 @@ class HTMLSkill(Skill):
     def html_minify(self, html: str) -> str:
         """Minify HTML."""
         # Remove comments
-        html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
+        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
         # Remove whitespace between tags
-        html = re.sub(r'>\s+<', '><', html)
+        html = re.sub(r">\s+<", "><", html)
         # Remove leading/trailing whitespace
-        html = re.sub(r'\s+', ' ', html)
+        html = re.sub(r"\s+", " ", html)
         return html.strip()
 
     def html_prettify(self, html: str) -> str:
         """Prettify HTML."""
-        BeautifulSoup = self._use_bs4()
+        bs4_class = self._use_bs4()
 
-        if BeautifulSoup:
-            soup = BeautifulSoup(html, "html.parser")
+        if bs4_class:
+            soup = bs4_class(html, "html.parser")
             return soup.prettify()
 
         # Simple fallback
         indent = 0
         result = []
-        for match in re.finditer(r'(<[^>]+>)|([^<]+)', html):
+        for match in re.finditer(r"(<[^>]+>)|([^<]+)", html):
             tag = match.group(1)
             text = match.group(2)
 

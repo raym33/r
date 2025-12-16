@@ -143,7 +143,7 @@ class ChangelogSkill(Skill):
         versions = []
 
         # Match version headers: ## [1.0.0] - 2024-01-01 or ## [Unreleased]
-        version_pattern = r'##\s*\[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?'
+        version_pattern = r"##\s*\[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?"
 
         sections = re.split(version_pattern, content)
 
@@ -162,7 +162,7 @@ class ChangelogSkill(Skill):
                 line = line.strip()
 
                 # Check for change type header
-                type_match = re.match(r'###\s*(\w+)', line)
+                type_match = re.match(r"###\s*(\w+)", line)
                 if type_match:
                     current_type = type_match.group(1)
                     changes[current_type] = []
@@ -185,7 +185,7 @@ class ChangelogSkill(Skill):
 
         # Count changes
         total_changes = 0
-        change_counts = {t: 0 for t in self.CHANGE_TYPES}
+        change_counts = dict.fromkeys(self.CHANGE_TYPES, 0)
 
         for v in versions:
             for change_type, entries in v.get("changes", {}).items():
@@ -214,7 +214,7 @@ class ChangelogSkill(Skill):
         lines = [f"## [{version}] - {date}", ""]
 
         for change_type in self.CHANGE_TYPES:
-            if change_type in changes and changes[change_type]:
+            if changes.get(change_type):
                 lines.append(f"### {change_type}")
                 for entry in changes[change_type]:
                     lines.append(f"- {entry}")
@@ -229,7 +229,7 @@ class ChangelogSkill(Skill):
     ) -> str:
         """Initialize new changelog."""
         lines = [
-            f"# Changelog",
+            "# Changelog",
             "",
             f"All notable changes to {project_name} will be documented in this file.",
             "",
@@ -296,7 +296,7 @@ class ChangelogSkill(Skill):
             return f"Invalid change type: {type}. Use: {', '.join(self.CHANGE_TYPES)}"
 
         # Find unreleased section
-        unreleased_match = re.search(r'(## \[Unreleased\].*?)(## \[|$)', content, re.DOTALL)
+        unreleased_match = re.search(r"(## \[Unreleased\].*?)(## \[|$)", content, re.DOTALL)
 
         if not unreleased_match:
             return "No [Unreleased] section found"
@@ -304,7 +304,7 @@ class ChangelogSkill(Skill):
         unreleased_section = unreleased_match.group(1)
 
         # Find or create the type section
-        type_pattern = rf'(### {type}\n)'
+        type_pattern = rf"(### {type}\n)"
         type_match = re.search(type_pattern, unreleased_section)
 
         if type_match:

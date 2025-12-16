@@ -208,7 +208,7 @@ class AudioSkill(Skill):
         try:
             result = subprocess.run(
                 ["ffmpeg", "-y"] + args,
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=300,
             )
@@ -239,7 +239,7 @@ class AudioSkill(Skill):
                     "-show_streams",
                     str(path),
                 ],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
             )
 
@@ -348,7 +348,7 @@ class AudioSkill(Skill):
 
         # Create concat file
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
             for f in files:
                 tmp.write(f"file '{Path(f).expanduser()}'\n")
             concat_file = tmp.name

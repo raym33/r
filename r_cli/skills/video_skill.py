@@ -175,7 +175,7 @@ class VideoSkill(Skill):
         try:
             result = subprocess.run(
                 ["ffmpeg", "-y"] + args,
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=300,
             )
@@ -206,7 +206,7 @@ class VideoSkill(Skill):
                     "-show_streams",
                     str(path),
                 ],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
             )
 

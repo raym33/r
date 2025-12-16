@@ -10,7 +10,7 @@ Cron expression utilities:
 
 import json
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import List, Optional
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -114,7 +114,7 @@ class CronSkill(Skill):
             ),
         ]
 
-    def _parse_field(self, field: str, min_val: int, max_val: int, names: dict = None) -> List[int]:
+    def _parse_field(self, field: str, min_val: int, max_val: int, names: dict | None = None) -> list[int]:
         """Parse a single cron field into list of values."""
         values = set()
 

@@ -8,9 +8,9 @@ iCalendar (ICS) utilities:
 """
 
 import json
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
-import uuid
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -229,7 +229,8 @@ class ICalSkill(Skill):
         ]
 
         if description:
-            lines.append(f"DESCRIPTION:{description.replace(chr(10), '\\n')}")
+            escaped_newline = "\\n"
+            lines.append(f"DESCRIPTION:{description.replace(chr(10), escaped_newline)}")
         if location:
             lines.append(f"LOCATION:{location}")
 

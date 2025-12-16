@@ -325,23 +325,23 @@ class MetricsSkill(Skill):
         if psutil:
             try:
                 processes = []
-                for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+                for proc in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]):
                     try:
                         info = proc.info
                         processes.append({
-                            "pid": info['pid'],
-                            "name": info['name'],
-                            "cpu_percent": info['cpu_percent'],
-                            "memory_percent": round(info['memory_percent'], 2),
+                            "pid": info["pid"],
+                            "name": info["name"],
+                            "cpu_percent": info["cpu_percent"],
+                            "memory_percent": round(info["memory_percent"], 2),
                         })
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
 
                 # Sort
                 if sort_by == "memory":
-                    processes.sort(key=lambda x: x['memory_percent'], reverse=True)
+                    processes.sort(key=lambda x: x["memory_percent"], reverse=True)
                 else:
-                    processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
+                    processes.sort(key=lambda x: x["cpu_percent"], reverse=True)
 
                 return json.dumps({
                     "timestamp": datetime.now().isoformat(),
@@ -459,7 +459,7 @@ class MetricsSkill(Skill):
         # Fallback: try uptime command
         import subprocess
         try:
-            result = subprocess.run(["uptime"], capture_output=True, text=True)
+            result = subprocess.run(["uptime"], check=False, capture_output=True, text=True)
             return result.stdout.strip()
         except Exception:
             return "Uptime not available. Install psutil for this feature."

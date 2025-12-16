@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-import httpx
 from typing import Any, Iterator
 
+import httpx
+
+from .exceptions import APIError, AuthError, RateLimitError
 from .types import (
-    ChatMessage,
-    ChatResponse,
-    SkillInfo,
-    StatusResponse,
-    AuthUser,
     APIKeyInfo,
     AuditEvent,
+    AuthUser,
+    ChatMessage,
+    ChatResponse,
     LLMStatus,
-    ToolInfo,
+    SkillInfo,
+    StatusResponse,
     ToolCall,
+    ToolInfo,
 )
-from .exceptions import RError, AuthError, RateLimitError, APIError
 
 
 class RClient:
@@ -284,8 +285,12 @@ class RClient:
                 key_id=k["key_id"],
                 name=k["name"],
                 scopes=k["scopes"],
-                created_at=datetime.fromisoformat(k["created_at"].replace("Z", "+00:00")),
-                last_used=datetime.fromisoformat(k["last_used"].replace("Z", "+00:00"))
+                created_at=datetime.fromisoformat(
+                    k["created_at"].replace("Z", "+00:00")
+                ),
+                last_used=datetime.fromisoformat(
+                    k["last_used"].replace("Z", "+00:00")
+                )
                 if k.get("last_used")
                 else None,
             )
@@ -317,7 +322,9 @@ class RClient:
             key_id=data["key_id"],
             name=data["name"],
             scopes=data["scopes"],
-            created_at=datetime.fromisoformat(data["created_at"].replace("Z", "+00:00")),
+            created_at=datetime.fromisoformat(
+                data["created_at"].replace("Z", "+00:00")
+            ),
         )
         return data["key"], key_info
 
@@ -593,8 +600,12 @@ class AsyncRClient:
                 key_id=k["key_id"],
                 name=k["name"],
                 scopes=k["scopes"],
-                created_at=datetime.fromisoformat(k["created_at"].replace("Z", "+00:00")),
-                last_used=datetime.fromisoformat(k["last_used"].replace("Z", "+00:00"))
+                created_at=datetime.fromisoformat(
+                    k["created_at"].replace("Z", "+00:00")
+                ),
+                last_used=datetime.fromisoformat(
+                    k["last_used"].replace("Z", "+00:00")
+                )
                 if k.get("last_used")
                 else None,
             )
@@ -621,7 +632,9 @@ class AsyncRClient:
             key_id=data["key_id"],
             name=data["name"],
             scopes=data["scopes"],
-            created_at=datetime.fromisoformat(data["created_at"].replace("Z", "+00:00")),
+            created_at=datetime.fromisoformat(
+                data["created_at"].replace("Z", "+00:00")
+            ),
         )
         return data["key"], key_info
 

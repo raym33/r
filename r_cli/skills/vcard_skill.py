@@ -8,8 +8,8 @@ vCard (VCF) utilities:
 """
 
 import json
-from typing import Optional
 import uuid
+from typing import Optional
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool

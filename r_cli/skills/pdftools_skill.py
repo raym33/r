@@ -203,7 +203,7 @@ class PDFToolsSkill(Skill):
             return True, pypdf
         except ImportError:
             try:
-                import PyPDF2 as pypdf
+                import PyPDF2 as pypdf  # noqa: N813
                 return True, pypdf
             except ImportError:
                 return False, None
@@ -398,9 +398,10 @@ class PDFToolsSkill(Skill):
             return "Error: pypdf not installed. Run: pip install pypdf"
 
         try:
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.pagesizes import letter
             import io
+
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
         except ImportError:
             return "Error: reportlab not installed. Run: pip install reportlab"
 

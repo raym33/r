@@ -165,7 +165,7 @@ class IPSkill(Skill):
             socket.inet_aton(ip)
             parts = ip.split(".")
             return len(parts) == 4 and all(0 <= int(p) <= 255 for p in parts)
-        except (socket.error, ValueError):
+        except (OSError, ValueError):
             return False
 
     def _is_valid_ipv6(self, ip: str) -> bool:
@@ -173,7 +173,7 @@ class IPSkill(Skill):
         try:
             socket.inet_pton(socket.AF_INET6, ip)
             return True
-        except (socket.error, ValueError):
+        except (OSError, ValueError):
             return False
 
     def ip_validate(self, ip: str) -> str:
@@ -242,10 +242,7 @@ class IPSkill(Skill):
         if parts[0] == 172 and 16 <= parts[1] <= 31:
             return True
         # 192.168.0.0/16
-        if parts[0] == 192 and parts[1] == 168:
-            return True
-
-        return False
+        return bool(parts[0] == 192 and parts[1] == 168)
 
     def ip_geolocation(self, ip: Optional[str] = None) -> str:
         """Get geolocation for IP."""

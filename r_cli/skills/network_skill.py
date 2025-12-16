@@ -10,9 +10,9 @@ Network utilities:
 """
 
 import json
+import shutil
 import socket
 import subprocess
-import shutil
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -169,7 +169,7 @@ class NetworkSkill(Skill):
             cmd = ["ping", "-c", str(count), host]
             result = subprocess.run(
                 cmd,
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=30,
             )
@@ -212,20 +212,19 @@ class NetworkSkill(Skill):
             elif record_type.upper() == "AAAA":
                 # IPv6 addresses
                 infos = socket.getaddrinfo(hostname, None, socket.AF_INET6)
-                results["addresses"] = list(set(info[4][0] for info in infos))
+                results["addresses"] = list({info[4][0] for info in infos})
 
+            # Use dig for other record types
+            elif shutil.which("dig"):
+                result = subprocess.run(
+                    ["dig", "+short", record_type.upper(), hostname],
+                    check=False, capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                results["records"] = result.stdout.strip().split("\n")
             else:
-                # Use dig for other record types
-                if shutil.which("dig"):
-                    result = subprocess.run(
-                        ["dig", "+short", record_type.upper(), hostname],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                    )
-                    results["records"] = result.stdout.strip().split("\n")
-                else:
-                    return f"dig not available for {record_type} records"
+                return f"dig not available for {record_type} records"
 
             return json.dumps(results, indent=2)
 
@@ -302,8 +301,8 @@ class NetworkSkill(Skill):
     def http_get(self, url: str, headers: Optional[dict] = None) -> str:
         """Make HTTP GET request."""
         try:
-            import urllib.request
             import urllib.error
+            import urllib.request
 
             req = urllib.request.Request(url)
             req.add_header("User-Agent", "R-CLI/1.0")
@@ -337,7 +336,7 @@ class NetworkSkill(Skill):
         try:
             result = subprocess.run(
                 ["whois", domain],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=15,
             )

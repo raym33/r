@@ -8,8 +8,8 @@ Weather information:
 """
 
 import json
-import urllib.request
 import urllib.error
+import urllib.request
 from typing import Optional
 
 from r_cli.core.agent import Skill
@@ -105,7 +105,7 @@ class WeatherSkill(Skill):
                 headers={"User-Agent": "R-CLI/1.0"}
             )
             with urllib.request.urlopen(req, timeout=10) as response:
-                return True, response.read().decode('utf-8')
+                return True, response.read().decode("utf-8")
         except urllib.error.HTTPError as e:
             return False, f"HTTP error: {e.code}"
         except urllib.error.URLError as e:

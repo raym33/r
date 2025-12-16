@@ -163,7 +163,7 @@ class EnvSkill(Skill):
             if not line or line.startswith("#"):
                 continue
             # Parse KEY=value
-            match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)=(.*)$', line)
+            match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line)
             if match:
                 key = match.group(1)
                 value = match.group(2)
@@ -306,7 +306,7 @@ class EnvSkill(Skill):
                     continue
 
                 # Replace values with placeholders
-                match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)=(.*)$', line_stripped)
+                match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line_stripped)
                 if match:
                     key = match.group(1)
                     # Generate placeholder based on key

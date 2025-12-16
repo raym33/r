@@ -158,7 +158,7 @@ class SystemSkill(Skill):
                 try:
                     result = subprocess.run(
                         ["sw_vers", "-productVersion"],
-                        capture_output=True, text=True
+                        check=False, capture_output=True, text=True
                     )
                     info["macos_version"] = result.stdout.strip()
                 except Exception:
@@ -239,7 +239,7 @@ class SystemSkill(Skill):
             if platform.system() == "Darwin":
                 result = subprocess.run(
                     ["vm_stat"],
-                    capture_output=True, text=True
+                    check=False, capture_output=True, text=True
                 )
                 return f"Memory stats (install psutil for better output):\n{result.stdout}"
 
@@ -277,7 +277,7 @@ class SystemSkill(Skill):
                 try:
                     result = subprocess.run(
                         ["sysctl", "-n", "machdep.cpu.brand_string"],
-                        capture_output=True, text=True
+                        check=False, capture_output=True, text=True
                     )
                     info["cpu_model"] = result.stdout.strip()
                 except Exception:
@@ -299,14 +299,14 @@ class SystemSkill(Skill):
             try:
                 import psutil
                 processes = []
-                for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+                for proc in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]):
                     try:
                         info = proc.info
-                        if filter and filter.lower() not in info['name'].lower():
+                        if filter and filter.lower() not in info["name"].lower():
                             continue
                         processes.append({
-                            "pid": info['pid'],
-                            "name": info['name'],
+                            "pid": info["pid"],
+                            "name": info["name"],
                             "cpu": f"{info['cpu_percent']:.1f}%",
                             "memory": f"{info['memory_percent']:.1f}%",
                         })
@@ -314,7 +314,7 @@ class SystemSkill(Skill):
                         continue
 
                 # Sort by CPU usage
-                processes.sort(key=lambda x: float(x['cpu'].rstrip('%')), reverse=True)
+                processes.sort(key=lambda x: float(x["cpu"].rstrip("%")), reverse=True)
                 return json.dumps(processes[:limit], indent=2)
 
             except ImportError:
@@ -323,7 +323,7 @@ class SystemSkill(Skill):
             # Fallback: use ps command
             result = subprocess.run(
                 ["ps", "aux"],
-                capture_output=True, text=True
+                check=False, capture_output=True, text=True
             )
 
             lines = result.stdout.strip().split("\n")
@@ -388,8 +388,9 @@ class SystemSkill(Skill):
         try:
             # Try psutil
             try:
-                import psutil
                 from datetime import datetime
+
+                import psutil
                 boot_time = datetime.fromtimestamp(psutil.boot_time())
                 uptime = datetime.now() - boot_time
 
@@ -408,7 +409,7 @@ class SystemSkill(Skill):
             # Fallback: use uptime command
             result = subprocess.run(
                 ["uptime"],
-                capture_output=True, text=True
+                check=False, capture_output=True, text=True
             )
             return result.stdout.strip()
 
@@ -437,7 +438,7 @@ class SystemSkill(Skill):
             # Fallback: use who command
             result = subprocess.run(
                 ["who"],
-                capture_output=True, text=True
+                check=False, capture_output=True, text=True
             )
             return result.stdout.strip() or "No users logged in"
 

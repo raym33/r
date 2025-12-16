@@ -9,9 +9,9 @@ JWT token utilities:
 """
 
 import base64
-import json
-import hmac
 import hashlib
+import hmac
+import json
 from datetime import datetime
 from typing import Optional
 

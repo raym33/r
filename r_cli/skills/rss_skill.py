@@ -8,10 +8,10 @@ RSS/Atom feed utilities:
 """
 
 import json
+import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Optional
-import urllib.request
 
 from r_cli.core.agent import Skill
 from r_cli.core.llm import Tool
@@ -182,7 +182,7 @@ class RSSSkill(Skill):
 
         return feed
 
-    def _get_text(self, elem: ET.Element, path: str, ns: dict = None) -> Optional[str]:
+    def _get_text(self, elem: ET.Element, path: str, ns: dict | None = None) -> Optional[str]:
         """Get text content from element."""
         child = elem.find(path, ns) if ns else elem.find(path)
         if child is not None and child.text:

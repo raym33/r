@@ -136,12 +136,12 @@ class BarcodeSkill(Skill):
 
             output_path = Path(output).expanduser()
 
-            if output_path.suffix.lower() == '.svg':
+            if output_path.suffix.lower() == ".svg":
                 bc = bc_class(data)
-                bc.save(str(output_path.with_suffix('')))
+                bc.save(str(output_path.with_suffix("")))
             else:
                 bc = bc_class(data, writer=ImageWriter())
-                bc.save(str(output_path.with_suffix('')))
+                bc.save(str(output_path.with_suffix("")))
 
             return f"Barcode saved to {output}"
 
@@ -154,7 +154,7 @@ class BarcodeSkill(Skill):
         """Read barcode from image."""
         try:
             from PIL import Image
-            import pyzbar.pyzbar as pyzbar
+            from pyzbar import pyzbar
 
             path = Path(image_path).expanduser()
             if not path.exists():

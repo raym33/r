@@ -7,20 +7,20 @@ from pathlib import Path
 import pytest
 
 from r_cli.tools.file_utils import (
-    safe_path,
     ensure_dir,
-    get_file_type,
     format_size,
+    get_file_type,
     list_files_recursive,
     read_file_safe,
+    safe_path,
 )
 from r_cli.tools.text_processing import (
     chunk_text,
-    extract_sentences,
-    word_count,
-    find_keywords,
     clean_text,
+    extract_sentences,
+    find_keywords,
     truncate_text,
+    word_count,
 )
 
 

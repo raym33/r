@@ -154,18 +154,18 @@ class ColorSkill(Skill):
             ),
         ]
 
-    def _hex_to_rgb(self, hex_color: str) -> Tuple[int, int, int]:
+    def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
         """Convert HEX to RGB."""
-        hex_color = hex_color.lstrip('#')
+        hex_color = hex_color.lstrip("#")
         if len(hex_color) == 3:
-            hex_color = ''.join(c * 2 for c in hex_color)
+            hex_color = "".join(c * 2 for c in hex_color)
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
     def _rgb_to_hex(self, r: int, g: int, b: int) -> str:
         """Convert RGB to HEX."""
         return f"#{r:02x}{g:02x}{b:02x}".upper()
 
-    def _rgb_to_hsl(self, r: int, g: int, b: int) -> Tuple[int, int, int]:
+    def _rgb_to_hsl(self, r: int, g: int, b: int) -> tuple[int, int, int]:
         """Convert RGB to HSL."""
         r, g, b = r / 255, g / 255, b / 255
         max_c = max(r, g, b)
@@ -188,7 +188,7 @@ class ColorSkill(Skill):
 
         return int(h * 360), int(s * 100), int(l * 100)
 
-    def _hsl_to_rgb(self, h: int, s: int, l: int) -> Tuple[int, int, int]:
+    def _hsl_to_rgb(self, h: int, s: int, l: int) -> tuple[int, int, int]:
         """Convert HSL to RGB."""
         h, s, l = h / 360, s / 100, l / 100
 
@@ -216,21 +216,21 @@ class ColorSkill(Skill):
 
         return int(r * 255), int(g * 255), int(b * 255)
 
-    def _parse_color(self, color: str) -> Tuple[int, int, int]:
+    def _parse_color(self, color: str) -> tuple[int, int, int]:
         """Parse color string to RGB."""
         color = color.strip()
 
         # HEX
-        if color.startswith('#'):
+        if color.startswith("#"):
             return self._hex_to_rgb(color)
 
         # RGB
-        rgb_match = re.match(r'rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)', color, re.I)
+        rgb_match = re.match(r"rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)", color, re.I)
         if rgb_match:
             return int(rgb_match.group(1)), int(rgb_match.group(2)), int(rgb_match.group(3))
 
         # HSL
-        hsl_match = re.match(r'hsl\s*\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?\s*\)', color, re.I)
+        hsl_match = re.match(r"hsl\s*\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?\s*\)", color, re.I)
         if hsl_match:
             h, s, l = int(hsl_match.group(1)), int(hsl_match.group(2)), int(hsl_match.group(3))
             return self._hsl_to_rgb(h, s, l)
