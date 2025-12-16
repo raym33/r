@@ -1,6 +1,6 @@
 # R CLI
 
-Local AI Agent Runtime — **68 skills**, REST API daemon, 100% offline.
+Local AI Agent Runtime — **69 skills**, REST API daemon, 100% offline.
 
 R CLI connects local LLMs (Ollama, LM Studio) to real system tools.
 Chat in the terminal or integrate via REST API. Your data never leaves your machine.
@@ -16,12 +16,12 @@ Chat in the terminal or integrate via REST API. Your data never leaves your mach
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-**[Complete Documentation](docs/COMPLETE_GUIDE.md)** | **[Installation](#installation)** | **[Quick Start](#quick-start)** | **[All Skills](#all-68-skills)** | **[API Server](#api-server-daemon-mode)**
+**[Complete Documentation](docs/COMPLETE_GUIDE.md)** | **[Installation](#installation)** | **[Quick Start](#quick-start)** | **[All Skills](#all-69-skills)** | **[API Server](#api-server-daemon-mode)**
 
 ## Features
 
 - **100% Local** - Your data never leaves your machine
-- **68 Skills** - PDF, SQL, code, voice, design, RAG, and 60+ more utilities
+- **69 Skills** - PDF, SQL, code, voice, design, RAG, HubLab, and 60+ more utilities
 - **REST API Daemon** - Run as a server for IDE/app integration
 - **PS2/Matrix UI** - Retro terminal animations
 - **Built-in RAG** - Persistent knowledge base with ChromaDB
@@ -174,7 +174,7 @@ curl -X POST http://localhost:8765/v1/skills/call \
   }'
 ```
 
-## All 68 Skills
+## All 69 Skills
 
 ### Document Generation & Processing
 
@@ -295,6 +295,12 @@ curl -X POST http://localhost:8765/v1/skills/call \
 | `rss` | RSS/Atom feeds | parse, generate, validate |
 | `sitemap` | XML sitemaps | parse, generate, validate |
 | `manifest` | Web app manifests | generate, validate, icons |
+
+### Platform Integration
+
+| Skill | Description | Tools |
+|-------|-------------|-------|
+| `hublab` | HubLab.dev UI capsules (8,150+) | search, browse, suggest, code |
 
 ### External Data
 
