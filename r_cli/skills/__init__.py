@@ -76,6 +76,13 @@ Included skills:
 - manifest: Web app manifest
 - changelog: Changelog parsing
 - hublab: HubLab 8,150+ UI capsules search and code generation
+
+R OS Hardware & System Skills:
+- gpio: Raspberry Pi GPIO pin control
+- bluetooth: Bluetooth device management
+- wifi: WiFi network management
+- power: System power control (shutdown, brightness, volume)
+- android: Android device control via ADB/bridge
 """
 
 from importlib import import_module
@@ -83,10 +90,14 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from r_cli.core.agent import Skill
+
+    # R OS Hardware Skills
+    from r_cli.skills.android_skill import AndroidSkill
     from r_cli.skills.archive_skill import ArchiveSkill
     from r_cli.skills.audio_skill import AudioSkill
     from r_cli.skills.barcode_skill import BarcodeSkill
     from r_cli.skills.benchmark_skill import BenchmarkSkill
+    from r_cli.skills.bluetooth_skill import BluetoothSkill
     from r_cli.skills.calendar_skill import CalendarSkill
     from r_cli.skills.changelog_skill import ChangelogSkill
     from r_cli.skills.clipboard_skill import ClipboardSkill
@@ -106,6 +117,7 @@ if TYPE_CHECKING:
     from r_cli.skills.faker_skill import FakerSkill
     from r_cli.skills.fs_skill import FilesystemSkill
     from r_cli.skills.git_skill import GitSkill
+    from r_cli.skills.gpio_skill import GPIOSkill
     from r_cli.skills.html_skill import HTMLSkill
     from r_cli.skills.http_skill import HTTPSkill
     from r_cli.skills.hublab_skill import HubLabSkill
@@ -128,6 +140,7 @@ if TYPE_CHECKING:
     from r_cli.skills.pdf_skill import PDFSkill
     from r_cli.skills.pdftools_skill import PDFToolsSkill
     from r_cli.skills.plugin_skill import PluginSkill
+    from r_cli.skills.power_skill import PowerSkill
     from r_cli.skills.qr_skill import QRSkill
     from r_cli.skills.rag_skill import RAGSkill
     from r_cli.skills.regex_skill import RegexSkill
@@ -149,6 +162,7 @@ if TYPE_CHECKING:
     from r_cli.skills.voice_skill import VoiceSkill
     from r_cli.skills.weather_skill import WeatherSkill
     from r_cli.skills.web_skill import WebSkill
+    from r_cli.skills.wifi_skill import WiFiSkill
     from r_cli.skills.xml_skill import XMLSkill
     from r_cli.skills.yaml_skill import YAMLSkill
 
@@ -222,6 +236,12 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "ManifestSkill": ("r_cli.skills.manifest_skill", "ManifestSkill"),
     "ChangelogSkill": ("r_cli.skills.changelog_skill", "ChangelogSkill"),
     "HubLabSkill": ("r_cli.skills.hublab_skill", "HubLabSkill"),
+    # R OS Hardware Skills
+    "GPIOSkill": ("r_cli.skills.gpio_skill", "GPIOSkill"),
+    "BluetoothSkill": ("r_cli.skills.bluetooth_skill", "BluetoothSkill"),
+    "WiFiSkill": ("r_cli.skills.wifi_skill", "WiFiSkill"),
+    "PowerSkill": ("r_cli.skills.power_skill", "PowerSkill"),
+    "AndroidSkill": ("r_cli.skills.android_skill", "AndroidSkill"),
 }
 
 # Cache for loaded skill classes
@@ -256,10 +276,13 @@ def get_all_skills() -> list[type["Skill"]]:
 
 
 __all__ = [
+    # R OS Hardware Skills
+    "AndroidSkill",
     "ArchiveSkill",
     "AudioSkill",
     "BarcodeSkill",
     "BenchmarkSkill",
+    "BluetoothSkill",
     "CSVSkill",
     "CalendarSkill",
     "ChangelogSkill",
@@ -278,6 +301,7 @@ __all__ = [
     "EnvSkill",
     "FakerSkill",
     "FilesystemSkill",
+    "GPIOSkill",
     "GitSkill",
     "HTMLSkill",
     "HTTPSkill",
@@ -301,6 +325,7 @@ __all__ = [
     "PDFSkill",
     "PDFToolsSkill",
     "PluginSkill",
+    "PowerSkill",
     "QRSkill",
     "RAGSkill",
     "RSSSkill",
@@ -322,6 +347,7 @@ __all__ = [
     "VoiceSkill",
     "WeatherSkill",
     "WebSkill",
+    "WiFiSkill",
     "XMLSkill",
     "YAMLSkill",
     "get_all_skills",
