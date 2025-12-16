@@ -1,0 +1,39 @@
+[Unit]
+Description=R OS - Local AI Operating System
+Documentation=https://github.com/raym33/r
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+Environment="HOME=/home/pi"
+Environment="PATH=/home/pi/.r-cli-venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Main R CLI daemon
+ExecStart=/home/pi/.r-cli-venv/bin/r serve --host 0.0.0.0 --port 8765
+
+# Restart policy
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# Resource limits
+MemoryMax=75%
+CPUWeight=80
+
+# Security
+NoNewPrivileges=false
+ProtectSystem=false
+ProtectHome=false
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=r-os
+
+[Install]
+WantedBy=multi-user.target

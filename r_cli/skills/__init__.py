@@ -76,6 +76,13 @@ Included skills:
 - manifest: Web app manifest
 - changelog: Changelog parsing
 - hublab: HubLab 8,150+ UI capsules search and code generation
+
+R OS Hardware & System Skills:
+- gpio: Raspberry Pi GPIO pin control
+- bluetooth: Bluetooth device management
+- wifi: WiFi network management
+- power: System power control (shutdown, brightness, volume)
+- android: Android device control via ADB/bridge
 """
 
 from importlib import import_module
@@ -151,6 +158,12 @@ if TYPE_CHECKING:
     from r_cli.skills.manifest_skill import ManifestSkill
     from r_cli.skills.changelog_skill import ChangelogSkill
     from r_cli.skills.hublab_skill import HubLabSkill
+    # R OS Hardware Skills
+    from r_cli.skills.gpio_skill import GPIOSkill
+    from r_cli.skills.bluetooth_skill import BluetoothSkill
+    from r_cli.skills.wifi_skill import WiFiSkill
+    from r_cli.skills.power_skill import PowerSkill
+    from r_cli.skills.android_skill import AndroidSkill
 
 # Registry: class_name -> (module_name, class_name)
 _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
@@ -222,6 +235,12 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "ManifestSkill": ("r_cli.skills.manifest_skill", "ManifestSkill"),
     "ChangelogSkill": ("r_cli.skills.changelog_skill", "ChangelogSkill"),
     "HubLabSkill": ("r_cli.skills.hublab_skill", "HubLabSkill"),
+    # R OS Hardware Skills
+    "GPIOSkill": ("r_cli.skills.gpio_skill", "GPIOSkill"),
+    "BluetoothSkill": ("r_cli.skills.bluetooth_skill", "BluetoothSkill"),
+    "WiFiSkill": ("r_cli.skills.wifi_skill", "WiFiSkill"),
+    "PowerSkill": ("r_cli.skills.power_skill", "PowerSkill"),
+    "AndroidSkill": ("r_cli.skills.android_skill", "AndroidSkill"),
 }
 
 # Cache for loaded skill classes
@@ -324,5 +343,11 @@ __all__ = [
     "ManifestSkill",
     "ChangelogSkill",
     "HubLabSkill",
+    # R OS Hardware Skills
+    "GPIOSkill",
+    "BluetoothSkill",
+    "WiFiSkill",
+    "PowerSkill",
+    "AndroidSkill",
     "get_all_skills",
 ]
