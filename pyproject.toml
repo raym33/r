@@ -42,7 +42,8 @@ dependencies = [
     "pyyaml>=6.0.0",
     "httpx>=0.25.0",
     "pillow>=10.0.0",
-    "requests>=2.31.0",  # Para Ollama API
+    "requests>=2.31.0",  # For Ollama API
+    "tiktoken>=0.5.0",  # Accurate token counting
 ]
 
 [project.urls]

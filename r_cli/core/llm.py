@@ -1,16 +1,16 @@
 """
-Cliente LLM para R CLI.
+LLM Client for R CLI.
 
-Abstracción sobre OpenAI SDK que funciona con:
+Abstraction over OpenAI SDK that works with:
 - LM Studio
 - Ollama
-- Cualquier servidor OpenAI-compatible
+- Any OpenAI-compatible server
 
-Soporta:
+Supports:
 - Chat completions
 - Tool calling (function calling)
 - Streaming
-- Retry con backoff exponencial
+- Retry with exponential backoff
 """
 
 import json
@@ -21,6 +21,15 @@ from typing import Any, Optional
 
 from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, OpenAI, RateLimitError
 from rich.console import Console
+
+# Optional tiktoken import for accurate token counting
+try:
+    import tiktoken
+
+    _TIKTOKEN_AVAILABLE = True
+except ImportError:
+    tiktoken = None  # type: ignore
+    _TIKTOKEN_AVAILABLE = False
 
 from r_cli.core.config import Config
 from r_cli.core.exceptions import (
@@ -35,11 +44,28 @@ from r_cli.core.logging import get_logger, timed, token_tracker
 console = Console()
 logger = get_logger("r_cli.llm")
 
-# Configuración de retry
+# Retry configuration
 DEFAULT_MAX_RETRIES = 3
-DEFAULT_RETRY_DELAY = 1.0  # segundos
+DEFAULT_RETRY_DELAY = 1.0  # seconds
 DEFAULT_RETRY_MULTIPLIER = 2.0
-DEFAULT_RETRY_MAX_DELAY = 30.0  # segundos
+DEFAULT_RETRY_MAX_DELAY = 30.0  # seconds
+
+# Token encoder cache (initialized lazily)
+_TOKEN_ENCODER: Optional[Any] = None
+
+
+def _get_token_encoder() -> Optional[Any]:
+    """Get or create tiktoken encoder (cached). Returns None if unavailable."""
+    global _TOKEN_ENCODER
+    if not _TIKTOKEN_AVAILABLE:
+        return None
+    if _TOKEN_ENCODER is None:
+        try:
+            # Use cl100k_base which is used by GPT-4 and most modern models
+            _TOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            return None
+    return _TOKEN_ENCODER
 
 
 def with_retry(
@@ -125,11 +151,11 @@ class Message:
     role: str  # system, user, assistant, tool
     content: Optional[str] = None
     tool_calls: list[ToolCall] = field(default_factory=list)
-    tool_call_id: Optional[str] = None  # Para respuestas de tools
-    name: Optional[str] = None  # Nombre de la tool (para role=tool)
+    tool_call_id: Optional[str] = None  # For tool responses
+    name: Optional[str] = None  # Tool name (for role=tool)
 
     def to_dict(self) -> dict:
-        """Convierte a formato OpenAI API."""
+        """Convert to OpenAI API format."""
         msg = {"role": self.role}
 
         if self.content is not None:
@@ -164,7 +190,7 @@ class Tool:
     handler: Callable[..., str]  # Función que ejecuta la tool
 
     def to_dict(self) -> dict:
-        """Convierte a formato OpenAI API."""
+        """Convert to OpenAI API format."""
         return {
             "type": "function",
             "function": {
@@ -210,15 +236,22 @@ class LLMClient:
             timeout=self.llm_config.request_timeout,
         )
 
-        # Historial de mensajes
+        # Message history
         self.messages: list[Message] = []
 
     def _estimate_tokens(self, text: str) -> int:
-        """Estima el número de tokens en un texto (aprox 4 chars = 1 token)."""
+        """Count tokens in text using tiktoken for accuracy."""
+        encoder = _get_token_encoder()
+        if encoder is not None:
+            try:
+                return len(encoder.encode(text))
+            except Exception:
+                pass
+        # Fallback to estimation if tiktoken unavailable
         return len(text) // 4 + 1
 
     def _get_context_tokens(self) -> int:
-        """Calcula tokens totales en el contexto actual."""
+        """Calculate total tokens in current context."""
         total = 0
         for msg in self.messages:
             if msg.content:
@@ -227,7 +260,7 @@ class LLMClient:
 
     def _check_token_limits(self, new_message: str) -> tuple[bool, str]:
         """
-        Verifica si agregar un mensaje excedería los límites de tokens.
+        Check if adding a message would exceed token limits.
 
         Returns:
             (is_ok, warning_message)
@@ -239,20 +272,20 @@ class LLMClient:
         threshold = max_tokens * self.llm_config.token_warning_threshold
 
         if total_tokens > max_tokens:
-            return False, f"Contexto excede límite ({total_tokens}/{max_tokens} tokens)"
+            return False, f"Context exceeds limit ({total_tokens}/{max_tokens} tokens)"
         elif total_tokens > threshold:
             return (
                 True,
-                f"Advertencia: Contexto al {int(total_tokens / max_tokens * 100)}% ({total_tokens}/{max_tokens} tokens)",
+                f"Warning: Context at {int(total_tokens / max_tokens * 100)}% ({total_tokens}/{max_tokens} tokens)",
             )
         return True, ""
 
     def _truncate_context_if_needed(self) -> None:
-        """Trunca el contexto si excede los límites, manteniendo system prompt."""
+        """Truncate context if it exceeds limits, keeping system prompt."""
         max_tokens = self.llm_config.max_context_tokens
 
         while self._get_context_tokens() > max_tokens and len(self.messages) > 2:
-            # Mantener system prompt (index 0), eliminar mensajes más antiguos
+            # Keep system prompt (index 0), remove oldest messages
             for i, msg in enumerate(self.messages):
                 if msg.role != "system":
                     self.messages.pop(i)
@@ -260,7 +293,7 @@ class LLMClient:
                     break
 
     def _check_connection(self) -> bool:
-        """Verifica si el servidor LLM está disponible."""
+        """Check if the LLM server is available."""
         try:
             self.client.models.list()
             return True
@@ -268,18 +301,18 @@ class LLMClient:
             return False
 
     def set_system_prompt(self, prompt: str) -> None:
-        """Establece el prompt del sistema."""
-        # Remover system prompt anterior si existe
+        """Set the system prompt."""
+        # Remove previous system prompt if exists
         self.messages = [m for m in self.messages if m.role != "system"]
-        # Agregar nuevo
+        # Add new one
         self.messages.insert(0, Message(role="system", content=prompt))
 
     def add_message(self, role: str, content: str) -> None:
-        """Agrega un mensaje al historial."""
+        """Add a message to the history."""
         self.messages.append(Message(role=role, content=content))
 
     def clear_history(self) -> None:
-        """Limpia el historial manteniendo el system prompt."""
+        """Clear history while keeping the system prompt."""
         system_msgs = [m for m in self.messages if m.role == "system"]
         self.messages = system_msgs
 
@@ -468,81 +501,258 @@ class LLMClient:
 
         return "Se alcanzó el límite de iteraciones"
 
-    def chat_stream_sync(self, message: str, tools: Optional[list[Tool]] = None) -> Iterator[str]:
+    def chat_stream_sync(
+        self,
+        message: str,
+        tools: Optional[list[Tool]] = None,
+        max_tool_iterations: int = 10,
+    ) -> Iterator[str]:
         """
-        Chat con streaming síncrono.
+        Chat with synchronous streaming, including tool call support.
 
-        Yields tokens a medida que llegan del LLM.
+        Yields tokens as they arrive from the LLM.
+        If tools are provided and the LLM requests tool calls, executes them
+        and continues streaming the follow-up response.
+
+        Args:
+            message: User message
+            tools: Optional list of tools available to the LLM
+            max_tool_iterations: Max tool execution loops (default: 10)
         """
         self.add_message("user", message)
         logger.debug(f"Starting sync stream for message: {message[:50]}...")
 
-        request_params = {
-            "model": self.llm_config.model,
-            "messages": [m.to_dict() for m in self.messages],
-            "temperature": self.llm_config.temperature,
-            "stream": True,
-        }
+        iteration = 0
+        while iteration < max_tool_iterations:
+            iteration += 1
 
-        if tools:
-            request_params["tools"] = [t.to_dict() for t in tools]
+            request_params = {
+                "model": self.llm_config.model,
+                "messages": [m.to_dict() for m in self.messages],
+                "temperature": self.llm_config.temperature,
+                "stream": True,
+            }
 
-        full_content = ""
+            if tools:
+                request_params["tools"] = [t.to_dict() for t in tools]
 
-        try:
-            stream = self.client.chat.completions.create(**request_params)
-            for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    full_content += content
-                    yield content
-        except (APIConnectionError, APITimeoutError) as e:
-            logger.error(f"Stream error: {e}")
-            yield f"\n[Error de streaming: {e}]"
-        finally:
-            # Agregar al historial
-            if full_content:
-                self.messages.append(Message(role="assistant", content=full_content))
-                logger.debug(f"Stream completed: {len(full_content)} chars")
+            full_content = ""
+            tool_calls_data: dict[int, dict] = {}  # index -> {id, name, arguments}
+
+            try:
+                stream = self.client.chat.completions.create(**request_params)
+                for chunk in stream:
+                    if not chunk.choices:
+                        continue
+
+                    delta = chunk.choices[0].delta
+
+                    # Handle content
+                    if delta.content:
+                        full_content += delta.content
+                        yield delta.content
+
+                    # Handle tool calls (accumulated from deltas)
+                    if delta.tool_calls:
+                        for tc_delta in delta.tool_calls:
+                            idx = tc_delta.index
+                            if idx not in tool_calls_data:
+                                tool_calls_data[idx] = {
+                                    "id": "",
+                                    "name": "",
+                                    "arguments": "",
+                                }
+                            if tc_delta.id:
+                                tool_calls_data[idx]["id"] = tc_delta.id
+                            if tc_delta.function:
+                                if tc_delta.function.name:
+                                    tool_calls_data[idx]["name"] = tc_delta.function.name
+                                if tc_delta.function.arguments:
+                                    tool_calls_data[idx]["arguments"] += tc_delta.function.arguments
+
+            except (APIConnectionError, APITimeoutError) as e:
+                logger.error(f"Stream error: {e}")
+                yield f"\n[Streaming error: {e}]"
+                return
+
+            # Build assistant message
+            assistant_message = Message(
+                role="assistant", content=full_content if full_content else None
+            )
+
+            # Convert accumulated tool calls to ToolCall objects
+            if tool_calls_data:
+                for idx in sorted(tool_calls_data.keys()):
+                    tc_data = tool_calls_data[idx]
+                    try:
+                        args = json.loads(tc_data["arguments"]) if tc_data["arguments"] else {}
+                    except json.JSONDecodeError:
+                        args = {}
+                    assistant_message.tool_calls.append(
+                        ToolCall(id=tc_data["id"], name=tc_data["name"], arguments=args)
+                    )
+
+            self.messages.append(assistant_message)
+            logger.debug(
+                f"Stream iteration {iteration}: {len(full_content)} chars, "
+                f"{len(assistant_message.tool_calls)} tool calls"
+            )
+
+            # If no tool calls, we're done
+            if not assistant_message.tool_calls or not tools:
+                return
+
+            # Execute tool calls
+            yield "\n"  # Separator before tool execution
+            tool_map = {t.name: t for t in tools}
+            for tc in assistant_message.tool_calls:
+                if tc.name in tool_map:
+                    tool = tool_map[tc.name]
+                    yield f"[Executing: {tc.name}...]\n"
+                    try:
+                        result = tool.handler(**tc.arguments)
+                    except Exception as e:
+                        result = f"Error executing {tc.name}: {e}"
+                else:
+                    result = f"Tool not found: {tc.name}"
+
+                # Add tool result to messages
+                tool_msg = Message(
+                    role="tool",
+                    content=result,
+                    tool_call_id=tc.id,
+                    name=tc.name,
+                )
+                self.messages.append(tool_msg)
+
+            # Continue loop to get LLM's response after tool execution
+
+        yield "\n[Max tool iterations reached]"
 
     async def chat_stream(
-        self, message: str, tools: Optional[list[Tool]] = None
+        self,
+        message: str,
+        tools: Optional[list[Tool]] = None,
+        max_tool_iterations: int = 10,
     ) -> AsyncIterator[str]:
         """
-        Chat con streaming asíncrono.
+        Chat with asynchronous streaming, including tool call support.
 
-        Yields tokens a medida que llegan del LLM.
+        Yields tokens as they arrive from the LLM.
+        If tools are provided and the LLM requests tool calls, executes them
+        and continues streaming the follow-up response.
+
+        Args:
+            message: User message
+            tools: Optional list of tools available to the LLM
+            max_tool_iterations: Max tool execution loops (default: 10)
         """
         self.add_message("user", message)
         logger.debug(f"Starting async stream for message: {message[:50]}...")
 
-        request_params = {
-            "model": self.llm_config.model,
-            "messages": [m.to_dict() for m in self.messages],
-            "temperature": self.llm_config.temperature,
-            "stream": True,
-        }
+        iteration = 0
+        while iteration < max_tool_iterations:
+            iteration += 1
 
-        if tools:
-            request_params["tools"] = [t.to_dict() for t in tools]
+            request_params = {
+                "model": self.llm_config.model,
+                "messages": [m.to_dict() for m in self.messages],
+                "temperature": self.llm_config.temperature,
+                "stream": True,
+            }
 
-        full_content = ""
+            if tools:
+                request_params["tools"] = [t.to_dict() for t in tools]
 
-        try:
-            async with self.async_client.chat.completions.create(**request_params) as stream:
+            full_content = ""
+            tool_calls_data: dict[int, dict] = {}
+
+            try:
+                stream = await self.async_client.chat.completions.create(**request_params)
                 async for chunk in stream:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        full_content += content
-                        yield content
-        except (APIConnectionError, APITimeoutError) as e:
-            logger.error(f"Async stream error: {e}")
-            yield f"\n[Error de streaming: {e}]"
-        finally:
-            # Agregar al historial
-            if full_content:
-                self.messages.append(Message(role="assistant", content=full_content))
-                logger.debug(f"Async stream completed: {len(full_content)} chars")
+                    if not chunk.choices:
+                        continue
+
+                    delta = chunk.choices[0].delta
+
+                    # Handle content
+                    if delta.content:
+                        full_content += delta.content
+                        yield delta.content
+
+                    # Handle tool calls (accumulated from deltas)
+                    if delta.tool_calls:
+                        for tc_delta in delta.tool_calls:
+                            idx = tc_delta.index
+                            if idx not in tool_calls_data:
+                                tool_calls_data[idx] = {
+                                    "id": "",
+                                    "name": "",
+                                    "arguments": "",
+                                }
+                            if tc_delta.id:
+                                tool_calls_data[idx]["id"] = tc_delta.id
+                            if tc_delta.function:
+                                if tc_delta.function.name:
+                                    tool_calls_data[idx]["name"] = tc_delta.function.name
+                                if tc_delta.function.arguments:
+                                    tool_calls_data[idx]["arguments"] += tc_delta.function.arguments
+
+            except (APIConnectionError, APITimeoutError) as e:
+                logger.error(f"Async stream error: {e}")
+                yield f"\n[Streaming error: {e}]"
+                return
+
+            # Build assistant message
+            assistant_message = Message(
+                role="assistant", content=full_content if full_content else None
+            )
+
+            # Convert accumulated tool calls to ToolCall objects
+            if tool_calls_data:
+                for idx in sorted(tool_calls_data.keys()):
+                    tc_data = tool_calls_data[idx]
+                    try:
+                        args = json.loads(tc_data["arguments"]) if tc_data["arguments"] else {}
+                    except json.JSONDecodeError:
+                        args = {}
+                    assistant_message.tool_calls.append(
+                        ToolCall(id=tc_data["id"], name=tc_data["name"], arguments=args)
+                    )
+
+            self.messages.append(assistant_message)
+            logger.debug(
+                f"Async stream iteration {iteration}: {len(full_content)} chars, "
+                f"{len(assistant_message.tool_calls)} tool calls"
+            )
+
+            # If no tool calls, we're done
+            if not assistant_message.tool_calls or not tools:
+                return
+
+            # Execute tool calls
+            yield "\n"
+            tool_map = {t.name: t for t in tools}
+            for tc in assistant_message.tool_calls:
+                if tc.name in tool_map:
+                    tool = tool_map[tc.name]
+                    yield f"[Executing: {tc.name}...]\n"
+                    try:
+                        result = tool.handler(**tc.arguments)
+                    except Exception as e:
+                        result = f"Error executing {tc.name}: {e}"
+                else:
+                    result = f"Tool not found: {tc.name}"
+
+                tool_msg = Message(
+                    role="tool",
+                    content=result,
+                    tool_call_id=tc.id,
+                    name=tc.name,
+                )
+                self.messages.append(tool_msg)
+
+        yield "\n[Max tool iterations reached]"
 
     def get_token_usage(self) -> dict[str, Any]:
         """Retorna estadísticas de uso de tokens."""
