@@ -1,6 +1,6 @@
 # R CLI Complete Guide
 
-**Your Local AI Operating System** - 100% Private, 100% Offline, 100% Yours
+**Local AI Agent Runtime** - Tool orchestrator connecting local LLMs to system tools via function calling.
 
 This comprehensive guide covers everything you can do with R CLI.
 
@@ -12,7 +12,7 @@ This comprehensive guide covers everything you can do with R CLI.
 2. [Configuration](#configuration)
 3. [Basic Usage](#basic-usage)
 4. [API Server (Daemon Mode)](#api-server-daemon-mode)
-5. [R OS - Android Simulator](#r-os---android-simulator)
+5. [R OS - Terminal UI (Experimental)](#r-os---terminal-ui-experimental)
 6. [All 74 Skills](#all-74-skills)
 7. [Interactive Mode](#interactive-mode)
 8. [Direct Commands](#direct-commands)
@@ -48,7 +48,7 @@ pip install r-cli-ai[ocr]
 # Everything included
 pip install r-cli-ai[all]
 
-# R OS Android simulator
+# R OS Terminal UI (experimental)
 pip install r-cli-ai[simulator]
 
 # Raspberry Pi with GPIO
@@ -341,11 +341,13 @@ journalctl -u r-cli -f
 
 ---
 
-## R OS - Android Simulator
+## R OS - Terminal UI (Experimental)
 
-R OS transforms R CLI into a visual operating system with an Android-like terminal interface. Perfect for Raspberry Pi, edge devices, and anyone who wants a beautiful TUI.
+R OS is a terminal-based interface (TUI) for R CLI built with [Textual](https://textual.textualize.io/). It provides an Android-like visual experience in the terminal.
 
-### Launch the Simulator
+**Note:** This is NOT an operating system. It's a TUI that runs on top of your existing OS.
+
+### Launch
 
 ```bash
 # Install
