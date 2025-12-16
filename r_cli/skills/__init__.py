@@ -55,6 +55,16 @@ Included skills:
 - barcode: Barcode generation and reading
 - pdftools: Advanced PDF operations
 - cron: Cron expression utilities
+- jwt: JWT token handling
+- html: HTML parsing and cleaning
+- xml: XML parsing and XPath
+- template: Jinja2 template rendering
+- env: .env file management
+- faker: Random data generation
+- ip: IP address utilities
+- url: URL parsing and manipulation
+- encoding: Text encoding conversion
+- metrics: System metrics collection
 """
 
 from importlib import import_module
@@ -109,6 +119,16 @@ if TYPE_CHECKING:
     from r_cli.skills.barcode_skill import BarcodeSkill
     from r_cli.skills.pdftools_skill import PDFToolsSkill
     from r_cli.skills.cron_skill import CronSkill
+    from r_cli.skills.jwt_skill import JWTSkill
+    from r_cli.skills.html_skill import HTMLSkill
+    from r_cli.skills.xml_skill import XMLSkill
+    from r_cli.skills.template_skill import TemplateSkill
+    from r_cli.skills.env_skill import EnvSkill
+    from r_cli.skills.faker_skill import FakerSkill
+    from r_cli.skills.ip_skill import IPSkill
+    from r_cli.skills.url_skill import URLSkill
+    from r_cli.skills.encoding_skill import EncodingSkill
+    from r_cli.skills.metrics_skill import MetricsSkill
 
 # Registry: class_name -> (module_name, class_name)
 _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
@@ -159,6 +179,16 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "BarcodeSkill": ("r_cli.skills.barcode_skill", "BarcodeSkill"),
     "PDFToolsSkill": ("r_cli.skills.pdftools_skill", "PDFToolsSkill"),
     "CronSkill": ("r_cli.skills.cron_skill", "CronSkill"),
+    "JWTSkill": ("r_cli.skills.jwt_skill", "JWTSkill"),
+    "HTMLSkill": ("r_cli.skills.html_skill", "HTMLSkill"),
+    "XMLSkill": ("r_cli.skills.xml_skill", "XMLSkill"),
+    "TemplateSkill": ("r_cli.skills.template_skill", "TemplateSkill"),
+    "EnvSkill": ("r_cli.skills.env_skill", "EnvSkill"),
+    "FakerSkill": ("r_cli.skills.faker_skill", "FakerSkill"),
+    "IPSkill": ("r_cli.skills.ip_skill", "IPSkill"),
+    "URLSkill": ("r_cli.skills.url_skill", "URLSkill"),
+    "EncodingSkill": ("r_cli.skills.encoding_skill", "EncodingSkill"),
+    "MetricsSkill": ("r_cli.skills.metrics_skill", "MetricsSkill"),
 }
 
 # Cache for loaded skill classes
@@ -240,5 +270,15 @@ __all__ = [
     "BarcodeSkill",
     "PDFToolsSkill",
     "CronSkill",
+    "JWTSkill",
+    "HTMLSkill",
+    "XMLSkill",
+    "TemplateSkill",
+    "EnvSkill",
+    "FakerSkill",
+    "IPSkill",
+    "URLSkill",
+    "EncodingSkill",
+    "MetricsSkill",
     "get_all_skills",
 ]
