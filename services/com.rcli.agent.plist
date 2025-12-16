@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  R CLI API Server - macOS launchd service file
+
+  Installation:
+    cp com.rcli.agent.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.rcli.agent.plist
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.rcli.agent.plist
+    rm ~/Library/LaunchAgents/com.rcli.agent.plist
+
+  Check status:
+    launchctl list | grep rcli
+    tail -f /tmp/r-cli.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rcli.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/r</string>
+        <string>serve</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8765</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/r-cli.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/r-cli.error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,47 @@
+# R CLI API Server - systemd service file
+#
+# Installation:
+#   sudo cp r-cli.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable r-cli
+#   sudo systemctl start r-cli
+#
+# Check status:
+#   sudo systemctl status r-cli
+#   journalctl -u r-cli -f
+
+[Unit]
+Description=R CLI API Server - Local AI Operating System
+Documentation=https://github.com/raym33/r
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+
+# Environment
+Environment="R_HOME=%h/.r-cli"
+Environment="R_OUTPUT_DIR=%h/.r-cli/output"
+
+# Working directory
+WorkingDirectory=%h
+
+# Command
+ExecStart=/usr/local/bin/r serve --host 127.0.0.1 --port 8765
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=r-cli
+
+[Install]
+WantedBy=multi-user.target

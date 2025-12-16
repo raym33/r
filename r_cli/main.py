@@ -284,6 +284,34 @@ def demo():
     ps2_demo()
 
 
+@cli.command()
+@click.option("--host", "-h", default="127.0.0.1", help="Host to bind to")
+@click.option("--port", "-p", default=8765, help="Port to listen on")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development")
+@click.option("--workers", "-w", default=1, help="Number of worker processes")
+def serve(host: str, port: int, reload: bool, workers: int):
+    """
+    Start the R CLI API server (daemon mode).
+
+    This runs R as a persistent REST API server that can be accessed
+    by other applications, IDEs, or scripts.
+
+    Examples:
+        r serve                    # Start on localhost:8765
+        r serve --port 8080        # Custom port
+        r serve --host 0.0.0.0     # Listen on all interfaces
+        r serve --reload           # Development mode with auto-reload
+    """
+    from r_cli.api import run_server
+
+    console.print(f"[bold cyan]R CLI API Server[/bold cyan]")
+    console.print(f"Starting on http://{host}:{port}")
+    console.print(f"API docs: http://{host}:{port}/docs")
+    console.print("[dim]Press Ctrl+C to stop[/dim]\n")
+
+    run_server(host=host, port=port, reload=reload, workers=workers)
+
+
 def interactive_mode(theme: str = "ps2", show_animation: bool = True, use_streaming: bool = True):
     """Main interactive mode."""
     term = Terminal(theme=theme)
