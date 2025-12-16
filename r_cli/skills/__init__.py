@@ -35,6 +35,16 @@ Included skills:
 - logs: Log analysis, tail, summarize, crash diagnosis
 - benchmark: Performance profiling, benchmarking, comparison
 - openapi: API integration via OpenAPI/Swagger specs
+- csv: CSV file manipulation
+- yaml: YAML file operations
+- markdown: Markdown processing
+- regex: Regular expressions
+- crypto: Hashing, passwords, encoding
+- qr: QR code generation and reading
+- video: Video manipulation with ffmpeg
+- math: Mathematical operations
+- network: Network utilities
+- system: System information and processes
 """
 
 from importlib import import_module
@@ -69,6 +79,16 @@ if TYPE_CHECKING:
     from r_cli.skills.translate_skill import TranslateSkill
     from r_cli.skills.voice_skill import VoiceSkill
     from r_cli.skills.web_skill import WebSkill
+    from r_cli.skills.csv_skill import CSVSkill
+    from r_cli.skills.yaml_skill import YAMLSkill
+    from r_cli.skills.markdown_skill import MarkdownSkill
+    from r_cli.skills.regex_skill import RegexSkill
+    from r_cli.skills.crypto_skill import CryptoSkill
+    from r_cli.skills.qr_skill import QRSkill
+    from r_cli.skills.video_skill import VideoSkill
+    from r_cli.skills.math_skill import MathSkill
+    from r_cli.skills.network_skill import NetworkSkill
+    from r_cli.skills.system_skill import SystemSkill
 
 # Registry: class_name -> (module_name, class_name)
 _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
@@ -99,6 +119,16 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "TranslateSkill": ("r_cli.skills.translate_skill", "TranslateSkill"),
     "VoiceSkill": ("r_cli.skills.voice_skill", "VoiceSkill"),
     "WebSkill": ("r_cli.skills.web_skill", "WebSkill"),
+    "CSVSkill": ("r_cli.skills.csv_skill", "CSVSkill"),
+    "YAMLSkill": ("r_cli.skills.yaml_skill", "YAMLSkill"),
+    "MarkdownSkill": ("r_cli.skills.markdown_skill", "MarkdownSkill"),
+    "RegexSkill": ("r_cli.skills.regex_skill", "RegexSkill"),
+    "CryptoSkill": ("r_cli.skills.crypto_skill", "CryptoSkill"),
+    "QRSkill": ("r_cli.skills.qr_skill", "QRSkill"),
+    "VideoSkill": ("r_cli.skills.video_skill", "VideoSkill"),
+    "MathSkill": ("r_cli.skills.math_skill", "MathSkill"),
+    "NetworkSkill": ("r_cli.skills.network_skill", "NetworkSkill"),
+    "SystemSkill": ("r_cli.skills.system_skill", "SystemSkill"),
 }
 
 # Cache for loaded skill classes
@@ -160,5 +190,15 @@ __all__ = [
     "TranslateSkill",
     "VoiceSkill",
     "WebSkill",
+    "CSVSkill",
+    "YAMLSkill",
+    "MarkdownSkill",
+    "RegexSkill",
+    "CryptoSkill",
+    "QRSkill",
+    "VideoSkill",
+    "MathSkill",
+    "NetworkSkill",
+    "SystemSkill",
     "get_all_skills",
 ]
