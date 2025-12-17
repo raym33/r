@@ -1,5 +1,5 @@
 """
-Design Skill for R CLI.
+ImageGen Skill for R CLI.
 
 Generate images with Stable Diffusion locally.
 Supports multiple backends: ComfyUI, Automatic1111, diffusers.
@@ -26,11 +26,11 @@ from r_cli.core.llm import Tool
 logger = logging.getLogger(__name__)
 
 
-class DesignSkill(Skill):
-    """Skill for image generation with Stable Diffusion."""
+class ImageGenSkill(Skill):
+    """Skill for AI image generation with Stable Diffusion."""
 
-    name = "design"
-    description = "Generate images with Stable Diffusion locally"
+    name = "imagegen"
+    description = "AI image generation with Stable Diffusion (local)"
 
     # Popular models
     MODELS = {

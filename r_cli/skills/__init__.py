@@ -121,7 +121,6 @@ if TYPE_CHECKING:
     from r_cli.skills.csv_skill import CSVSkill
     from r_cli.skills.currency_skill import CurrencySkill
     from r_cli.skills.datetime_skill import DateTimeSkill
-    from r_cli.skills.design_skill import DesignSkill
     from r_cli.skills.diff_skill import DiffSkill
     from r_cli.skills.docker_skill import DockerSkill
     from r_cli.skills.email_skill import EmailSkill
@@ -136,6 +135,7 @@ if TYPE_CHECKING:
     from r_cli.skills.hublab_skill import HubLabSkill
     from r_cli.skills.ical_skill import ICalSkill
     from r_cli.skills.image_skill import ImageSkill
+    from r_cli.skills.imagegen_skill import ImageGenSkill
     from r_cli.skills.ip_skill import IPSkill
     from r_cli.skills.json_skill import JSONSkill
     from r_cli.skills.jwt_skill import JWTSkill
@@ -189,7 +189,7 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "CalendarSkill": ("r_cli.skills.calendar_skill", "CalendarSkill"),
     "ClipboardSkill": ("r_cli.skills.clipboard_skill", "ClipboardSkill"),
     "CodeSkill": ("r_cli.skills.code_skill", "CodeSkill"),
-    "DesignSkill": ("r_cli.skills.design_skill", "DesignSkill"),
+    "ImageGenSkill": ("r_cli.skills.imagegen_skill", "ImageGenSkill"),
     "DockerSkill": ("r_cli.skills.docker_skill", "DockerSkill"),
     "EmailSkill": ("r_cli.skills.email_skill", "EmailSkill"),
     "FilesystemSkill": ("r_cli.skills.fs_skill", "FilesystemSkill"),
@@ -322,7 +322,6 @@ __all__ = [
     "CryptoSkill",
     "CurrencySkill",
     "DateTimeSkill",
-    "DesignSkill",
     "DiffSkill",
     "DockerSkill",
     "EmailSkill",
@@ -337,6 +336,7 @@ __all__ = [
     "HubLabSkill",
     "ICalSkill",
     "IPSkill",
+    "ImageGenSkill",
     "ImageSkill",
     "JSONSkill",
     "JWTSkill",
