@@ -76,6 +76,7 @@ Included skills:
 - manifest: Web app manifest
 - changelog: Changelog parsing
 - hublab: HubLab 8,150+ UI capsules search and code generation
+- websearch: Web search and Wikipedia lookup for internet access
 
 R OS Hardware & System Skills:
 - gpio: Raspberry Pi GPIO pin control
@@ -168,6 +169,7 @@ if TYPE_CHECKING:
     from r_cli.skills.voice_skill import VoiceSkill
     from r_cli.skills.weather_skill import WeatherSkill
     from r_cli.skills.web_skill import WebSkill
+    from r_cli.skills.websearch_skill import WebSearchSkill
     from r_cli.skills.wifi_skill import WiFiSkill
     from r_cli.skills.xml_skill import XMLSkill
     from r_cli.skills.yaml_skill import YAMLSkill
@@ -251,6 +253,8 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     # Social Media & Automation Skills
     "SocialMediaSkill": ("r_cli.skills.social_skill", "SocialMediaSkill"),
     "AutoResponderSkill": ("r_cli.skills.autoresponder_skill", "AutoResponderSkill"),
+    # Internet Access
+    "WebSearchSkill": ("r_cli.skills.websearch_skill", "WebSearchSkill"),
 }
 
 # Cache for loaded skill classes
@@ -357,6 +361,7 @@ __all__ = [
     "VideoSkill",
     "VoiceSkill",
     "WeatherSkill",
+    "WebSearchSkill",
     "WebSkill",
     "WiFiSkill",
     "XMLSkill",

@@ -59,7 +59,9 @@ class ChatRequest(BaseModel):
 
     messages: list[ChatMessage] = Field(..., description="Conversation messages")
     model: Optional[str] = Field(None, description="Override model name")
-    stream: bool = Field(True, description="Enable streaming response")
+    stream: bool = Field(
+        False, description="Enable streaming response (note: streaming disables tools)"
+    )
     temperature: Optional[float] = Field(None, ge=0, le=2)
     max_tokens: Optional[int] = Field(None, gt=0)
     tools_enabled: bool = Field(True, description="Allow skill/tool usage")

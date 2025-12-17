@@ -35,7 +35,7 @@ class LLMConfig(BaseModel):
     vision_model: Optional[str] = None
 
     # Timeouts (in seconds)
-    request_timeout: float = 30.0  # Timeout for LLM requests
+    request_timeout: float = 60.0  # Timeout for LLM requests (increased for tool calls)
     skill_timeout: float = 60.0  # Timeout for skill execution
     connection_timeout: float = 10.0  # Timeout for initial connection
 

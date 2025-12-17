@@ -260,6 +260,28 @@ class Agent:
             "barcode": ["barcode", "ean", "upc"],
             "ocr": ["ocr", "text from image", "extract text", "recognize text"],
             "voice": ["voice", "speech", "tts", "speak", "transcribe", "whisper", "audio to text"],
+            "websearch": [
+                "search",
+                "google",
+                "internet",
+                "web",
+                "wikipedia",
+                "who is",
+                "who was",
+                "what is",
+                "what was",
+                "when did",
+                "where is",
+                "how to",
+                "news",
+                "latest",
+                "current",
+                "information about",
+                "tell me about",
+                "explain",
+                "definition",
+                "meaning",
+            ],
         }
 
         user_lower = user_input.lower()
