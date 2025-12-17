@@ -29,7 +29,7 @@ console = Console()
 SKILL_CATEGORIES = {
     "Documents": ["pdf", "latex", "resume", "ocr"],
     "Development": ["code", "sql", "json", "git"],
-    "AI & Knowledge": ["rag", "multiagent", "translate"],
+    "AI & Knowledge": ["rag", "multiagent", "translate", "distributed_ai", "p2p"],
     "Media": ["voice", "design", "screenshot"],
     "System": ["fs", "archive", "clipboard", "calendar", "email"],
     "Network": ["web", "http", "ssh", "docker"],
