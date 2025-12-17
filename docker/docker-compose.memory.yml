@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector for semantic memory
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: r-cli-memory
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rcli
+      POSTGRES_PASSWORD: rcli_memory_2024
+      POSTGRES_DB: agi_memory
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-memory.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rcli -d agi_memory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: r-cli-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@rcli.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    profiles:
+      - admin
+
+volumes:
+  pgdata:
+    name: r-cli-memory-data

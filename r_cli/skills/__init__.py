@@ -78,6 +78,7 @@ Included skills:
 - hublab: HubLab 8,150+ UI capsules search and code generation
 - websearch: Web search and Wikipedia lookup for internet access
 - agimemory: Persistent AI memory system with semantic search and identity
+- agimemory_pg: Advanced AGI memory with PostgreSQL + pgvector (semantic embeddings)
 
 R OS Hardware & System Skills:
 - gpio: Raspberry Pi GPIO pin control
@@ -98,6 +99,7 @@ if TYPE_CHECKING:
     from r_cli.core.agent import Skill
 
     # AGI Memory
+    from r_cli.skills.agimemory_pg_skill import AGIMemoryPGSkill
     from r_cli.skills.agimemory_skill import AGIMemorySkill
 
     # R OS Hardware Skills
@@ -261,6 +263,7 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     "WebSearchSkill": ("r_cli.skills.websearch_skill", "WebSearchSkill"),
     # AGI Memory System
     "AGIMemorySkill": ("r_cli.skills.agimemory_skill", "AGIMemorySkill"),
+    "AGIMemoryPGSkill": ("r_cli.skills.agimemory_pg_skill", "AGIMemoryPGSkill"),
 }
 
 # Cache for loaded skill classes
@@ -296,6 +299,7 @@ def get_all_skills() -> list[type["Skill"]]:
 
 __all__ = [
     # AGI Memory
+    "AGIMemoryPGSkill",
     "AGIMemorySkill",
     # R OS Hardware Skills
     "AndroidSkill",
