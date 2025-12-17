@@ -59,11 +59,12 @@ r rag --add ./docs/ && r rag --query "how does auth work"
 # From GitHub (latest)
 pip install git+https://github.com/raym33/r.git
 
-# With all features (use quotes or escape brackets)
-pip install 'git+https://github.com/raym33/r.git[all]'
+# With extras (distributed AI + P2P)
+pip install "r-cli-ai[mlx,p2p] @ git+https://github.com/raym33/r.git"
 
-# With distributed AI + P2P
-pip install 'git+https://github.com/raym33/r.git[mlx,p2p]'
+# Or install base + dependencies separately
+pip install git+https://github.com/raym33/r.git
+pip install mlx mlx-lm zeroconf cryptography httpx
 ```
 
 ### 2. Start your LLM
@@ -158,8 +159,9 @@ Run 70B+ models across multiple Apple Silicon Macs using MLX.
 ### Setup
 
 ```bash
-# Install with MLX
-pip install 'git+https://github.com/raym33/r.git[mlx,p2p]'
+# Install with MLX + P2P
+pip install git+https://github.com/raym33/r.git
+pip install mlx mlx-lm zeroconf cryptography httpx
 
 # On each Mac
 r serve --host 0.0.0.0 --port 8765
@@ -283,7 +285,8 @@ class HelloSkill(Skill):
 Terminal UI for Raspberry Pi. Not an actual OS.
 
 ```bash
-pip install 'git+https://github.com/raym33/r.git[simulator]'
+pip install git+https://github.com/raym33/r.git
+pip install textual
 r-os
 ```
 
