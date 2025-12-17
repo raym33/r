@@ -134,7 +134,15 @@ class TestROSSkillTools:
 # R OS Simulator Tests
 # =============================================================================
 
+# Check if textual is available
+try:
+    import textual
+    HAS_TEXTUAL = True
+except ImportError:
+    HAS_TEXTUAL = False
 
+
+@pytest.mark.skipif(not HAS_TEXTUAL, reason="textual not installed")
 class TestROSSimulator:
     """Tests for R OS Simulator."""
 
