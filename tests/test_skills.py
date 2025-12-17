@@ -9,8 +9,8 @@ from r_cli.core.config import Config
 from r_cli.core.plugins import PluginManager, PluginStatus
 from r_cli.skills.calendar_skill import CalendarSkill
 from r_cli.skills.code_skill import CodeSkill
-from r_cli.skills.design_skill import DesignSkill
 from r_cli.skills.fs_skill import FilesystemSkill
+from r_cli.skills.imagegen_skill import ImageGenSkill
 from r_cli.skills.latex_skill import LaTeXSkill
 from r_cli.skills.multiagent_skill import MultiAgentSkill
 from r_cli.skills.ocr_skill import OCRSkill
@@ -382,12 +382,12 @@ class TestVoiceSkill:
         assert "Error" in result or "no encontrado" in result.lower() or "not" in result.lower()
 
 
-class TestDesignSkill:
-    """Tests para DesignSkill."""
+class TestImageGenSkill:
+    """Tests para ImageGenSkill."""
 
     def test_list_styles(self, config):
         """Test listar estilos."""
-        skill = DesignSkill(config)
+        skill = ImageGenSkill(config)
 
         result = skill.list_styles()
 
@@ -398,7 +398,7 @@ class TestDesignSkill:
 
     def test_list_models(self, config):
         """Test listar modelos SD."""
-        skill = DesignSkill(config)
+        skill = ImageGenSkill(config)
 
         result = skill.list_models()
 
@@ -407,7 +407,7 @@ class TestDesignSkill:
 
     def test_backend_status(self, config):
         """Test estado de backends."""
-        skill = DesignSkill(config)
+        skill = ImageGenSkill(config)
 
         result = skill.backend_status()
 
@@ -416,7 +416,7 @@ class TestDesignSkill:
 
     def test_generate_without_backend(self, config):
         """Test generar sin backend disponible."""
-        skill = DesignSkill(config)
+        skill = ImageGenSkill(config)
 
         # Si no hay backend, debe dar error claro
         if skill._active_backend == "none":
