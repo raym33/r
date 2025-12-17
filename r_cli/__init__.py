@@ -43,7 +43,7 @@ Usage:
 For more info: https://github.com/raym33/r
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.2"
 __author__ = "Ramón Guillamón"
 __email__ = "learntouseai@gmail.com"
 

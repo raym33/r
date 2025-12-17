@@ -2,6 +2,22 @@
 
 All notable changes to R CLI are documented here.
 
+## [0.3.2] - 2024-12-17
+
+### Added
+- **Skill modes**: `lite`, `standard`, `auto` for context-aware skill loading
+- **CLI option**: `--skills-mode [auto|lite|standard|full]` for quick configuration
+- **Smart tool selection**: Automatic selection of relevant tools based on prompt keywords
+- **4 new test files**: 447 total tests covering utility, format, R OS, and integration
+
+### Fixed
+- 7 skills fixed (gpio, bluetooth, wifi, power, android, mime, hublab) - now accept config parameter
+- Verbose skill loading messages now silenced by default
+
+### Changed
+- Skill loading is now silent by default (use `r skills` for verbose output)
+- Reduced context usage for LLMs with small context windows
+
 ## [0.3.1] - 2024-12-17
 
 ### Changed
