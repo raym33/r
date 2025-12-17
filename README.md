@@ -19,9 +19,9 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A tool orchestrator that connects local LLMs to 74 system tools via function calling.
+A tool orchestrator that connects local LLMs to 76 system tools via function calling.
 
-[Installation](#installation) · [Quick Start](#quick-start) · [All Skills](#all-74-skills) · [Why Not Just Terminal Access?](#why-structured-tools-instead-of-terminal-access) · [Docs](docs/COMPLETE_GUIDE.md)
+[Installation](#installation) · [Quick Start](#quick-start) · [All Skills](#all-76-skills) · [Distributed AI](#distributed-ai-apple-silicon-cluster) · [P2P](#p2p-distributed-agents) · [Docs](docs/COMPLETE_GUIDE.md)
 
 </div>
 
@@ -29,7 +29,7 @@ A tool orchestrator that connects local LLMs to 74 system tools via function cal
 
 ## What is R CLI?
 
-R CLI is a **tool orchestrator** for local LLMs. It exposes 74 "skills" (PDF generation, SQL queries, git, docker, etc.) as structured function calls that any OpenAI-compatible model can invoke.
+R CLI is a **tool orchestrator** for local LLMs. It exposes 76 "skills" (PDF generation, SQL queries, git, docker, distributed AI, P2P agents, etc.) as structured function calls that any OpenAI-compatible model can invoke.
 
 **This is NOT an operating system.** It's a Python CLI that sits between your local LLM (Ollama, LM Studio) and real system tools.
 
@@ -91,7 +91,9 @@ R CLI validates the arguments, executes the tool, and returns structured results
 | Feature | Description |
 |---------|-------------|
 | **100% Local** | Your data never leaves your machine |
-| **74 Skills** | PDF, SQL, code, git, docker, RAG, voice, and more |
+| **76 Skills** | PDF, SQL, code, git, docker, RAG, voice, and more |
+| **Distributed AI** | Run 70B+ models across multiple Macs with MLX |
+| **P2P Agents** | Discover and collaborate with other R CLI instances |
 | **REST API** | OpenAI-compatible server for IDE integration |
 | **Plugin System** | Add custom skills in Python |
 | **Voice Interface** | Whisper STT + Piper TTS (optional) |
@@ -204,7 +206,104 @@ curl -sSL https://raw.githubusercontent.com/raym33/r/main/r_os/rpi/install.sh | 
 
 ---
 
-## All 74 Skills
+## Distributed AI (Apple Silicon Cluster)
+
+Run large language models (70B+) across multiple Apple Silicon Macs. Similar to [exo](https://github.com/exo-explore/exo), but integrated with R CLI's skill ecosystem.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                 5-Mac Cluster for Llama 70B                  │
+├──────────────────────────────────────────────────────────────┤
+│  Mac Mini 1    Mac Mini 2    Mac Mini 3    Mac Mini 4       │
+│   M4 16GB       M4 16GB       M4 16GB       M4 16GB         │
+│  Layers 0-13   Layers 14-27  Layers 28-41  Layers 42-55     │
+│      │              │              │              │          │
+│      └──────────────┴──────────────┴──────────────┘          │
+│                            │                                 │
+│                            ▼                                 │
+│                    ┌──────────────┐                          │
+│                    │ MacBook M4   │                          │
+│                    │    24GB      │                          │
+│                    │ Layers 56-79 │ ──▶ Output               │
+│                    └──────────────┘                          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Quick Start
+
+```bash
+# Install with MLX support
+pip install r-cli-ai[mlx,p2p]
+
+# On each Mac, start the server
+r serve --host 0.0.0.0 --port 8765
+
+# Add nodes to cluster (from coordinator)
+curl -X POST http://localhost:8765/v1/distributed/nodes \
+  -d '{"host": "192.168.1.101", "port": 8765, "name": "mac-mini-1"}'
+
+# Load 70B model across cluster
+curl -X POST http://localhost:8765/v1/distributed/models/load \
+  -d '{"model_name": "mlx-community/Meta-Llama-3.1-70B-Instruct-4bit"}'
+
+# Generate text
+curl -X POST http://localhost:8765/v1/distributed/generate \
+  -d '{"prompt": "Explain quantum computing:", "max_tokens": 500}'
+```
+
+### Performance (5x M4 Macs, 70B model)
+
+| Network | Est. Tokens/sec |
+|---------|-----------------|
+| 10 GbE | 8-15 |
+| 1 GbE | 5-10 |
+| WiFi 6 | 2-5 |
+
+### R CLI vs exo
+
+| | R CLI | exo |
+|--|-------|-----|
+| **Skills** | 74 integrated | Inference only |
+| **Hardware** | Apple Silicon | Apple + NVIDIA |
+| **RAG** | Built-in | None |
+| **Voice** | Whisper + TTS | None |
+| **API** | REST | gRPC |
+
+📖 **[Full Distributed AI Documentation](docs/DISTRIBUTED_AI.md)**
+
+---
+
+## P2P Distributed Agents
+
+Multiple R CLI instances can discover each other and collaborate on tasks.
+
+```bash
+# Discover peers on local network (mDNS)
+r chat "discover peers on the network"
+
+# Or add manually
+r chat "add peer at 192.168.1.50"
+
+# Execute task on remote peer
+r chat "ask mac-mini-2 to generate a PDF report"
+
+# Share context/memory
+r chat "sync my conversation history with mac-mini-2"
+```
+
+### Features
+
+- **Auto-discovery**: mDNS/Bonjour on LAN
+- **Manual peers**: Add by IP for internet connections
+- **Security**: Approval required for new peers
+- **Skill sharing**: Access remote skills
+- **Context sync**: Share conversation memory
+
+📖 **[Full P2P Documentation](docs/P2P_AGENTS.md)**
+
+---
+
+## All 76 Skills
 
 ### 📄 Documents
 `pdf` · `latex` · `markdown` · `pdftools` · `template` · `resume` · `changelog`
@@ -213,7 +312,7 @@ curl -sSL https://raw.githubusercontent.com/raym33/r/main/r_os/rpi/install.sh | 
 `code` · `sql` · `json` · `yaml` · `csv` · `regex` · `schema` · `diff`
 
 ### 🤖 AI & Knowledge
-`rag` · `multiagent` · `translate` · `faker`
+`rag` · `multiagent` · `translate` · `faker` · `distributed_ai` · `p2p`
 
 ### 🎨 Media
 `ocr` · `voice` · `design` · `image` · `video` · `audio` · `screenshot` · `qr` · `barcode`

@@ -269,6 +269,10 @@ _SKILL_REGISTRY: dict[str, tuple[str, str]] = {
     # AGI Memory System
     "AGIMemorySkill": ("r_cli.skills.agimemory_skill", "AGIMemorySkill"),
     "AGIMemoryPGSkill": ("r_cli.skills.agimemory_pg_skill", "AGIMemoryPGSkill"),
+    # P2P Distributed Agents
+    "P2PSkill": ("r_cli.skills.p2p_skill", "P2PSkill"),
+    # Distributed AI (MLX)
+    "DistributedAISkill": ("r_cli.skills.distributed_ai_skill", "DistributedAISkill"),
 }
 
 # Cache for loaded skill classes
@@ -325,6 +329,7 @@ __all__ = [
     "CurrencySkill",
     "DateTimeSkill",
     "DiffSkill",
+    "DistributedAISkill",
     "DockerSkill",
     "EmailSkill",
     "EncodingSkill",
@@ -354,6 +359,7 @@ __all__ = [
     "NetworkSkill",
     "OCRSkill",
     "OpenAPISkill",
+    "P2PSkill",
     "PDFSkill",
     "PDFToolsSkill",
     "PluginSkill",

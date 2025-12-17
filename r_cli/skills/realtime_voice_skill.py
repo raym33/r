@@ -51,14 +51,14 @@ class RealtimeVoiceSkill(Skill):
 
     # Supertonic voice styles
     VOICE_STYLES = {
-        "M1": "Male voice 1 (default)",
+        "M1": "Male voice 1",
         "M2": "Male voice 2",
         "M3": "Male voice 3",
         "M4": "Male voice 4",
         "M5": "Male voice 5",
         "F1": "Female voice 1",
         "F2": "Female voice 2",
-        "F3": "Female voice 3",
+        "F3": "Female voice 3 (default - natural, clear)",
         "F4": "Female voice 4",
         "F5": "Female voice 5",
     }
@@ -108,7 +108,7 @@ class RealtimeVoiceSkill(Skill):
         except ImportError:
             return False
 
-    def _get_tts(self, voice: str = "M1"):
+    def _get_tts(self, voice: str = "F3"):
         """Get or initialize TTS engine."""
         if not self._supertonic_available:
             raise RuntimeError("Supertonic not installed. Run: pip install supertonic")
@@ -159,11 +159,11 @@ class RealtimeVoiceSkill(Skill):
                         },
                         "voice": {
                             "type": "string",
-                            "description": "Voice style: M1-M5 (male), F1-F5 (female). Default: M1",
+                            "description": "Voice style: M1-M5 (male), F1-F5 (female). Default: F3",
                         },
                         "speed": {
                             "type": "number",
-                            "description": "Speech speed (0.5-2.0, default: 1.0)",
+                            "description": "Speech speed (0.5-2.0, default: 1.05)",
                         },
                         "save_path": {
                             "type": "string",
@@ -256,8 +256,8 @@ class RealtimeVoiceSkill(Skill):
     def voice_speak(
         self,
         text: str,
-        voice: str = "M1",
-        speed: float = 1.0,
+        voice: str = "F3",
+        speed: float = 1.05,  # Supertonic default for natural voice
         save_path: str | None = None,
     ) -> str:
         """Convert text to speech using Supertonic TTS."""
@@ -277,14 +277,9 @@ class RealtimeVoiceSkill(Skill):
             # Get TTS engine
             tts, style = self._get_tts(voice)
 
-            # Synthesize
+            # Synthesize (using default total_steps=5 for natural voice quality)
             start_time = time.time()
-            audio, duration = tts.synthesize(
-                text,
-                style,
-                total_steps=2,  # Fast mode
-                speed=speed,
-            )
+            audio, duration = tts.synthesize(text, style, speed=speed)
             synth_time = time.time() - start_time
 
             # Squeeze audio from (1, N) to (N,)

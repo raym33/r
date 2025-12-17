@@ -616,8 +616,8 @@ def register_routes(app: FastAPI) -> None:
     async def voice_speak(
         request: Request,
         text: str,
-        voice: str = "M1",
-        speed: float = 1.0,
+        voice: str = "F3",
+        speed: float = 1.05,  # Supertonic default
         auth: AuthResult = Depends(get_current_auth),
     ):
         """
@@ -639,7 +639,7 @@ def register_routes(app: FastAPI) -> None:
             tts, style = skill._get_tts(voice)
 
             # Synthesize
-            audio, duration = tts.synthesize(text, style, total_steps=2, speed=speed)
+            audio, duration = tts.synthesize(text, style, speed=speed)  # Uses default total_steps=5 for quality
             audio = audio.squeeze()
 
             # Convert to WAV bytes
@@ -717,7 +717,7 @@ def register_routes(app: FastAPI) -> None:
     @app.post("/v1/voice/chat", tags=["Voice"])
     async def voice_chat(
         request: Request,
-        voice: str = "M1",
+        voice: str = "F3",
         auth: AuthResult = Depends(get_current_auth),
     ):
         """
@@ -766,7 +766,7 @@ def register_routes(app: FastAPI) -> None:
 
             # 3. Generate TTS response
             tts, style = skill._get_tts(voice)
-            response_audio, _ = tts.synthesize(response_text, style, total_steps=2)
+            response_audio, _ = tts.synthesize(response_text, style)  # Uses defaults for natural voice
             response_audio = response_audio.squeeze()
 
             # Convert to WAV
@@ -1032,6 +1032,17 @@ def register_routes(app: FastAPI) -> None:
             "total": len(events),
             "events": [e.model_dump() for e in events],
         }
+
+    # ========================================================================
+    # Distributed AI Routes
+    # ========================================================================
+
+    try:
+        from r_cli.api.distributed_routes import router as distributed_router
+
+        app.include_router(distributed_router)
+    except ImportError:
+        pass  # Distributed AI module not available
 
     # ========================================================================
     # Error Handlers

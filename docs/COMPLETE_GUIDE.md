@@ -13,15 +13,17 @@ This comprehensive guide covers everything you can do with R CLI.
 3. [Basic Usage](#basic-usage)
 4. [API Server (Daemon Mode)](#api-server-daemon-mode)
 5. [R OS - Terminal UI (Experimental)](#r-os---terminal-ui-experimental)
-6. [All 74 Skills](#all-74-skills)
-7. [Interactive Mode](#interactive-mode)
-8. [Direct Commands](#direct-commands)
-9. [Plugin System](#plugin-system)
-10. [Creating Custom Skills](#creating-custom-skills)
-11. [Memory & RAG System](#memory--rag-system)
-12. [Themes & UI](#themes--ui)
-13. [Troubleshooting](#troubleshooting)
-14. [API Reference](#api-reference)
+6. [All 76 Skills](#all-76-skills)
+7. [Distributed AI (Apple Silicon Cluster)](#distributed-ai-apple-silicon-cluster)
+8. [P2P Distributed Agents](#p2p-distributed-agents)
+9. [Interactive Mode](#interactive-mode)
+10. [Direct Commands](#direct-commands)
+11. [Plugin System](#plugin-system)
+12. [Creating Custom Skills](#creating-custom-skills)
+13. [Memory & RAG System](#memory--rag-system)
+14. [Themes & UI](#themes--ui)
+15. [Troubleshooting](#troubleshooting)
+16. [API Reference](#api-reference)
 
 ---
 
@@ -435,7 +437,7 @@ voice.run()
 
 ---
 
-## All 74 Skills
+## All 76 Skills
 
 ### 1. PDF Skill
 
@@ -1759,6 +1761,119 @@ r android volume 70
 # Launch app
 r android launch com.whatsapp
 ```
+
+---
+
+## Distributed AI (Apple Silicon Cluster)
+
+Run large language models (70B+) across multiple Apple Silicon Macs using MLX.
+
+### Installation
+
+```bash
+pip install r-cli-ai[mlx,p2p]
+```
+
+### Quick Start
+
+```bash
+# Start server on each Mac
+r serve --host 0.0.0.0 --port 8765
+
+# Add nodes to cluster
+curl -X POST http://localhost:8765/v1/distributed/nodes \
+  -d '{"host": "192.168.1.101", "port": 8765, "name": "mac-mini-1"}'
+
+# Check cluster status
+curl http://localhost:8765/v1/distributed/cluster
+
+# Load model across cluster
+curl -X POST http://localhost:8765/v1/distributed/models/load \
+  -d '{"model_name": "mlx-community/Meta-Llama-3.1-70B-Instruct-4bit"}'
+
+# Generate text
+curl -X POST http://localhost:8765/v1/distributed/generate \
+  -d '{"prompt": "Hello, world!", "max_tokens": 100}'
+```
+
+### Using the distributed_ai Skill
+
+```
+▶ check cluster status
+▶ can we run llama-70b on this cluster?
+▶ add node at 192.168.1.102
+▶ load the 70B model
+▶ generate a story about distributed computing
+```
+
+### Example Cluster: 5x M4 Macs Running 70B
+
+| Node | Device | RAM | Layers |
+|------|--------|-----|--------|
+| mac-mini-1 | Mac Mini M4 | 16GB | 0-13 |
+| mac-mini-2 | Mac Mini M4 | 16GB | 14-27 |
+| mac-mini-3 | Mac Mini M4 | 16GB | 28-41 |
+| mac-mini-4 | Mac Mini M4 | 16GB | 42-55 |
+| macbook | MacBook M4 | 24GB | 56-79 |
+
+**Expected performance:** 5-15 tokens/sec depending on network speed.
+
+📖 **[Full Distributed AI Documentation](DISTRIBUTED_AI.md)**
+
+---
+
+## P2P Distributed Agents
+
+Enable multiple R CLI instances to discover each other and collaborate.
+
+### Installation
+
+```bash
+pip install r-cli-ai[p2p]
+```
+
+### Discovery
+
+```bash
+# Automatic (mDNS on LAN)
+r chat "discover peers on the network"
+
+# Manual (internet)
+r chat "add peer at my-server.example.com"
+```
+
+### Approval
+
+New peers require approval before they can collaborate:
+
+```bash
+# List pending peers
+curl http://localhost:8765/v1/p2p/pending
+
+# Approve
+curl -X POST http://localhost:8765/v1/p2p/approve/peer-abc123
+```
+
+### Remote Operations
+
+```
+▶ ask office-mac to generate a PDF report
+▶ use the SQL skill on database-server to query sales data
+▶ sync my conversation with research-mac
+```
+
+### Using the p2p Skill
+
+| Tool | Description |
+|------|-------------|
+| `discover_peers` | Find peers on network |
+| `add_peer` | Add peer manually |
+| `approve_peer` | Approve pending peer |
+| `remote_task` | Execute task on peer |
+| `remote_skill` | Call skill on peer |
+| `sync_context` | Sync conversation |
+
+📖 **[Full P2P Documentation](P2P_AGENTS.md)**
 
 ---
 
