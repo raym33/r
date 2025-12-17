@@ -20,6 +20,7 @@ from typing import AsyncGenerator, Optional
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from r_cli import __version__
@@ -138,6 +139,11 @@ def create_app() -> FastAPI:
     # Register routes
     register_routes(app)
 
+    # Mount static files for Web UI
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    if os.path.exists(static_dir):
+        app.mount("/ui", StaticFiles(directory=static_dir, html=True), name="static")
+
     return app
 
 
@@ -210,6 +216,7 @@ def register_routes(app: FastAPI) -> None:
             "message": "R CLI API",
             "version": __version__,
             "docs": "/docs",
+            "ui": "/ui",
             "auth_mode": AUTH_MODE,
         }
 

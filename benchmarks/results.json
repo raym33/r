@@ -1,0 +1,148 @@
+{
+  "skill_loading": {
+    "lite": {
+      "skills": 7,
+      "tools": 52,
+      "avg_ms": 456.24,
+      "min_ms": 2.98,
+      "max_ms": 1362.7
+    },
+    "standard": {
+      "skills": 17,
+      "tools": 114,
+      "avg_ms": 2.64,
+      "min_ms": 2.36,
+      "max_ms": 3.02
+    },
+    "blacklist": {
+      "skills": 73,
+      "tools": 483,
+      "avg_ms": 3.02,
+      "min_ms": 2.52,
+      "max_ms": 3.32
+    }
+  },
+  "tool_execution": {
+    "math.calculate": {
+      "avg_ms": 0.006,
+      "min_ms": 0.003,
+      "max_ms": 0.028
+    }
+  },
+  "token_usage": {
+    "lite": {
+      "skills": 7,
+      "tools": 52,
+      "tokens": 3956,
+      "context_pct_4k": 96.6,
+      "context_pct_8k": 48.3,
+      "context_pct_32k": 12.1
+    },
+    "standard": {
+      "skills": 17,
+      "tools": 114,
+      "tokens": 9378,
+      "context_pct_4k": 229.0,
+      "context_pct_8k": 114.5,
+      "context_pct_32k": 28.6
+    },
+    "blacklist": {
+      "skills": 73,
+      "tools": 483,
+      "tokens": 37319,
+      "context_pct_4k": 911.1,
+      "context_pct_8k": 455.6,
+      "context_pct_32k": 113.9
+    }
+  },
+  "smart_selection": {
+    "What time is it?": {
+      "tools_selected": 10,
+      "selection_ms": 0.213,
+      "tools": [
+        "datetime_now",
+        "datetime_parse",
+        "datetime_format",
+        "datetime_add",
+        "datetime_diff"
+      ]
+    },
+    "Calculate 2+2": {
+      "tools_selected": 18,
+      "selection_ms": 0.222,
+      "tools": [
+        "calculate",
+        "statistics",
+        "convert_unit",
+        "convert_base",
+        "percentage"
+      ]
+    },
+    "Create a PDF document": {
+      "tools_selected": 13,
+      "selection_ms": 0.233,
+      "tools": [
+        "generate_pdf",
+        "markdown_to_pdf",
+        "list_pdf_templates",
+        "datetime_now",
+        "datetime_parse"
+      ]
+    },
+    "Search for files": {
+      "tools_selected": 15,
+      "selection_ms": 0.199,
+      "tools": [
+        "list_directory",
+        "read_file",
+        "write_file",
+        "search_files",
+        "file_info"
+      ]
+    },
+    "Hash this text with MD5": {
+      "tools_selected": 27,
+      "selection_ms": 0.235,
+      "tools": [
+        "hash",
+        "hash_file",
+        "password_generate",
+        "base64_encode",
+        "base64_decode"
+      ]
+    },
+    "Generate Python code": {
+      "tools_selected": 14,
+      "selection_ms": 0.197,
+      "tools": [
+        "write_code",
+        "run_python",
+        "analyze_code",
+        "run_script",
+        "datetime_now"
+      ]
+    },
+    "Query the database with SQL": {
+      "tools_selected": 22,
+      "selection_ms": 0.223,
+      "tools": [
+        "query_csv",
+        "query_database",
+        "query_postgres",
+        "query_sqlite",
+        "introspect_schema"
+      ]
+    },
+    "Translate this to Spanish": {
+      "tools_selected": 14,
+      "selection_ms": 0.205,
+      "tools": [
+        "translate_text",
+        "detect_language",
+        "list_languages",
+        "translate_file",
+        "datetime_now"
+      ]
+    }
+  }
+}

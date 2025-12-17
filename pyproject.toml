@@ -127,9 +127,21 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["r_cli", "r_os"]
+exclude = [
+    "r_cli/web/node_modules",
+    "r_cli/web/.next",
+    "r_cli/web/package-lock.json",
+    "**/__pycache__",
+    "**/*.pyc",
+]
 
 [tool.hatch.build.targets.sdist]
 include = ["r_cli", "r_os", "README.md", "LICENSE"]
+exclude = [
+    "r_cli/web/node_modules",
+    "r_cli/web/.next",
+    "**/__pycache__",
+]
 
 [tool.ruff]
 line-length = 100

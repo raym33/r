@@ -3,86 +3,28 @@ name: Release
 on:
   release:
     types: [published]
-  workflow_dispatch:
-
-env:
-  PYTHON_VERSION: "3.12"
 
 jobs:
-  publish-cli:
-    name: Publish R CLI to PyPI
+  publish:
+    name: Publish to PyPI
     runs-on: ubuntu-latest
-    environment: release
     permissions:
       id-token: write
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: "3.11"
 
       - name: Install build tools
-        run: pip install build
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
 
       - name: Build package
         run: python -m build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-
-  publish-python-sdk:
-    name: Publish Python SDK to PyPI
-    runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install build tools
-        run: pip install build
-
-      - name: Build SDK
-        working-directory: sdks/python
-        run: python -m build
-
-      - name: Publish SDK to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: sdks/python/dist/
-
-  publish-js-sdk:
-    name: Publish JavaScript SDK to npm
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        working-directory: sdks/javascript
-        run: npm install
-
-      - name: Build package
-        working-directory: sdks/javascript
-        run: npm run build
-
-      - name: Publish to npm
-        working-directory: sdks/javascript
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
