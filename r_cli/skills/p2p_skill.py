@@ -16,11 +16,11 @@ from typing import Any, Optional
 from r_cli.core.agent import Skill
 from r_cli.core.config import Config
 from r_cli.core.llm import Tool
+from r_cli.p2p.client import P2PClient
+from r_cli.p2p.discovery import P2PDiscoveryService
 from r_cli.p2p.peer import Peer, PeerStatus
 from r_cli.p2p.registry import PeerRegistry
 from r_cli.p2p.security import P2PSecurity
-from r_cli.p2p.discovery import P2PDiscoveryService
-from r_cli.p2p.client import P2PClient
 from r_cli.p2p.sync import ContextSyncManager
 
 logger = logging.getLogger(__name__)
@@ -312,18 +312,22 @@ class P2PSkill(Skill):
             peers = self._run_async(self._discovery.scan_network(timeout))
 
             if not peers:
-                return json.dumps({
-                    "success": True,
-                    "message": "No peers found on network",
-                    "discovered": 0,
-                })
+                return json.dumps(
+                    {
+                        "success": True,
+                        "message": "No peers found on network",
+                        "discovered": 0,
+                    }
+                )
 
-            return json.dumps({
-                "success": True,
-                "message": f"Found {len(peers)} peer(s)",
-                "discovered": len(peers),
-                "peers": [p.to_summary() for p in peers],
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Found {len(peers)} peer(s)",
+                    "discovered": len(peers),
+                    "peers": [p.to_summary() for p in peers],
+                }
+            )
 
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
@@ -334,12 +338,14 @@ class P2PSkill(Skill):
 
         try:
             peer = self._discovery.add_manual_peer(host, port, name)
-            return json.dumps({
-                "success": True,
-                "message": f"Added peer {peer.name}",
-                "peer_id": peer.peer_id,
-                "status": peer.status.value,
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Added peer {peer.name}",
+                    "peer_id": peer.peer_id,
+                    "status": peer.status.value,
+                }
+            )
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
 
@@ -366,11 +372,13 @@ class P2PSkill(Skill):
         if status == "online":
             peers = [p for p in peers if p.is_online]
 
-        return json.dumps({
-            "success": True,
-            "total": len(peers),
-            "peers": [p.to_summary() for p in peers],
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "total": len(peers),
+                "peers": [p.to_summary() for p in peers],
+            }
+        )
 
     def approve_peer(self, peer_id: str) -> str:
         """Approve a pending peer."""
@@ -379,11 +387,13 @@ class P2PSkill(Skill):
         try:
             self._registry.approve_peer(peer_id, "skill")
             peer = self._registry.get_peer(peer_id)
-            return json.dumps({
-                "success": True,
-                "message": f"Approved peer {peer.name if peer else peer_id}",
-                "peer_id": peer_id,
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Approved peer {peer.name if peer else peer_id}",
+                    "peer_id": peer_id,
+                }
+            )
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
 
@@ -393,10 +403,12 @@ class P2PSkill(Skill):
 
         try:
             self._registry.reject_peer(peer_id)
-            return json.dumps({
-                "success": True,
-                "message": f"Rejected peer {peer_id}",
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Rejected peer {peer_id}",
+                }
+            )
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
 
@@ -411,21 +423,23 @@ class P2PSkill(Skill):
         # Check if online
         ping_result = self._run_async(self._client.ping(peer))
 
-        return json.dumps({
-            "success": True,
-            "peer": peer.to_summary(),
-            "is_online": ping_result.reachable,
-            "latency_ms": ping_result.latency_ms,
-            "trust_level": peer.trust_level,
-            "capabilities": [c.value for c in peer.capabilities],
-            "skills": peer.skills,
-            "stats": {
-                "total_requests": peer.total_requests,
-                "successful": peer.successful_requests,
-                "failed": peer.failed_requests,
-                "avg_latency_ms": peer.avg_latency_ms,
-            },
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "peer": peer.to_summary(),
+                "is_online": ping_result.reachable,
+                "latency_ms": ping_result.latency_ms,
+                "trust_level": peer.trust_level,
+                "capabilities": [c.value for c in peer.capabilities],
+                "skills": peer.skills,
+                "stats": {
+                    "total_requests": peer.total_requests,
+                    "successful": peer.successful_requests,
+                    "failed": peer.failed_requests,
+                    "avg_latency_ms": peer.avg_latency_ms,
+                },
+            }
+        )
 
     # =========================================================================
     # Remote Operation Tools
@@ -453,19 +467,19 @@ class P2PSkill(Skill):
             peer = peers[0]
 
         try:
-            result = self._run_async(
-                self._client.execute_remote_task(peer, task, agent)
-            )
+            result = self._run_async(self._client.execute_remote_task(peer, task, agent))
 
-            return json.dumps({
-                "success": result.success,
-                "peer_id": peer.peer_id,
-                "peer_name": peer.name,
-                "result": result.result,
-                "agent_used": result.agent_used,
-                "execution_time_ms": result.execution_time_ms,
-                "error": result.error,
-            })
+            return json.dumps(
+                {
+                    "success": result.success,
+                    "peer_id": peer.peer_id,
+                    "peer_name": peer.name,
+                    "result": result.result,
+                    "agent_used": result.agent_used,
+                    "execution_time_ms": result.execution_time_ms,
+                    "error": result.error,
+                }
+            )
 
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
@@ -488,26 +502,30 @@ class P2PSkill(Skill):
         else:
             peer = self._registry.get_best_peer_for_skill(skill)
             if not peer:
-                return json.dumps({
-                    "success": False,
-                    "error": f"No peer with skill '{skill}' found",
-                })
+                return json.dumps(
+                    {
+                        "success": False,
+                        "error": f"No peer with skill '{skill}' found",
+                    }
+                )
 
         try:
             result = self._run_async(
                 self._client.invoke_remote_skill(peer, skill, tool, arguments or {})
             )
 
-            return json.dumps({
-                "success": result.success,
-                "peer_id": peer.peer_id,
-                "peer_name": peer.name,
-                "skill": skill,
-                "tool": tool,
-                "result": result.result,
-                "execution_time_ms": result.execution_time_ms,
-                "error": result.error,
-            })
+            return json.dumps(
+                {
+                    "success": result.success,
+                    "peer_id": peer.peer_id,
+                    "peer_name": peer.name,
+                    "skill": skill,
+                    "tool": tool,
+                    "result": result.result,
+                    "execution_time_ms": result.execution_time_ms,
+                    "error": result.error,
+                }
+            )
 
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
@@ -518,20 +536,22 @@ class P2PSkill(Skill):
 
         peers = self._registry.find_peers_with_skill(skill_name)
 
-        return json.dumps({
-            "success": True,
-            "skill": skill_name,
-            "found": len(peers),
-            "peers": [
-                {
-                    "peer_id": p.peer_id,
-                    "name": p.name,
-                    "trust_level": p.trust_level,
-                    "avg_latency_ms": p.avg_latency_ms,
-                }
-                for p in peers
-            ],
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "skill": skill_name,
+                "found": len(peers),
+                "peers": [
+                    {
+                        "peer_id": p.peer_id,
+                        "name": p.name,
+                        "trust_level": p.trust_level,
+                        "avg_latency_ms": p.avg_latency_ms,
+                    }
+                    for p in peers
+                ],
+            }
+        )
 
     # =========================================================================
     # Context Sync Tools
@@ -553,20 +573,20 @@ class P2PSkill(Skill):
                     return json.dumps({"success": False, "error": "Peer not found"})
 
                 result = self._run_async(
-                    self._sync_manager.sync_with_peer(
-                        peer, self._client, direction, scope
-                    )
+                    self._sync_manager.sync_with_peer(peer, self._client, direction, scope)
                 )
 
-                return json.dumps({
-                    "success": result.success,
-                    "peer_id": peer_id,
-                    "direction": direction,
-                    "entries_sent": result.entries_sent,
-                    "entries_received": result.entries_received,
-                    "conflicts": result.conflicts,
-                    "error": result.error,
-                })
+                return json.dumps(
+                    {
+                        "success": result.success,
+                        "peer_id": peer_id,
+                        "direction": direction,
+                        "entries_sent": result.entries_sent,
+                        "entries_received": result.entries_received,
+                        "conflicts": result.conflicts,
+                        "error": result.error,
+                    }
+                )
 
             else:
                 results = self._run_async(
@@ -576,20 +596,22 @@ class P2PSkill(Skill):
                 total_sent = sum(r.entries_sent for r in results.values())
                 total_received = sum(r.entries_received for r in results.values())
 
-                return json.dumps({
-                    "success": True,
-                    "peers_synced": len(results),
-                    "total_entries_sent": total_sent,
-                    "total_entries_received": total_received,
-                    "results": {
-                        pid: {
-                            "success": r.success,
-                            "entries_sent": r.entries_sent,
-                            "entries_received": r.entries_received,
-                        }
-                        for pid, r in results.items()
-                    },
-                })
+                return json.dumps(
+                    {
+                        "success": True,
+                        "peers_synced": len(results),
+                        "total_entries_sent": total_sent,
+                        "total_entries_received": total_received,
+                        "results": {
+                            pid: {
+                                "success": r.success,
+                                "entries_sent": r.entries_sent,
+                                "entries_received": r.entries_received,
+                            }
+                            for pid, r in results.items()
+                        },
+                    }
+                )
 
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)})
@@ -604,12 +626,14 @@ class P2PSkill(Skill):
 
         # For now, this is a placeholder
         # Would integrate with Memory system to get document and sync
-        return json.dumps({
-            "success": True,
-            "message": f"Document {doc_id} shared",
-            "doc_id": doc_id,
-            "peers": peer_ids or "all",
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "message": f"Document {doc_id} shared",
+                "doc_id": doc_id,
+                "peers": peer_ids or "all",
+            }
+        )
 
     # =========================================================================
     # Status Tool
@@ -624,17 +648,19 @@ class P2PSkill(Skill):
         pending = self._registry.get_pending_approvals()
         connections = self._registry.get_active_connections()
 
-        return json.dumps({
-            "success": True,
-            "instance_id": self._security.instance_id,
-            "fingerprint": self._security.get_fingerprint(),
-            "discovery_running": self._discovery.is_running,
-            "total_peers": len(peers),
-            "approved_peers": len(approved),
-            "pending_approvals": len(pending),
-            "active_connections": len(connections),
-            "sync_entries": self._sync_manager.get_entry_count(),
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "instance_id": self._security.instance_id,
+                "fingerprint": self._security.get_fingerprint(),
+                "discovery_running": self._discovery.is_running,
+                "total_peers": len(peers),
+                "approved_peers": len(approved),
+                "pending_approvals": len(pending),
+                "active_connections": len(connections),
+                "sync_entries": self._sync_manager.get_entry_count(),
+            }
+        )
 
     def execute(self, **kwargs) -> str:
         """Direct execution."""

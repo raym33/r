@@ -17,8 +17,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from r_cli.p2p.peer import Peer, ApprovalRequest
-from r_cli.p2p.exceptions import PeerAuthenticationError
+from r_cli.p2p.peer import ApprovalRequest, Peer
 
 logger = logging.getLogger(__name__)
 

@@ -12,8 +12,8 @@ Features:
 """
 
 from r_cli.distributed.cluster import (
-    DistributedCluster,
     ClusterNode,
+    DistributedCluster,
     NodeCapabilities,
 )
 from r_cli.distributed.partition import (
@@ -23,10 +23,10 @@ from r_cli.distributed.partition import (
 )
 
 __all__ = [
-    "DistributedCluster",
     "ClusterNode",
-    "NodeCapabilities",
+    "DistributedCluster",
     "ModelPartition",
+    "NodeCapabilities",
     "PartitionStrategy",
     "RingPartitioner",
 ]

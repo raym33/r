@@ -14,15 +14,15 @@ from typing import Any, Optional
 import httpx
 from pydantic import BaseModel
 
-from r_cli.p2p.peer import Peer, PeerCapability
+from r_cli.p2p.exceptions import (
+    PeerAuthenticationError,
+    PeerConnectionError,
+    PeerNotApprovedError,
+    PeerTimeoutError,
+)
+from r_cli.p2p.peer import Peer
 from r_cli.p2p.registry import PeerRegistry
 from r_cli.p2p.security import P2PSecurity
-from r_cli.p2p.exceptions import (
-    PeerConnectionError,
-    PeerTimeoutError,
-    PeerAuthenticationError,
-    PeerNotApprovedError,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +150,9 @@ class P2PClient:
             )
 
             if response.status_code != 200:
-                raise PeerAuthenticationError(peer.peer_id, f"Challenge failed: {response.status_code}")
+                raise PeerAuthenticationError(
+                    peer.peer_id, f"Challenge failed: {response.status_code}"
+                )
 
             challenge_data = response.json()
             challenge = challenge_data.get("challenge")

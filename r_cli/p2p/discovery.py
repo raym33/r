@@ -11,7 +11,7 @@ import socket
 from datetime import datetime
 from typing import Callable, Optional
 
-from r_cli.p2p.peer import Peer, PeerStatus, PeerCapability
+from r_cli.p2p.peer import Peer, PeerCapability, PeerStatus
 from r_cli.p2p.registry import PeerRegistry
 from r_cli.p2p.security import P2PSecurity
 
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Check if zeroconf is available
 try:
-    from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf, ServiceStateChange
-    from zeroconf.asyncio import AsyncZeroconf, AsyncServiceBrowser
+    from zeroconf import ServiceInfo, ServiceStateChange, Zeroconf
+    from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
 
     ZEROCONF_AVAILABLE = True
 except ImportError:
@@ -56,11 +56,12 @@ class P2PDiscoveryService:
         self.service_name = service_name or f"{self.SERVICE_NAME_PREFIX}{security.instance_id[:8]}"
         self.port = port
 
-        self._zeroconf: Optional["AsyncZeroconf"] = None
-        self._browser: Optional["AsyncServiceBrowser"] = None
-        self._service_info: Optional["ServiceInfo"] = None
+        self._zeroconf: Optional[AsyncZeroconf] = None
+        self._browser: Optional[AsyncServiceBrowser] = None
+        self._service_info: Optional[ServiceInfo] = None
         self._running = False
         self._on_peer_discovered: Optional[Callable[[Peer], None]] = None
+        self._pending_tasks: set = set()
 
     # =========================================================================
     # mDNS Discovery
@@ -120,7 +121,9 @@ class P2PDiscoveryService:
     ) -> None:
         """Handle mDNS service state changes."""
         if state_change.name == "Added":
-            asyncio.create_task(self._handle_service_added(zeroconf, service_type, name))
+            task = asyncio.create_task(self._handle_service_added(zeroconf, service_type, name))
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
         elif state_change.name == "Removed":
             self._handle_service_removed(name)
 
@@ -351,9 +354,8 @@ class P2PDiscoveryService:
         if is_valid:
             if peer.status == PeerStatus.OFFLINE:
                 self.registry.set_online(peer_id)
-        else:
-            if peer.status == PeerStatus.APPROVED:
-                self.registry.set_offline(peer_id)
+        elif peer.status == PeerStatus.APPROVED:
+            self.registry.set_offline(peer_id)
 
         return is_valid
 

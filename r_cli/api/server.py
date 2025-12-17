@@ -639,7 +639,9 @@ def register_routes(app: FastAPI) -> None:
             tts, style = skill._get_tts(voice)
 
             # Synthesize
-            audio, duration = tts.synthesize(text, style, speed=speed)  # Uses default total_steps=5 for quality
+            audio, duration = tts.synthesize(
+                text, style, speed=speed
+            )  # Uses default total_steps=5 for quality
             audio = audio.squeeze()
 
             # Convert to WAV bytes
@@ -766,7 +768,9 @@ def register_routes(app: FastAPI) -> None:
 
             # 3. Generate TTS response
             tts, style = skill._get_tts(voice)
-            response_audio, _ = tts.synthesize(response_text, style)  # Uses defaults for natural voice
+            response_audio, _ = tts.synthesize(
+                response_text, style
+            )  # Uses defaults for natural voice
             response_audio = response_audio.squeeze()
 
             # Convert to WAV

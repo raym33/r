@@ -7,23 +7,19 @@ processes a subset of model layers.
 """
 
 import asyncio
-import json
 import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncGenerator, Optional
-
-from pydantic import BaseModel
+from typing import AsyncGenerator, Optional
 
 logger = logging.getLogger(__name__)
 
 # Check MLX availability
 try:
     import mlx.core as mx
-    from mlx_lm import load, generate, stream_generate
-    from mlx_lm.utils import generate_step
+    from mlx_lm import generate, load, stream_generate
 
     MLX_AVAILABLE = True
 except ImportError:
@@ -145,6 +141,7 @@ class MLXInferenceEngine:
 
         # Force garbage collection
         import gc
+
         gc.collect()
 
         if MLX_AVAILABLE:
@@ -296,7 +293,7 @@ class DistributedInferenceCoordinator:
 
         Each node loads its assigned layers.
         """
-        from r_cli.distributed.partition import estimate_model_requirements, can_cluster_run_model
+        from r_cli.distributed.partition import can_cluster_run_model, estimate_model_requirements
 
         # Check if cluster can handle the model
         available_nodes = self.cluster.get_available_nodes()

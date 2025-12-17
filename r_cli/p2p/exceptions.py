@@ -6,8 +6,6 @@ P2P Exceptions for R CLI.
 class P2PError(Exception):
     """Base P2P exception."""
 
-    pass
-
 
 class PeerNotFoundError(P2PError):
     """Peer not found in registry."""

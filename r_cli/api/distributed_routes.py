@@ -17,7 +17,6 @@ from fastapi.responses import StreamingResponse
 from r_cli.api.distributed_models import (
     AddNodeRequest,
     ClusterInfoResponse,
-    ClusterNodeResponse,
     DistributedStatusResponse,
     GenerateRequest,
     GenerateResponse,

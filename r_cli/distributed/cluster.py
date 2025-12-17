@@ -5,12 +5,9 @@ Manages a cluster of nodes for distributed AI inference,
 with automatic capability detection and topology management.
 """
 
-import asyncio
-import json
 import logging
 import platform
 import subprocess
-from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -92,6 +89,7 @@ class NodeCapabilities(BaseModel):
             # Get chip name
             result = subprocess.run(
                 ["sysctl", "-n", "machdep.cpu.brand_string"],
+                check=False,
                 capture_output=True,
                 text=True,
             )
@@ -100,6 +98,7 @@ class NodeCapabilities(BaseModel):
             # Get memory info
             result = subprocess.run(
                 ["sysctl", "-n", "hw.memsize"],
+                check=False,
                 capture_output=True,
                 text=True,
             )
@@ -107,12 +106,12 @@ class NodeCapabilities(BaseModel):
             self.total_memory_gb = total_bytes / (1024**3)
 
             # Get available memory (approximate)
-            import os
             self.available_memory_gb = self.total_memory_gb * 0.7  # Conservative estimate
 
             # Get CPU cores
             result = subprocess.run(
                 ["sysctl", "-n", "hw.ncpu"],
+                check=False,
                 capture_output=True,
                 text=True,
             )
@@ -161,6 +160,7 @@ class NodeCapabilities(BaseModel):
         # Try to get memory
         try:
             import psutil
+
             mem = psutil.virtual_memory()
             self.total_memory_gb = mem.total / (1024**3)
             self.available_memory_gb = mem.available / (1024**3)
@@ -171,14 +171,16 @@ class NodeCapabilities(BaseModel):
         """Check if MLX is available."""
         try:
             import mlx.core as mx
+
             self.mlx_available = True
             self.mlx_version = mx.__version__ if hasattr(mx, "__version__") else "unknown"
         except ImportError:
             self.mlx_available = False
 
         try:
-            import torch
-            self.torch_available = True
+            import importlib.util
+
+            self.torch_available = importlib.util.find_spec("torch") is not None
         except ImportError:
             self.torch_available = False
 
@@ -305,7 +307,8 @@ class DistributedCluster:
     def get_available_nodes(self) -> list[ClusterNode]:
         """Get all nodes that can participate in inference."""
         return [
-            node for node in self.nodes.values()
+            node
+            for node in self.nodes.values()
             if node.is_available and node.capabilities.can_run_distributed()
         ]
 
@@ -315,10 +318,7 @@ class DistributedCluster:
 
     def get_total_tflops(self) -> float:
         """Get total compute power across all nodes."""
-        return sum(
-            node.capabilities.estimated_tflops
-            for node in self.get_available_nodes()
-        )
+        return sum(node.capabilities.estimated_tflops for node in self.get_available_nodes())
 
     def get_cluster_info(self) -> dict:
         """Get cluster information summary."""

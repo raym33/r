@@ -273,7 +273,7 @@ class DistributedAISkill(Skill):
             "active_requests": status["active_requests"],
         }
 
-    def add_node(self, host: str, port: int = 8765, name: str = None, **kwargs) -> dict:
+    def add_node(self, host: str, port: int = 8765, name: Optional[str] = None, **kwargs) -> dict:
         """Add a node to the cluster."""
         import uuid
 

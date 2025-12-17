@@ -65,7 +65,6 @@ class Partitioner(ABC):
         Returns:
             Dict mapping node_id to list of layer indices
         """
-        pass
 
 
 class RingPartitioner(Partitioner):
@@ -311,4 +310,7 @@ def can_cluster_run_model(
     if total_memory >= required_with_overhead:
         return True, f"Cluster has {total_memory:.1f}GB, model needs ~{required_gb}GB"
     else:
-        return False, f"Insufficient memory: {total_memory:.1f}GB < {required_with_overhead:.1f}GB needed"
+        return (
+            False,
+            f"Insufficient memory: {total_memory:.1f}GB < {required_with_overhead:.1f}GB needed",
+        )

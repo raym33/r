@@ -7,43 +7,41 @@ FastAPI routes for peer-to-peer communication.
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, Header, HTTPException
 
-from r_cli.p2p.peer import Peer, PeerStatus
-from r_cli.p2p.registry import PeerRegistry
-from r_cli.p2p.security import P2PSecurity
-from r_cli.p2p.discovery import P2PDiscoveryService
-from r_cli.p2p.client import P2PClient
-from r_cli.p2p.sync import ContextSyncManager, ContextExport
-from r_cli.p2p.exceptions import (
-    PeerNotFoundError,
-    PeerNotApprovedError,
-    PeerBlockedError,
-)
 from r_cli.api.p2p_models import (
-    PeerInfoResponse,
-    PeerListResponse,
     AddPeerRequest,
     AddPeerResponse,
     ApprovalRequestInfo,
-    PendingApprovalsResponse,
-    PeerChallengeRequest,
-    PeerChallengeResponse,
-    PeerAuthRequest,
-    PeerAuthResponse,
-    P2PTaskRequest,
-    P2PTaskResponse,
-    P2PSkillRequest,
-    P2PSkillResponse,
-    SkillInfoResponse,
-    SkillsListResponse,
     ContextSyncRequest,
     ContextSyncResponse,
+    P2PSkillRequest,
+    P2PSkillResponse,
     P2PStatusResponse,
+    P2PTaskRequest,
+    P2PTaskResponse,
+    PeerAuthRequest,
+    PeerAuthResponse,
+    PeerChallengeRequest,
+    PeerChallengeResponse,
+    PeerInfoResponse,
+    PeerListResponse,
+    PendingApprovalsResponse,
+    SkillInfoResponse,
+    SkillsListResponse,
 )
+from r_cli.p2p.client import P2PClient
+from r_cli.p2p.discovery import P2PDiscoveryService
+from r_cli.p2p.exceptions import (
+    PeerBlockedError,
+    PeerNotFoundError,
+)
+from r_cli.p2p.peer import Peer, PeerStatus
+from r_cli.p2p.registry import PeerRegistry
+from r_cli.p2p.security import P2PSecurity
+from r_cli.p2p.sync import ContextExport, ContextSyncManager
 
 logger = logging.getLogger(__name__)
 

@@ -11,18 +11,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from r_cli.p2p.exceptions import (
+    PeerBlockedError,
+    PeerLimitExceededError,
+    PeerNotApprovedError,
+    PeerNotFoundError,
+)
 from r_cli.p2p.peer import (
+    ApprovalRequest,
     Peer,
-    PeerStatus,
     PeerCapability,
     PeerConnection,
-    ApprovalRequest,
-)
-from r_cli.p2p.exceptions import (
-    PeerNotFoundError,
-    PeerNotApprovedError,
-    PeerLimitExceededError,
-    PeerBlockedError,
+    PeerStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -293,11 +293,7 @@ class PeerRegistry:
         """Get all pending approval requests, removing expired ones."""
         # Clean up expired requests
         now = datetime.now()
-        expired = [
-            peer_id
-            for peer_id, req in self.pending_approvals.items()
-            if req.is_expired
-        ]
+        expired = [peer_id for peer_id, req in self.pending_approvals.items() if req.is_expired]
         for peer_id in expired:
             del self.pending_approvals[peer_id]
 
@@ -315,9 +311,7 @@ class PeerRegistry:
     def find_peers_with_skill(self, skill_name: str) -> list[Peer]:
         """Find all approved peers that have a specific skill."""
         return [
-            peer
-            for peer in self.peers.values()
-            if peer.is_trusted and skill_name in peer.skills
+            peer for peer in self.peers.values() if peer.is_trusted and skill_name in peer.skills
         ]
 
     def get_best_peer_for_skill(self, skill_name: str) -> Optional[Peer]:
@@ -394,7 +388,9 @@ class PeerRegistry:
                     if data.get(field):
                         data[field] = data[field].isoformat()
                 # Convert enums to strings
-                data["status"] = data["status"].value if hasattr(data["status"], "value") else data["status"]
+                data["status"] = (
+                    data["status"].value if hasattr(data["status"], "value") else data["status"]
+                )
                 data["capabilities"] = [
                     c.value if hasattr(c, "value") else c for c in data.get("capabilities", [])
                 ]

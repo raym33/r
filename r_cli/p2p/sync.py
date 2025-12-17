@@ -14,7 +14,6 @@ from pydantic import BaseModel
 
 from r_cli.p2p.peer import Peer
 from r_cli.p2p.registry import PeerRegistry
-from r_cli.p2p.exceptions import SyncConflictError
 
 logger = logging.getLogger(__name__)
 
@@ -323,9 +322,7 @@ class ContextSyncManager:
         if not sync_peers:
             return {}
 
-        tasks = [
-            self.sync_with_peer(peer, client, direction, scope) for peer in sync_peers
-        ]
+        tasks = [self.sync_with_peer(peer, client, direction, scope) for peer in sync_peers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         result_dict = {}
