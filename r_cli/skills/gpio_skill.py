@@ -41,8 +41,8 @@ class GPIOSkill(Skill):
         "motor_b": 25,
     }
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config=None):
+        super().__init__(config)
         self._initialized = False
         self._pwm_instances = {}
 

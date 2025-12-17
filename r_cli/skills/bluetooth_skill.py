@@ -23,8 +23,8 @@ class BluetoothSkill(Skill):
     name = "bluetooth"
     description = "Bluetooth: scan, pair, connect, and manage devices"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config=None):
+        super().__init__(config)
         self._bluetoothctl = shutil.which("bluetoothctl")
         self._hcitool = shutil.which("hcitool")
 

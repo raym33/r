@@ -24,8 +24,8 @@ class PowerSkill(Skill):
     name = "power"
     description = "Power: shutdown, reboot, sleep, brightness, volume, battery"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config=None):
+        super().__init__(config)
         self._system = platform.system().lower()
 
     def _run_command(

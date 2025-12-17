@@ -78,12 +78,34 @@ class SkillsConfig(BaseModel):
     # Skills that require confirmation before execution
     require_confirmation: list[str] = []  # For example: ["ssh", "docker"]
 
-    # Mode: "whitelist" (only enabled), "blacklist" (all except disabled)
+    # Mode: "whitelist" (only enabled), "blacklist" (all except disabled), "lite" (essential only), "auto" (detect)
     mode: str = "blacklist"  # blacklist = use only 'disabled', whitelist = use only 'enabled'
+
+    # Essential skills for lite mode (loaded when context is limited)
+    LITE_SKILLS: list[str] = [
+        "datetime",
+        "math",
+        "text",
+        "json",
+        "crypto",
+        "fs",
+        "code",
+    ]
+
+    # Standard skills for medium context (8k-16k tokens)
+    STANDARD_SKILLS: list[str] = [
+        "datetime", "math", "text", "json", "crypto", "fs", "code",
+        "pdf", "markdown", "yaml", "csv", "regex", "archive",
+        "git", "http", "sql", "translate",
+    ]
 
     def is_skill_enabled(self, skill_name: str) -> bool:
         """Check if a skill is enabled."""
-        if self.mode == "whitelist":
+        if self.mode == "lite":
+            return skill_name in self.LITE_SKILLS
+        elif self.mode == "standard":
+            return skill_name in self.STANDARD_SKILLS
+        elif self.mode == "whitelist":
             # In whitelist mode, only explicitly enabled skills
             return skill_name in self.enabled if self.enabled else True
         else:
@@ -103,6 +125,18 @@ class SkillsConfig(BaseModel):
             self.enabled.remove(skill_name)
         if self.mode == "blacklist" and skill_name not in self.disabled:
             self.disabled.append(skill_name)
+
+    def set_auto_mode(self, max_context_tokens: int) -> str:
+        """Auto-detect appropriate skill mode based on context size."""
+        if max_context_tokens < 8000:
+            self.mode = "lite"
+            return "lite"
+        elif max_context_tokens < 32000:
+            self.mode = "standard"
+            return "standard"
+        else:
+            self.mode = "blacklist"
+            return "full"
 
 
 class Config(BaseModel):

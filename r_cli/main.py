@@ -116,7 +116,9 @@ def select_skills_interactive() -> list[str]:
 
 
 def create_agent(
-    config: Optional[Config] = None, selected_skills: Optional[list[str]] = None
+    config: Optional[Config] = None,
+    selected_skills: Optional[list[str]] = None,
+    verbose: bool = False,
 ) -> Agent:
     """Create and configure the agent."""
     if config is None:
@@ -128,7 +130,7 @@ def create_agent(
         config.skills.enabled = selected_skills
 
     agent = Agent(config)
-    agent.load_skills()
+    agent.load_skills(verbose=verbose)
     return agent
 
 
@@ -137,10 +139,11 @@ def create_agent(
 @click.option("--theme", "-t", default="ps2", help="Visual theme (ps2, matrix, minimal)")
 @click.option("--no-animation", is_flag=True, help="Disable animations")
 @click.option("--stream/--no-stream", default=True, help="Enable/disable response streaming")
+@click.option("--skills-mode", "-s", type=click.Choice(["auto", "lite", "standard", "full"]), default=None, help="Skill loading mode")
 @click.pass_context
-def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool):
+def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool, skills_mode: str):
     """
-    R CLI - Your Local AI Operating System.
+    R CLI - Local AI Agent Runtime.
 
     100% private · 100% offline · 100% yours
 
@@ -149,11 +152,13 @@ def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool):
         r "Explain what Python is" # Direct chat
         r pdf "My document"        # Generate PDF
         r sql sales.csv "SELECT * FROM data"
+        r --skills-mode lite       # Use minimal skills for small context
     """
     ctx.ensure_object(dict)
     ctx.obj["theme"] = theme
     ctx.obj["no_animation"] = no_animation
     ctx.obj["stream"] = stream
+    ctx.obj["skills_mode"] = skills_mode
 
     if version:
         console.print(f"R CLI v{__version__}")
@@ -161,7 +166,7 @@ def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool):
 
     # If no subcommand, start interactive mode
     if ctx.invoked_subcommand is None:
-        interactive_mode(theme, not no_animation, stream)
+        interactive_mode(theme, not no_animation, stream, skills_mode)
 
 
 @cli.command()
@@ -171,9 +176,10 @@ def chat(ctx, message: tuple):
     """Send a message to the agent."""
     theme = ctx.obj.get("theme", "ps2")
     no_animation = ctx.obj.get("no_animation", False)
+    skills_mode = ctx.obj.get("skills_mode")
 
     msg = " ".join(message)
-    single_query(msg, theme, not no_animation)
+    single_query(msg, theme, not no_animation, skills_mode)
 
 
 @cli.command()
@@ -250,7 +256,7 @@ def ls(path: str, pattern: Optional[str]):
 def skills():
     """List available skills."""
     term = Terminal()
-    agent = create_agent()
+    agent = create_agent(verbose=True)
 
     term.print_skill_list(agent.skills)
 
@@ -312,18 +318,27 @@ def serve(host: str, port: int, reload: bool, workers: int):
     run_server(host=host, port=port, reload=reload, workers=workers)
 
 
-def interactive_mode(theme: str = "ps2", show_animation: bool = True, use_streaming: bool = True):
+def interactive_mode(theme: str = "ps2", show_animation: bool = True, use_streaming: bool = True, skills_mode: str = None):
     """Main interactive mode."""
     term = Terminal(theme=theme)
     config = Config.load()
     config.ui.theme = theme
 
+    # Apply skills mode if specified
+    if skills_mode:
+        if skills_mode == "full":
+            config.skills.mode = "blacklist"
+        else:
+            config.skills.mode = skills_mode
+
     # Show welcome
     term.clear()
     term.print_welcome()
 
-    # Interactive skill selection
-    selected_skills = select_skills_interactive()
+    # Interactive skill selection (skip if mode already set)
+    selected_skills = None
+    if not skills_mode:
+        selected_skills = select_skills_interactive()
 
     # Loading animation
     if show_animation:
@@ -417,10 +432,19 @@ def interactive_mode(theme: str = "ps2", show_animation: bool = True, use_stream
             term.print_error(str(e))
 
 
-def single_query(message: str, theme: str = "ps2", show_animation: bool = True):
+def single_query(message: str, theme: str = "ps2", show_animation: bool = True, skills_mode: str = None):
     """Execute a single query and exit."""
     term = Terminal(theme=theme)
-    agent = create_agent()
+
+    # Configure skills mode
+    config = Config.load()
+    if skills_mode:
+        if skills_mode == "full":
+            config.skills.mode = "blacklist"
+        else:
+            config.skills.mode = skills_mode
+
+    agent = create_agent(config)
 
     # Brief animation
     if show_animation:

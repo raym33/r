@@ -207,9 +207,9 @@ class HubLabSkill(Skill):
         },
     }
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize HubLab skill."""
-        super().__init__()
+        super().__init__(config)
         self._capsules_cache: Optional[list] = None
         self._categories_cache: Optional[dict] = None
 

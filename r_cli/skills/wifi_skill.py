@@ -24,8 +24,8 @@ class WiFiSkill(Skill):
     name = "wifi"
     description = "WiFi: scan networks, connect, manage connections"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config=None):
+        super().__init__(config)
         self._system = platform.system().lower()
         self._nmcli = shutil.which("nmcli")  # Linux NetworkManager
         self._iwconfig = shutil.which("iwconfig")  # Linux wireless

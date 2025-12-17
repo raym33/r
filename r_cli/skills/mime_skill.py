@@ -102,9 +102,9 @@ class MIMESkill(Skill):
         ".cjs": "application/javascript",
     }
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize MIME skill."""
-        super().__init__()
+        super().__init__(config)
         mimetypes.init()
         for ext, mime in self.EXTRA_TYPES.items():
             mimetypes.add_type(mime, ext)

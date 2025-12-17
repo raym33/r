@@ -92,7 +92,7 @@ class Agent:
 
         self.llm.set_system_prompt(full_prompt)
 
-    def register_skill(self, skill: "Skill") -> None:
+    def register_skill(self, skill: "Skill", verbose: bool = False) -> None:
         """Register a skill and its tools."""
         self.skills[skill.name] = skill
 
@@ -100,11 +100,26 @@ class Agent:
         for tool in skill.get_tools():
             self.tools.append(tool)
 
-        console.print(f"[dim]Skill registered: {skill.name}[/dim]")
+        if verbose:
+            console.print(f"[dim]Skill registered: {skill.name}[/dim]")
 
-    def load_skills(self) -> None:
-        """Load all available skills, respecting configuration."""
+    def load_skills(self, verbose: bool = False, auto_detect: bool = True) -> None:
+        """Load all available skills, respecting configuration.
+
+        Args:
+            verbose: Show skill loading messages
+            auto_detect: Auto-detect skill mode based on context size
+        """
         from r_cli.skills import get_all_skills
+
+        # Auto-detect mode based on context if enabled and mode is "auto"
+        if auto_detect and self.config.skills.mode == "auto":
+            mode = self.config.skills.set_auto_mode(self.config.llm.max_context_tokens)
+            if verbose:
+                console.print(f"[dim]Auto-detected skill mode: {mode} (context: {self.config.llm.max_context_tokens} tokens)[/dim]")
+
+        loaded = 0
+        skipped = 0
 
         for skill_class in get_all_skills():
             try:
@@ -112,32 +127,118 @@ class Agent:
 
                 # Check if skill is enabled in config
                 if not self.config.skills.is_skill_enabled(skill.name):
-                    console.print(f"[dim]Skill disabled in config: {skill.name}[/dim]")
+                    skipped += 1
                     continue
 
-                self.register_skill(skill)
+                self.register_skill(skill, verbose=verbose)
+                loaded += 1
             except ImportError as e:
-                console.print(
-                    f"[yellow]Missing dependency for {skill_class.__name__}: {e}[/yellow]"
-                )
+                if verbose:
+                    console.print(
+                        f"[yellow]Missing dependency for {skill_class.__name__}: {e}[/yellow]"
+                    )
             except TypeError as e:
-                console.print(
-                    f"[yellow]Configuration error in {skill_class.__name__}: {e}[/yellow]"
-                )
+                if verbose:
+                    console.print(
+                        f"[yellow]Configuration error in {skill_class.__name__}: {e}[/yellow]"
+                    )
             except OSError as e:
-                console.print(f"[yellow]File/IO error in {skill_class.__name__}: {e}[/yellow]")
+                if verbose:
+                    console.print(f"[yellow]File/IO error in {skill_class.__name__}: {e}[/yellow]")
             except Exception as e:
-                console.print(
-                    f"[yellow]Unexpected error loading {skill_class.__name__}: {e}[/yellow]"
-                )
+                if verbose:
+                    console.print(
+                        f"[yellow]Unexpected error loading {skill_class.__name__}: {e}[/yellow]"
+                    )
 
-    def run(self, user_input: str, show_thinking: bool = True) -> str:
+        if verbose:
+            console.print(f"[dim]Loaded {loaded} skills ({skipped} disabled)[/dim]")
+
+    def get_relevant_tools(self, user_input: str, max_tools: int = 30) -> list[Tool]:
+        """
+        Select tools relevant to the user's query.
+
+        Uses keyword matching to filter tools, reducing context usage.
+        """
+        # Keyword to skill mapping
+        SKILL_KEYWORDS = {
+            "datetime": ["time", "date", "today", "now", "calendar", "schedule", "when", "hour", "minute"],
+            "math": ["calculate", "math", "sum", "multiply", "divide", "equation", "number", "factorial", "sqrt", "2+2", "2 + 2"],
+            "text": ["text", "string", "word", "count", "uppercase", "lowercase", "slug", "reverse", "trim"],
+            "json": ["json", "parse json", "format json", "validate json"],
+            "yaml": ["yaml", "yml", "config file"],
+            "csv": ["csv", "spreadsheet", "comma separated"],
+            "crypto": ["hash", "md5", "sha256", "sha", "encrypt", "decrypt", "base64", "encode", "decode", "hmac"],
+            "pdf": ["pdf", "document", "report"],
+            "code": ["code", "program", "script", "function", "class", "python", "javascript", "generate code"],
+            "sql": ["sql", "query", "database", "select from", "insert into"],
+            "git": ["git", "commit", "branch", "merge", "repository", "repo", "diff", "status"],
+            "http": ["http", "api", "request", "fetch", "endpoint", "rest"],
+            "fs": ["file", "folder", "directory", "read file", "write file", "list files", "delete file", "copy file"],
+            "archive": ["zip", "tar", "compress", "extract", "archive", "unzip"],
+            "regex": ["regex", "pattern", "regular expression", "match pattern"],
+            "translate": ["translate", "translation", "spanish", "english", "french", "german", "idioma"],
+            "image": ["image", "picture", "photo", "resize image", "crop", "png", "jpg", "jpeg"],
+            "video": ["video", "movie", "clip", "ffmpeg", "mp4"],
+            "audio": ["audio", "sound", "music", "mp3", "wav", "recording"],
+            "weather": ["weather", "temperature", "forecast", "rain", "sunny", "clima"],
+            "email": ["email", "mail", "send email", "smtp"],
+            "docker": ["docker", "container", "compose", "dockerfile"],
+            "ssh": ["ssh", "remote server", "connect to server"],
+            "qr": ["qr", "qrcode", "qr code"],
+            "barcode": ["barcode", "ean", "upc"],
+            "ocr": ["ocr", "text from image", "extract text", "recognize text"],
+            "voice": ["voice", "speech", "tts", "speak", "transcribe", "whisper", "audio to text"],
+        }
+
+        user_lower = user_input.lower()
+        matched_skills = set()
+
+        # Always include core skills for general queries
+        matched_skills.add("datetime")
+
+        # Find matching skills based on keywords
+        for skill_name, keywords in SKILL_KEYWORDS.items():
+            for keyword in keywords:
+                if keyword in user_lower:
+                    matched_skills.add(skill_name)
+                    break
+
+        # Build tool-to-skill mapping from loaded skills
+        skill_tools = {}
+        for skill_name, skill in self.skills.items():
+            skill_tools[skill_name] = [t.name for t in skill.get_tools()]
+
+        # Filter tools to only those from matched skills
+        relevant_tools = []
+        for tool in self.tools:
+            for skill_name in matched_skills:
+                if skill_name in skill_tools and tool.name in skill_tools[skill_name]:
+                    relevant_tools.append(tool)
+                    break
+
+        # If too few tools matched, return core tools
+        if len(relevant_tools) < 3:
+            # Return tools from core skills
+            core_skills = ["datetime", "math", "text", "fs", "json"]
+            for tool in self.tools:
+                for skill_name in core_skills:
+                    if skill_name in skill_tools and tool.name in skill_tools[skill_name]:
+                        relevant_tools.append(tool)
+                        break
+                if len(relevant_tools) >= max_tools:
+                    break
+
+        return relevant_tools[:max_tools]
+
+    def run(self, user_input: str, show_thinking: bool = True, smart_tools: bool = True) -> str:
         """
         Process user input and return response.
 
         Args:
             user_input: User's message
             show_thinking: Whether to show reasoning process
+            smart_tools: Use intelligent tool selection to reduce context
 
         Returns:
             Agent's response
@@ -156,7 +257,9 @@ class Agent:
 
         # Execute with tools if skills are registered
         if self.tools:
-            response = self.llm.chat_with_tools(augmented_input, self.tools)
+            # Use smart tool selection if enabled
+            tools_to_use = self.get_relevant_tools(user_input) if smart_tools else self.tools
+            response = self.llm.chat_with_tools(augmented_input, tools_to_use)
         else:
             response_msg = self.llm.chat(augmented_input)
             response = response_msg.content or ""

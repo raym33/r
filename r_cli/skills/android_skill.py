@@ -27,8 +27,8 @@ class AndroidSkill(Skill):
     name = "android"
     description = "Android: SMS, calls, camera, apps, notifications, sensors"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config=None):
+        super().__init__(config)
         self._adb = shutil.which("adb")
         self._bridge_url: Optional[str] = None
         self._is_android = self._check_android()
