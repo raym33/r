@@ -10,7 +10,14 @@ from typing import Optional
 from urllib.parse import quote, quote_plus, urlparse
 
 import httpx
-from bs4 import BeautifulSoup
+
+try:
+    from bs4 import BeautifulSoup
+
+    BS4_AVAILABLE = True
+except ImportError:
+    BeautifulSoup = None  # type: ignore
+    BS4_AVAILABLE = False
 
 from r_cli.core.agent import Skill
 from r_cli.core.config import Config
@@ -98,6 +105,11 @@ class WebSearchSkill(Skill):
         """
         Search the web using DuckDuckGo HTML (no API key needed).
         """
+        if not BS4_AVAILABLE:
+            return (
+                "Error: beautifulsoup4 is not installed. Install with: pip install beautifulsoup4"
+            )
+
         try:
             # Use DuckDuckGo HTML search
             search_url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
@@ -136,6 +148,11 @@ class WebSearchSkill(Skill):
         """
         Fetch content from a URL and extract text.
         """
+        if not BS4_AVAILABLE:
+            return (
+                "Error: beautifulsoup4 is not installed. Install with: pip install beautifulsoup4"
+            )
+
         try:
             # Validate URL
             parsed = urlparse(url)
