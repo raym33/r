@@ -17,7 +17,8 @@ if TYPE_CHECKING:
     from r_cli.core.permissions import ApprovalCallback
 
 AGENT_KINDS = {"assistant", "workflow"}
-TASK_STATES = {"queued", "running", "completed", "failed"}
+TASK_STATES = {"queued", "running", "completed", "failed", "cancelled"}
+TERMINAL_TASK_STATES = {"completed", "failed", "cancelled"}
 
 
 class AgentOSError(RuntimeError):
@@ -222,6 +223,33 @@ class AgentOS:
         self._set_task_state(task_id, "completed", result=result)
         return self.get_task(task_id)
 
+    def cancel_task(self, task_id: str, reason: str = "cancelled by user") -> dict[str, Any]:
+        """Mark a queued or running task as cancelled."""
+        reason = reason.strip() or "cancelled by user"
+        now = _now()
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if row is None:
+                raise AgentOSError(f"Unknown task: {task_id}")
+            if row["status"] in TERMINAL_TASK_STATES:
+                raise AgentOSError(f"Task {task_id} is already {row['status']}")
+            connection.execute(
+                """
+                UPDATE tasks
+                SET status = 'cancelled', error = ?, finished_at = ?
+                WHERE id = ?
+                """,
+                (reason, now, task_id),
+            )
+            self._emit(
+                connection,
+                "task.cancelled",
+                row["agent_name"],
+                task_id,
+                {"reason": reason, "previous_status": row["status"]},
+            )
+        return self.get_task(task_id)
+
     def _run_assistant(
         self,
         manifest: AgentManifest,
@@ -279,11 +307,18 @@ class AgentOS:
         status: str,
         result: Any = None,
         error: str | None = None,
-    ) -> None:
+    ) -> bool:
         if status not in TASK_STATES:
             raise AgentOSError(f"Invalid task state: {status}")
         now = _now()
         with self._connect() as connection:
+            current = connection.execute(
+                "SELECT agent_name, status FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            if current is None:
+                raise AgentOSError(f"Unknown task: {task_id}")
+            if current["status"] in TERMINAL_TASK_STATES and current["status"] != status:
+                return False
             if status == "running":
                 connection.execute(
                     "UPDATE tasks SET status = ?, started_at = ? WHERE id = ?",
@@ -304,16 +339,14 @@ class AgentOS:
                         task_id,
                     ),
                 )
-            row = connection.execute(
-                "SELECT agent_name FROM tasks WHERE id = ?", (task_id,)
-            ).fetchone()
             self._emit(
                 connection,
                 f"task.{status}",
-                row["agent_name"] if row else None,
+                current["agent_name"],
                 task_id,
                 {"error": error} if error else {},
             )
+        return True
 
     def get_task(self, task_id: str) -> dict[str, Any]:
         with self._connect() as connection:

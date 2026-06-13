@@ -914,7 +914,10 @@ def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json
 
 @agent_os_command.command("tasks")
 @click.option("--limit", default=20, type=click.IntRange(min=1, max=1000))
-@click.option("--status", type=click.Choice(["queued", "running", "completed", "failed"]))
+@click.option(
+    "--status",
+    type=click.Choice(["queued", "running", "completed", "failed", "cancelled"]),
+)
 @click.option("--agent", "agent_name")
 @click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
 def agent_os_tasks(limit: int, status: str | None, agent_name: str | None, as_json: bool):
@@ -940,6 +943,24 @@ def agent_os_tasks(limit: int, status: str | None, agent_name: str | None, as_js
             task["input"][:60],
         )
     console.print(table)
+
+
+@agent_os_command.command("cancel")
+@click.argument("task_id")
+@click.option("--reason", default="cancelled by user", help="Reason stored with the task")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_cancel(task_id: str, reason: str, as_json: bool):
+    """Cancel a queued or running Agent OS task."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        task = AgentOS(Config.load()).cancel_task(task_id, reason=reason)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(task, indent=2, default=str))
+        return
+    console.print(f"[yellow]Task {task_id} cancelled:[/yellow] {task['error']}")
 
 
 @agent_os_command.command("events")

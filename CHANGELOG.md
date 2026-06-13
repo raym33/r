@@ -20,6 +20,7 @@ All notable changes to R CLI are documented here.
 - Persistent Agent OS registry with manifests, task lifecycle, process inspection, and events
 - Isolated session memory and capability lists for each installed agent identity
 - `r os init`, `r os agent`, `r os run`, `r os tasks`, `r os events`, and `r os status`
+- `r os cancel` for marking queued or running Agent OS tasks as cancelled
 - Local-only LLM endpoint enforcement and deny-by-default outbound tool networking
 - Per-agent filesystem roots, network host allowlists, and `r os security`
 - Explicit `--expose` requirement for non-loopback API binds

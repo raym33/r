@@ -187,6 +187,7 @@ Inspect the process table and events:
 ```bash
 r os tasks
 r os tasks --agent researcher --status completed
+r os cancel <task-id>
 r os events
 r os status
 ```

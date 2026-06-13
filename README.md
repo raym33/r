@@ -131,12 +131,14 @@ r os agent install researcher.yaml
 r os agent list
 r os run private-researcher "Compare the PDF reports"
 r os tasks --agent private-researcher
+r os cancel <task-id>
 r os events
 ```
 
-Agent tasks move through `queued`, `running`, `completed`, and `failed`. Each identity has
-separate session memory. Broad host capabilities such as `code`, `docker`, `ssh`, `system`,
-and plugins require the manifest to acknowledge `unsafe_capabilities: true`.
+Agent tasks move through `queued`, `running`, `completed`, `failed`, and `cancelled`. Each
+identity has separate session memory. Broad host capabilities such as `code`, `docker`,
+`ssh`, `system`, and plugins require the manifest to acknowledge
+`unsafe_capabilities: true`.
 
 See [Agent OS architecture](docs/AGENT_OS.md).
 

@@ -161,6 +161,38 @@ def test_agent_os_security_outputs_json(tmp_path):
     assert payload["checks"][0]["name"] == "Local LLM endpoint"
 
 
+def test_agent_os_cancel_marks_running_task(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Does work"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, created_at, started_at)
+            VALUES ('task123', 'worker', 'work', 'running', 'now', 'now')
+            """
+        )
+
+    result = runner.invoke(
+        cli,
+        ["os", "cancel", "task123", "--reason", "stop now", "--json"],
+        env=environment,
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "cancelled"
+    assert payload["error"] == "stop now"
+
+
 def test_serve_refuses_network_bind_without_explicit_expose():
     runner = CliRunner()
 

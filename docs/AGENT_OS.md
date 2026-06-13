@@ -7,7 +7,8 @@ persistent processes on top of the host operating system.
 ## Current Kernel
 
 - **Identity:** YAML manifests define an agent's name, prompt, capabilities, and executor.
-- **Processes:** Tasks move through `queued`, `running`, `completed`, and `failed`.
+- **Processes:** Tasks move through `queued`, `running`, `completed`, `failed`, and
+  `cancelled`.
 - **Persistence:** SQLite stores identities, task history, and events.
 - **Memory:** Every agent receives an isolated session namespace.
 - **Capabilities:** Skills are explicitly assigned to assistant agents.
@@ -45,6 +46,7 @@ r os agent list
 r os agent show researcher
 r os run researcher "Analyze this project"
 r os tasks --status completed
+r os cancel <task-id>
 r os events
 r os status
 r os security

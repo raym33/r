@@ -107,6 +107,41 @@ def test_run_persists_failures(tmp_path):
     assert runtime.status()["tasks"]["failed"] == 1
 
 
+def test_cancel_running_task_persists_terminal_state(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+
+    def cancel_during_run(*args, **kwargs):
+        running = runtime.list_tasks(status="running")
+        assert len(running) == 1
+        runtime.cancel_task(running[0]["id"], reason="user requested stop")
+        return "finished too late"
+
+    with patch.object(runtime, "_run_assistant", side_effect=cancel_during_run):
+        task = runtime.run("writer", "Write a report")
+
+    assert task["status"] == "cancelled"
+    assert task["result"] is None
+    assert task["error"] == "user requested stop"
+    assert runtime.status()["tasks"]["cancelled"] == 1
+    assert [event["event_type"] for event in runtime.list_events(limit=5)[:4]] == [
+        "task.cancelled",
+        "task.running",
+        "task.queued",
+        "agent.installed",
+    ]
+
+
+def test_completed_task_cannot_be_cancelled(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    with patch.object(runtime, "_run_assistant", return_value="done"):
+        task = runtime.run("writer", "Task")
+
+    with pytest.raises(AgentOSError, match="already completed"):
+        runtime.cancel_task(task["id"])
+
+
 def test_agent_with_task_history_cannot_be_removed(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))
