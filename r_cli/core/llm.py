@@ -40,6 +40,7 @@ from r_cli.core.exceptions import (
     RateLimitError as RCLIRateLimitError,
 )
 from r_cli.core.logging import get_logger, timed, token_tracker
+from r_cli.security import validate_local_llm_endpoint
 
 console = Console()
 logger = get_logger("r_cli.llm")
@@ -221,6 +222,10 @@ class LLMClient:
     def __init__(self, config: Optional[Config] = None):
         self.config = config or Config()
         self.llm_config = self.config.llm
+        validate_local_llm_endpoint(
+            self.llm_config.base_url,
+            local_only=self.config.security.local_only,
+        )
 
         # Cliente síncrono con timeout configurable
         self.client = OpenAI(

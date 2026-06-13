@@ -12,6 +12,16 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from r_cli.security import (
+    NETWORK_SKILLS,
+    PARAMETERIZED_NETWORK_SKILLS,
+    find_hosts,
+    find_paths,
+    find_urls,
+    host_is_allowed,
+    path_is_within_roots,
+)
+
 if TYPE_CHECKING:
     from r_cli.core.config import Config
 
@@ -150,6 +160,8 @@ def classify_risk(
 ) -> RiskLevel:
     """Classify a call using skill defaults and action-oriented tool names."""
     base = SKILL_RISKS.get(skill_name, RiskLevel.HIGH)
+    if skill_name.startswith("mcp:"):
+        return RiskLevel.CRITICAL
     action_text = " ".join(
         str(value)
         for key, value in (arguments or {}).items()
@@ -204,6 +216,70 @@ class PermissionManager:
         target = f"{skill_name}.{tool_name}"
         risk = classify_risk(skill_name, tool_name, arguments)
         audit_arguments = _redact_arguments(arguments)
+
+        if skill_name in NETWORK_SKILLS:
+            if not self.security.network_access:
+                return self._deny(
+                    skill_name,
+                    tool_name,
+                    RiskLevel.CRITICAL,
+                    audit_arguments,
+                    "outbound network access is disabled",
+                )
+            if skill_name not in PARAMETERIZED_NETWORK_SKILLS:
+                return self._deny(
+                    skill_name,
+                    tool_name,
+                    RiskLevel.CRITICAL,
+                    audit_arguments,
+                    "skill destination cannot be verified by the host allowlist",
+                )
+            urls = find_urls(arguments)
+            hosts = find_hosts(arguments)
+            if not urls and not hosts:
+                return self._deny(
+                    skill_name,
+                    tool_name,
+                    RiskLevel.CRITICAL,
+                    audit_arguments,
+                    "network tools require an explicit destination",
+                )
+            blocked_urls = [
+                url for url in urls if not host_is_allowed(url, self.security.allowed_hosts)
+            ]
+            if blocked_urls:
+                return self._deny(
+                    skill_name,
+                    tool_name,
+                    RiskLevel.CRITICAL,
+                    audit_arguments,
+                    "destination host is not explicitly allowed",
+                )
+            allowed_hosts = {host.rstrip(".").lower() for host in self.security.allowed_hosts}
+            blocked_hosts = [host for host in hosts if host not in allowed_hosts]
+            if blocked_hosts:
+                return self._deny(
+                    skill_name,
+                    tool_name,
+                    RiskLevel.CRITICAL,
+                    audit_arguments,
+                    "destination host is not explicitly allowed",
+                )
+
+        if self.security.filesystem_roots:
+            blocked_paths = [
+                path
+                for path in find_paths(arguments)
+                if not path_is_within_roots(path, self.security.filesystem_roots)
+            ]
+            if blocked_paths:
+                return self._deny(
+                    skill_name,
+                    tool_name,
+                    RiskLevel.CRITICAL,
+                    audit_arguments,
+                    "path is outside the allowed filesystem roots",
+                )
 
         if skill_name in self.security.denied_skills or target in self.security.denied_tools:
             return self._deny(

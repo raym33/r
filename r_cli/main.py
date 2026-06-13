@@ -786,6 +786,9 @@ skills:
   - pdftools
   - rag
   - text
+network_access: false
+filesystem_roots:
+  - .
 """,
         encoding="utf-8",
     )
@@ -984,6 +987,34 @@ def agent_os_status(as_json: bool):
     for task_status, count in status["tasks"].items():
         table.add_row(f"Tasks {task_status}", str(count))
     console.print(Panel(table, title="Agent OS"))
+
+
+@agent_os_command.command("security")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_security(as_json: bool):
+    """Audit local-only, network, filesystem, and agent capability policies."""
+    from r_cli.agent_os import AgentOS
+    from r_cli.security import security_report
+
+    config = Config.load()
+    runtime = AgentOS(config)
+    report = security_report(config, runtime.list_agents())
+    if as_json:
+        click.echo(json.dumps(report, indent=2))
+        return
+
+    symbols = {
+        "ok": "[green]OK[/green]",
+        "warning": "[yellow]WARN[/yellow]",
+        "error": "[red]FAIL[/red]",
+    }
+    table = Table(title=f"Agent OS security: {str(report['status']).upper()}")
+    table.add_column("Status")
+    table.add_column("Control")
+    table.add_column("Details")
+    for check in report["checks"]:
+        table.add_row(symbols[check["status"]], check["name"], check["message"])
+    console.print(table)
 
 
 @cli.group("mcp")
@@ -1332,7 +1363,12 @@ def demo():
 @click.option("--port", "-p", default=8765, help="Port to listen on")
 @click.option("--reload", is_flag=True, help="Enable auto-reload for development")
 @click.option("--workers", "-w", default=1, help="Number of worker processes")
-def serve(host: str, port: int, reload: bool, workers: int):
+@click.option(
+    "--expose",
+    is_flag=True,
+    help="Explicitly allow binding beyond this device",
+)
+def serve(host: str, port: int, reload: bool, workers: int, expose: bool):
     """
     Start the R CLI API server (daemon mode).
 
@@ -1346,6 +1382,17 @@ def serve(host: str, port: int, reload: bool, workers: int):
         r serve --reload           # Development mode with auto-reload
     """
     from r_cli.api import run_server
+    from r_cli.security import is_loopback_host
+
+    if not is_loopback_host(host) and not expose:
+        raise click.ClickException(
+            f"Refusing to expose the API on {host}. Use loopback or pass --expose explicitly."
+        )
+    if not is_loopback_host(host):
+        console.print(
+            "[bold yellow]Warning:[/bold yellow] R API is reachable from other devices. "
+            "Configure authentication and firewall rules."
+        )
 
     console.print("[bold cyan]R CLI API Server[/bold cyan]")
     console.print(f"Starting on http://{host}:{port}")

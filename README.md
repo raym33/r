@@ -260,11 +260,41 @@ r os run researcher "Compare all PDF reports" --json
 r os tasks --agent researcher
 r os events
 r os status
+r os security
 ```
 
 Agents may also use `kind: workflow` with a relative `workflow:` path for deterministic
 processes. All execution remains behind the same permission policy and trace system.
 See [Agent OS architecture](docs/AGENT_OS.md).
+
+### Local-Only Security
+
+R denies outbound tool networking by default and refuses non-loopback LLM endpoints.
+Each agent can receive explicit filesystem roots and a host allowlist:
+
+```yaml
+name: private-researcher
+description: Reads local project documents without network access
+kind: assistant
+skills: [fs, pdf, pdftools, text]
+network_access: false
+filesystem_roots:
+  - ./documents
+```
+
+Broad host capabilities such as `code`, `docker`, `ssh`, and plugins are rejected unless
+the manifest deliberately sets `unsafe_capabilities: true`.
+
+Remote API binding is also blocked unless deliberately acknowledged:
+
+```bash
+r serve                         # private loopback bind
+r serve --host 0.0.0.0          # refused
+r serve --host 0.0.0.0 --expose # explicit network exposure
+```
+
+Run `r os security` before deploying an agent. See the
+[security and threat model](docs/SECURITY_MODEL.md) for guarantees and limitations.
 
 ## MCP Plugins
 

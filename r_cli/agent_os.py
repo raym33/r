@@ -34,6 +34,10 @@ class AgentManifest:
     system_prompt: str = "You are a focused local AI agent."
     skills: list[str] | None = None
     workflow: str | None = None
+    network_access: bool = False
+    allowed_hosts: list[str] | None = None
+    filesystem_roots: list[str] | None = None
+    unsafe_capabilities: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -227,6 +231,7 @@ class AgentOS:
         from r_cli.core.agent import Agent
 
         config = self.config.model_copy(deep=True)
+        _apply_agent_security(config, manifest)
         if manifest.skills:
             config.skills.mode = "whitelist"
             config.skills.enabled = manifest.skills
@@ -252,11 +257,13 @@ class AgentOS:
 
         if not manifest.workflow:
             raise AgentOSError(f"Workflow agent '{manifest.name}' has no workflow")
+        config = self.config.model_copy(deep=True)
+        _apply_agent_security(config, manifest)
         workflow = load_workflow(manifest.workflow)
         result = run_workflow(
             workflow,
             variables={"task": task_input},
-            config=self.config,
+            config=config,
             approval_callback=approval_callback,
             auto_approve=auto_approve,
         )
@@ -404,7 +411,18 @@ def load_agent_manifest(path: str | Path) -> AgentManifest:
     if not isinstance(raw, dict):
         raise AgentOSError("Agent manifest must be a YAML object")
 
-    allowed = {"name", "description", "kind", "system_prompt", "skills", "workflow"}
+    allowed = {
+        "name",
+        "description",
+        "kind",
+        "system_prompt",
+        "skills",
+        "workflow",
+        "network_access",
+        "allowed_hosts",
+        "filesystem_roots",
+        "unsafe_capabilities",
+    }
     unknown = set(raw) - allowed
     if unknown:
         raise AgentOSError(f"Unknown agent fields: {', '.join(sorted(unknown))}")
@@ -437,6 +455,19 @@ def load_agent_manifest(path: str | Path) -> AgentManifest:
             raise AgentOSError(f"Agent workflow not found: {workflow_path}")
         workflow = str(workflow_path)
 
+    allowed_hosts = raw.get("allowed_hosts", [])
+    if not isinstance(allowed_hosts, list) or not all(
+        isinstance(host, str) and host for host in allowed_hosts
+    ):
+        raise AgentOSError("Agent allowed_hosts must be a list of host names")
+    roots = raw.get("filesystem_roots", [])
+    if not isinstance(roots, list) or not all(isinstance(root, str) for root in roots):
+        raise AgentOSError("Agent filesystem_roots must be a list of paths")
+    resolved_roots = [
+        str((manifest_path.parent / root).resolve()) if not Path(root).is_absolute() else root
+        for root in roots
+    ]
+
     return AgentManifest(
         name=name.strip(),
         description=description.strip(),
@@ -444,6 +475,10 @@ def load_agent_manifest(path: str | Path) -> AgentManifest:
         system_prompt=system_prompt.strip(),
         skills=skills,
         workflow=workflow,
+        network_access=bool(raw.get("network_access", False)),
+        allowed_hosts=allowed_hosts,
+        filesystem_roots=resolved_roots,
+        unsafe_capabilities=bool(raw.get("unsafe_capabilities", False)),
     )
 
 
@@ -457,6 +492,21 @@ def validate_agent_capabilities(manifest: AgentManifest) -> None:
     unknown = sorted(set(manifest.skills) - available)
     if unknown:
         raise AgentOSError(f"Unknown agent skills: {', '.join(unknown)}")
+    from r_cli.security import UNCONFINED_SKILLS
+
+    broad = sorted(set(manifest.skills) & UNCONFINED_SKILLS)
+    if broad and not manifest.unsafe_capabilities:
+        raise AgentOSError(
+            "Broad host capabilities require unsafe_capabilities: true: " + ", ".join(broad)
+        )
+    if manifest.network_access and not manifest.allowed_hosts:
+        raise AgentOSError("Network-enabled agents require at least one allowed host")
+
+
+def _apply_agent_security(config: Config, manifest: AgentManifest) -> None:
+    config.security.network_access = manifest.network_access
+    config.security.allowed_hosts = manifest.allowed_hosts or []
+    config.security.filesystem_roots = manifest.filesystem_roots or []
 
 
 def _task_dict(row: sqlite3.Row) -> dict[str, Any]:

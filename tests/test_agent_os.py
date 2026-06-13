@@ -126,3 +126,24 @@ def test_unknown_agent_capability_is_rejected():
         validate_agent_capabilities(
             AgentManifest("agent", "Agent", skills=["math", "unknown-skill"])
         )
+
+
+def test_broad_host_capability_requires_explicit_unsafe_flag():
+    with pytest.raises(AgentOSError, match="unsafe_capabilities"):
+        validate_agent_capabilities(AgentManifest("coder", "Coder", skills=["code"]))
+
+    validate_agent_capabilities(
+        AgentManifest(
+            "coder",
+            "Coder",
+            skills=["code"],
+            unsafe_capabilities=True,
+        )
+    )
+
+
+def test_network_agent_requires_explicit_hosts():
+    with pytest.raises(AgentOSError, match="allowed host"):
+        validate_agent_capabilities(
+            AgentManifest("agent", "Agent", skills=["http"], network_access=True)
+        )

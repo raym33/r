@@ -144,6 +144,32 @@ def test_agent_os_manifest_lifecycle(tmp_path):
     assert json.loads(status.output)["agents"] == 1
 
 
+def test_agent_os_security_outputs_json(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"home_dir: {tmp_path / 'home'}\n", encoding="utf-8")
+
+    result = runner.invoke(
+        cli,
+        ["os", "security", "--json"],
+        env={"R_CLI_CONFIG": str(config_path)},
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "ok"
+    assert payload["checks"][0]["name"] == "Local LLM endpoint"
+
+
+def test_serve_refuses_network_bind_without_explicit_expose():
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["serve", "--host", "0.0.0.0"])
+
+    assert result.exit_code != 0
+    assert "--expose" in result.output
+
+
 def test_mcp_add_and_list(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

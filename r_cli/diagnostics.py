@@ -11,6 +11,7 @@ from typing import Any
 from r_cli import __version__
 from r_cli.backends.auto import auto_detect_backend
 from r_cli.core.config import Config
+from r_cli.security import is_loopback_url
 
 
 @dataclass
@@ -93,6 +94,18 @@ def collect_diagnostics(config_path: str | None = None) -> list[Diagnostic]:
         ]
     )
 
+    if config.security.local_only and not is_loopback_url(config.llm.base_url):
+        checks.append(
+            Diagnostic(
+                "LLM privacy",
+                "error",
+                f"Remote endpoint blocked: {config.llm.base_url}",
+                "Use a loopback endpoint such as http://127.0.0.1:11434/v1",
+            )
+        )
+    else:
+        checks.append(Diagnostic("LLM privacy", "ok", f"Local endpoint: {config.llm.base_url}"))
+
     if config.security.mode not in {"ask", "strict", "permissive"}:
         checks.append(
             Diagnostic(
@@ -122,11 +135,15 @@ def collect_diagnostics(config_path: str | None = None) -> list[Diagnostic]:
             )
         )
     elif enabled_mcp_servers:
+        mcp_status = "warning" if config.mcp.auto_load else "ok"
         checks.append(
             Diagnostic(
                 "MCP",
-                "ok",
+                mcp_status,
                 f"{len(enabled_mcp_servers)} enabled server(s); auto-load={config.mcp.auto_load}",
+                "Disable mcp.auto_load for strongest process isolation"
+                if config.mcp.auto_load
+                else None,
             )
         )
 

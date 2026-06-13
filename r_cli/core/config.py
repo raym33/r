@@ -180,6 +180,10 @@ class SecurityConfig(BaseModel):
     denied_tools: list[str] = []
     audit_enabled: bool = True
     audit_path: str = "audit.jsonl"
+    local_only: bool = True
+    network_access: bool = False
+    allowed_hosts: list[str] = []
+    filesystem_roots: list[str] = []
 
 
 class MCPServerConfig(BaseModel):

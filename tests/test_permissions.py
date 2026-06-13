@@ -33,6 +33,8 @@ def test_dangerous_action_escalates_risk():
     assert classify_risk("fs", "delete_file") == RiskLevel.CRITICAL
     assert classify_risk("code", "run_code") == RiskLevel.CRITICAL
     assert classify_risk("fs", "direct", {"action": "delete"}) == RiskLevel.CRITICAL
+    assert classify_risk("mcp:filesystem", "read_file") == RiskLevel.CRITICAL
+    assert classify_risk("mcp:filesystem", "write_file") == RiskLevel.CRITICAL
 
 
 def test_non_interactive_high_risk_action_is_denied(tmp_path: Path):
@@ -84,13 +86,19 @@ def test_audit_log_records_decisions(tmp_path: Path):
 
 def test_audit_log_redacts_secrets(tmp_path: Path):
     config = permission_config(tmp_path)
+    config.security.network_access = True
+    config.security.allowed_hosts = ["api.example.com"]
     manager = PermissionManager(config, auto_approve=True)
 
     manager.execute(
         "http",
         "request",
         lambda **_: "ok",
-        {"api_key": "top-secret", "headers": {"Authorization": "Bearer secret"}},
+        {
+            "url": "https://api.example.com",
+            "api_key": "top-secret",
+            "headers": {"Authorization": "Bearer secret"},
+        },
     )
 
     records = [
@@ -99,3 +107,95 @@ def test_audit_log_redacts_secrets(tmp_path: Path):
     ]
     assert records[-1]["arguments"]["api_key"] == "[REDACTED]"
     assert records[-1]["arguments"]["headers"]["Authorization"] == "[REDACTED]"
+
+
+def test_network_skill_is_denied_by_default(tmp_path: Path):
+    manager = PermissionManager(permission_config(tmp_path), auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="network access is disabled"):
+        manager.execute(
+            "http",
+            "request",
+            lambda **_: "leaked",
+            {"url": "https://example.com/private"},
+        )
+
+
+def test_network_destination_requires_allowlist(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.security.network_access = True
+    config.security.allowed_hosts = ["api.example.com"]
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="not explicitly allowed"):
+        manager.execute(
+            "http",
+            "request",
+            lambda **_: "leaked",
+            {"url": "https://other.example/private"},
+        )
+
+    assert (
+        manager.execute(
+            "http",
+            "request",
+            lambda **_: "ok",
+            {"url": "https://api.example.com/private"},
+        )
+        == "ok"
+    )
+
+
+def test_opaque_network_skill_stays_blocked(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.security.network_access = True
+    config.security.allowed_hosts = ["example.com"]
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="cannot be verified"):
+        manager.execute(
+            "websearch",
+            "search",
+            lambda **_: "hidden request",
+            {"query": "private information"},
+        )
+
+
+def test_explicit_host_argument_uses_allowlist(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.security.network_access = True
+    config.security.allowed_hosts = ["smtp.example.com"]
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="not explicitly allowed"):
+        manager.execute(
+            "email",
+            "send",
+            lambda **_: "sent",
+            {"smtp_server": "evil.example"},
+        )
+
+
+def test_filesystem_path_must_stay_inside_roots(tmp_path: Path):
+    config = permission_config(tmp_path)
+    allowed = tmp_path / "workspace"
+    allowed.mkdir()
+    config.security.filesystem_roots = [str(allowed)]
+    manager = PermissionManager(config, auto_approve=True)
+
+    assert (
+        manager.execute(
+            "fs",
+            "read_file",
+            lambda **_: "ok",
+            {"path": str(allowed / "report.txt")},
+        )
+        == "ok"
+    )
+    with pytest.raises(PermissionDeniedError, match="outside the allowed"):
+        manager.execute(
+            "fs",
+            "read_file",
+            lambda **_: "blocked",
+            {"path": str(allowed / ".." / "secret.txt")},
+        )

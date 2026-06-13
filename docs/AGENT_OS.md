@@ -13,6 +13,8 @@ persistent processes on top of the host operating system.
 - **Capabilities:** Skills are explicitly assigned to assistant agents.
 - **Execution:** Agents can use an LLM or deterministic R workflows.
 - **Security:** Existing permission policy, approvals, redaction, and audit traces remain active.
+- **Privacy:** LLM inference is restricted to loopback endpoints under local-only mode.
+- **Isolation:** Agents declare network allowlists and filesystem roots.
 - **Observability:** Tasks emit lifecycle events and tool calls appear in `r traces`.
 
 ## Architecture
@@ -45,6 +47,7 @@ r os run researcher "Analyze this project"
 r os tasks --status completed
 r os events
 r os status
+r os security
 ```
 
 ## Workflow Agents
