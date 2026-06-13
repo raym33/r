@@ -262,9 +262,7 @@ class AgentOS:
             if row["status"] == "paused":
                 raise AgentOSError(f"Task {task_id} is already paused")
             if row["status"] == "running":
-                raise AgentOSError(
-                    f"Task {task_id} is already running; cancel it instead"
-                )
+                raise AgentOSError(f"Task {task_id} is already running; cancel it instead")
             connection.execute(
                 """
                 UPDATE tasks
