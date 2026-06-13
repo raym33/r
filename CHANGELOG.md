@@ -22,6 +22,7 @@ All notable changes to R CLI are documented here.
 - `r os init`, `r os agent`, `r os run`, `r os tasks`, `r os events`, and `r os status`
 - `r os cancel` for marking queued or running Agent OS tasks as cancelled
 - `r os pause` and `r os resume` for holding queued Agent OS tasks before execution
+- `r os capsule` for privacy-preserving task audit exports
 - Local-only LLM endpoint enforcement and deny-by-default outbound tool networking
 - Per-agent filesystem roots, network host allowlists, and `r os security`
 - Explicit `--expose` requirement for non-loopback API binds

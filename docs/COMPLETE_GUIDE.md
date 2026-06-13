@@ -190,9 +190,15 @@ r os tasks --agent researcher --status completed
 r os pause <task-id>
 r os resume <task-id>
 r os cancel <task-id>
+r os capsule <task-id> --output task-capsule.json
 r os events
 r os status
 ```
+
+`r os capsule` exports a redacted audit bundle for one task. It is designed as a local
+flight recorder: lifecycle events and security posture are visible, while prompts, task
+content, results, hosts, and filesystem paths are hidden unless `--include-content` is
+provided explicitly.
 
 Broad capabilities require an explicit acknowledgement:
 

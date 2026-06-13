@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 AGENT_KINDS = {"assistant", "workflow"}
 TASK_STATES = {"queued", "paused", "running", "completed", "failed", "cancelled"}
 TERMINAL_TASK_STATES = {"completed", "failed", "cancelled"}
+REDACTED = "[redacted]"
 
 
 class AgentOSError(RuntimeError):
@@ -442,17 +443,57 @@ class AgentOS:
             rows = connection.execute(
                 "SELECT * FROM events ORDER BY id DESC LIMIT ?", (limit,)
             ).fetchall()
-        return [
-            {
-                "id": row["id"],
-                "timestamp": row["timestamp"],
-                "event_type": row["event_type"],
-                "agent_name": row["agent_name"],
-                "task_id": row["task_id"],
-                "payload": json.loads(row["payload"]),
-            }
-            for row in rows
-        ]
+        return [_event_dict(row) for row in rows]
+
+    def export_task_capsule(
+        self,
+        task_id: str,
+        include_content: bool = False,
+    ) -> dict[str, Any]:
+        """Export a privacy-preserving audit capsule for one task."""
+        with self._connect() as connection:
+            task_row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if task_row is None:
+                raise AgentOSError(f"Unknown task: {task_id}")
+            agent_row = connection.execute(
+                "SELECT manifest, created_at, updated_at FROM agents WHERE name = ?",
+                (task_row["agent_name"],),
+            ).fetchone()
+            event_rows = connection.execute(
+                """
+                SELECT * FROM events
+                WHERE task_id = ?
+                ORDER BY id ASC
+                """,
+                (task_id,),
+            ).fetchall()
+
+        task = _task_dict(task_row)
+        manifest = json.loads(agent_row["manifest"]) if agent_row else {}
+        security = _capsule_security_summary(manifest)
+        if not include_content:
+            task = _redact_task_content(task)
+            manifest = _redact_manifest_content(manifest)
+
+        return {
+            "schema_version": 1,
+            "kind": "r.agent_os.task_capsule",
+            "exported_at": _now(),
+            "content_included": include_content,
+            "redaction": {
+                "enabled": not include_content,
+                "placeholder": REDACTED,
+                "fields": [] if include_content else _capsule_redacted_fields(),
+            },
+            "task": task,
+            "agent": {
+                **manifest,
+                "created_at": agent_row["created_at"] if agent_row else None,
+                "updated_at": agent_row["updated_at"] if agent_row else None,
+            },
+            "security": security,
+            "events": [_event_dict(row) for row in event_rows],
+        }
 
     def status(self) -> dict[str, Any]:
         with self._connect() as connection:
@@ -653,6 +694,62 @@ def _task_dict(row: sqlite3.Row) -> dict[str, Any]:
         "created_at": row["created_at"],
         "started_at": row["started_at"],
         "finished_at": row["finished_at"],
+    }
+
+
+def _event_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "timestamp": row["timestamp"],
+        "event_type": row["event_type"],
+        "agent_name": row["agent_name"],
+        "task_id": row["task_id"],
+        "payload": json.loads(row["payload"]),
+    }
+
+
+def _redact_task_content(task: dict[str, Any]) -> dict[str, Any]:
+    redacted = dict(task)
+    for field in ("input", "result", "error"):
+        if redacted.get(field) is not None:
+            redacted[field] = REDACTED
+    return redacted
+
+
+def _redact_manifest_content(manifest: dict[str, Any]) -> dict[str, Any]:
+    redacted = dict(manifest)
+    for field in ("description", "system_prompt", "workflow"):
+        if redacted.get(field) is not None:
+            redacted[field] = REDACTED
+    for field in ("allowed_hosts", "filesystem_roots"):
+        if redacted.get(field):
+            redacted[field] = [REDACTED]
+    return redacted
+
+
+def _capsule_redacted_fields() -> list[str]:
+    return [
+        "task.input",
+        "task.result",
+        "task.error",
+        "agent.description",
+        "agent.system_prompt",
+        "agent.workflow",
+        "agent.allowed_hosts",
+        "agent.filesystem_roots",
+    ]
+
+
+def _capsule_security_summary(manifest: dict[str, Any]) -> dict[str, Any]:
+    skills = manifest.get("skills") or []
+    allowed_hosts = manifest.get("allowed_hosts") or []
+    filesystem_roots = manifest.get("filesystem_roots") or []
+    return {
+        "skills_count": len(skills),
+        "network_access": bool(manifest.get("network_access", False)),
+        "allowed_hosts_count": len(allowed_hosts),
+        "filesystem_roots_count": len(filesystem_roots),
+        "unsafe_capabilities": bool(manifest.get("unsafe_capabilities", False)),
     }
 
 

@@ -231,6 +231,75 @@ def test_agent_os_pause_and_resume_task(tmp_path):
     assert json.loads(resumed.output)["status"] == "queued"
 
 
+def test_agent_os_capsule_writes_redacted_task_export(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    output = tmp_path / "capsules" / "task.json"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Private worker"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, result, created_at, finished_at)
+            VALUES ('task123', 'worker', 'secret input', 'completed', '"secret result"', 'now', 'now')
+            """
+        )
+        runtime._emit(connection, "task.completed", "worker", "task123", {})
+
+    result = runner.invoke(
+        cli,
+        ["os", "capsule", "task123", "--output", str(output)],
+        env=environment,
+    )
+
+    assert result.exit_code == 0
+    capsule = json.loads(output.read_text(encoding="utf-8"))
+    assert capsule["task"]["input"] == "[redacted]"
+    assert capsule["task"]["result"] == "[redacted]"
+    assert capsule["agent"]["description"] == "[redacted]"
+    assert capsule["events"][0]["event_type"] == "task.completed"
+
+
+def test_agent_os_capsule_can_include_content(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Private worker"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, result, created_at, finished_at)
+            VALUES ('task123', 'worker', 'secret input', 'completed', '"secret result"', 'now', 'now')
+            """
+        )
+
+    result = runner.invoke(
+        cli,
+        ["os", "capsule", "task123", "--include-content", "--json"],
+        env=environment,
+    )
+
+    assert result.exit_code == 0
+    capsule = json.loads(result.output)
+    assert capsule["task"]["input"] == "secret input"
+    assert capsule["task"]["result"] == "secret result"
+    assert capsule["agent"]["description"] == "Private worker"
+
+
 def test_serve_refuses_network_bind_without_explicit_expose():
     runner = CliRunner()
 

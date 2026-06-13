@@ -16,7 +16,8 @@ persistent processes on top of the host operating system.
 - **Security:** Existing permission policy, approvals, redaction, and audit traces remain active.
 - **Privacy:** LLM inference is restricted to loopback endpoints under local-only mode.
 - **Isolation:** Agents declare network allowlists and filesystem roots.
-- **Observability:** Tasks emit lifecycle events and tool calls appear in `r traces`.
+- **Observability:** Tasks emit lifecycle events, tool calls appear in `r traces`, and
+  task capsules export a redacted local flight recorder for one execution.
 
 ## Architecture
 
@@ -49,6 +50,7 @@ r os tasks --status completed
 r os pause <task-id>
 r os resume <task-id>
 r os cancel <task-id>
+r os capsule <task-id> --output task-capsule.json
 r os events
 r os status
 r os security
@@ -58,6 +60,19 @@ Tasks can be paused while they are still queued. A paused task will not be moved
 `running` until it is resumed, which gives operators a simple approval checkpoint before
 future background workers pick up queued work. Running tasks cannot be paused yet; cancel
 them instead.
+
+Task capsules are local audit bundles for a single execution:
+
+```bash
+r os capsule <task-id>
+r os capsule <task-id> --json
+r os capsule <task-id> --output task-capsule.json
+r os capsule <task-id> --include-content --output private-debug.json
+```
+
+Capsules redact prompts, task input, results, errors, hosts, and filesystem paths by
+default. They still include lifecycle events and capability counts, so users can diagnose
+what happened without casually exposing private data.
 
 ## Workflow Agents
 

@@ -134,6 +134,7 @@ r os tasks --agent private-researcher
 r os pause <task-id>
 r os resume <task-id>
 r os cancel <task-id>
+r os capsule <task-id> --output task-capsule.json
 r os events
 ```
 
@@ -141,6 +142,11 @@ Agent tasks move through `queued`, `paused`, `running`, `completed`, `failed`, a
 `cancelled`. Each identity has separate session memory. Broad host capabilities such as
 `code`, `docker`, `ssh`, `system`, and plugins require the manifest to acknowledge
 `unsafe_capabilities: true`.
+
+Task capsules are privacy-preserving audit bundles for one execution. They include
+process metadata, lifecycle events, and a security summary, while redacting prompts,
+inputs, outputs, hosts, and filesystem paths by default. Use `--include-content` only
+when you intentionally want a full local debug export.
 
 See [Agent OS architecture](docs/AGENT_OS.md).
 

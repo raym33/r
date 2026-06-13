@@ -77,6 +77,8 @@ Planned:
 - human approval inboxes;
 - structured agent-to-agent messages;
 - dead-letter queues and failure inspection.
+- privacy-preserving task capsules for local audit and support (initial CLI support is
+  available).
 
 Exit criteria:
 

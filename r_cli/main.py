@@ -1024,6 +1024,48 @@ def agent_os_events(limit: int, as_json: bool):
     console.print(table)
 
 
+@agent_os_command.command("capsule")
+@click.argument("task_id")
+@click.option(
+    "--include-content",
+    is_flag=True,
+    help="Include task input, results, prompts, hosts, and filesystem paths",
+)
+@click.option("--output", type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_capsule(task_id: str, include_content: bool, output: Path | None, as_json: bool):
+    """Export a privacy-preserving task audit capsule."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        capsule = AgentOS(Config.load()).export_task_capsule(
+            task_id,
+            include_content=include_content,
+        )
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    payload = json.dumps(capsule, indent=2, default=str)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(payload + "\n", encoding="utf-8")
+    if as_json or not output:
+        if as_json:
+            click.echo(payload)
+            return
+        table = Table(show_header=False, box=None)
+        table.add_column("Field", style="cyan")
+        table.add_column("Value")
+        table.add_row("Task", capsule["task"]["id"])
+        table.add_row("Agent", capsule["task"]["agent_name"])
+        table.add_row("Status", capsule["task"]["status"])
+        table.add_row("Events", str(len(capsule["events"])))
+        table.add_row("Redacted", "yes" if capsule["redaction"]["enabled"] else "no")
+        console.print(Panel(table, title="Agent OS Task Capsule"))
+        return
+    console.print(f"[green]Wrote task capsule:[/green] {output}")
+
+
 @agent_os_command.command("status")
 @click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
 def agent_os_status(as_json: bool):

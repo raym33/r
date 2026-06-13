@@ -197,6 +197,56 @@ def test_paused_task_cannot_start_accidentally(tmp_path):
     assert runtime.get_task("task123")["status"] == "paused"
 
 
+def test_task_capsule_redacts_sensitive_content_by_default(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(
+        AgentManifest(
+            "writer",
+            "Private description",
+            system_prompt="Private prompt",
+            skills=["text"],
+            filesystem_roots=[str(tmp_path / "private"), str(tmp_path / "docs")],
+        )
+    )
+
+    with patch.object(runtime, "_run_assistant", return_value="private result"):
+        task = runtime.run("writer", "Private input")
+
+    capsule = runtime.export_task_capsule(task["id"])
+
+    assert capsule["kind"] == "r.agent_os.task_capsule"
+    assert capsule["content_included"] is False
+    assert capsule["redaction"]["enabled"] is True
+    assert capsule["task"]["input"] == "[redacted]"
+    assert capsule["task"]["result"] == "[redacted]"
+    assert capsule["agent"]["description"] == "[redacted]"
+    assert capsule["agent"]["system_prompt"] == "[redacted]"
+    assert capsule["agent"]["filesystem_roots"] == ["[redacted]"]
+    assert capsule["security"]["skills_count"] == 1
+    assert capsule["security"]["filesystem_roots_count"] == 2
+    assert [event["event_type"] for event in capsule["events"]] == [
+        "task.queued",
+        "task.running",
+        "task.completed",
+    ]
+
+
+def test_task_capsule_can_include_content_explicitly(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Private description"))
+
+    with patch.object(runtime, "_run_assistant", return_value="private result"):
+        task = runtime.run("writer", "Private input")
+
+    capsule = runtime.export_task_capsule(task["id"], include_content=True)
+
+    assert capsule["content_included"] is True
+    assert capsule["redaction"]["enabled"] is False
+    assert capsule["task"]["input"] == "Private input"
+    assert capsule["task"]["result"] == "private result"
+    assert capsule["agent"]["description"] == "Private description"
+
+
 def test_agent_with_task_history_cannot_be_removed(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))
