@@ -33,6 +33,19 @@ R CLI → LLM decides → calls pdf.generate_pdf() → python_report.pdf
 # Chat with tools
 r chat "compress all python files into backup.zip"
 
+# Diagnose your setup
+r doctor
+r status  # Alias
+
+# Discover tools
+r skills --search pdf
+
+# Inspect any local project and get skill recommendations
+r project inspect .
+
+# Execute any of the 100+ tools directly, without an LLM
+r tool math calculate --arg expression='sqrt(144)'
+
 # SQL on CSV files
 r sql sales.csv "SELECT product, SUM(revenue) FROM data GROUP BY product"
 
@@ -69,7 +82,134 @@ r chat "explain quantum physics"  # Direct query
 r serve                           # Start API server
 ```
 
+### CLI Power Tools
+
+```bash
+# Machine-readable output for scripts and CI
+r doctor --json
+r config --json
+r skills --json
+
+# Print the active configuration path
+r config --path
+
+# Enable shell completion (add the matching line to your shell profile)
+eval "$(r completion zsh)"
+eval "$(r completion bash)"
+r completion fish | source
+
+# Pipe a prompt without animations or interactive menus
+printf "summarize this repository" | r
+
+# Build a PDF from Markdown, a literal argument, or stdin
+r pdf --file report.md --template report --output report.pdf
+printf '# Report\n\nGenerated from a pipe.' | r pdf --output report.pdf
+```
+
 ---
+
+## Project Intelligence
+
+R can inspect a repository without uploading or reading its source contents:
+
+```bash
+r project inspect /path/to/project
+r project inspect /path/to/project --json
+r project init /path/to/project
+```
+
+It detects language stacks, Docker, document collections, data files, AI services,
+web apps, and system services. The report recommends relevant skills and executable
+commands for that project. `project init` creates a `.r-cli.yaml` profile containing
+only the recommended skills.
+
+Configuration priority is:
+
+1. `R_CLI_CONFIG`
+2. nearest `.r-cli.yaml` or `.r-cli/config.yaml`
+3. `~/.r-cli/config.yaml`
+
+## Universal Tool Runner
+
+Every tool exposed by every skill is available from one consistent interface:
+
+```bash
+# Discover tools and schemas
+r tool pdf
+r tool pdf generate_pdf --schema
+
+# Typed KEY=VALUE arguments (JSON values are decoded)
+r tool math statistics --arg 'numbers=[1,2,3,4]'
+
+# Full JSON arguments and machine-readable output
+r tool pdftools pdf_info --params '{"file_path":"report.pdf"}' --json
+```
+
+This makes R useful in shell scripts and automation even when no LLM is running.
+
+## Local Permissions
+
+R classifies every tool call as `low`, `medium`, `high`, or `critical`.
+High-risk actions require confirmation by default, including calls initiated by the LLM.
+In pipes and CI they are denied unless approval is explicit.
+
+```bash
+# Understand a decision before running it
+r permissions explain docker docker_run
+
+# Review recent decisions
+r permissions audit
+
+# Deliberately approve an automated action
+r --yes tool code run_python --arg 'code=print("hello")'
+```
+
+Project or user configuration:
+
+```yaml
+security:
+  mode: ask                # ask, strict, permissive
+  confirm_risk: [high, critical]
+  denied_skills: [power]
+  denied_tools: [fs.delete_file]
+  allowed_tools: [git.git_status]
+  audit_enabled: true
+  audit_path: audit.jsonl
+```
+
+Explicit deny rules always win over `--yes`. Audit records redact common secrets such as
+passwords, tokens, API keys, credentials, and authorization headers.
+
+## MCP Plugins
+
+R can consume external Model Context Protocol servers over `stdio` using the official
+Python SDK:
+
+```bash
+pip install 'r-cli-ai[mcp]'
+
+r mcp add filesystem \
+  --command npx \
+  --arg -y \
+  --arg @modelcontextprotocol/server-filesystem \
+  --arg "$HOME/Documents"
+
+r mcp list
+r mcp tools filesystem
+r mcp call filesystem read_file --arg path=README.md
+```
+
+Use quoted environment references for credentials so secrets remain outside YAML:
+
+```bash
+r mcp add private-api --command uvx --arg private-api-mcp \
+  --env 'API_TOKEN=${PRIVATE_API_TOKEN}'
+```
+
+MCP calls use the same risk classification, confirmation, deny rules, secret redaction,
+and audit trail as native tools. Set `mcp.auto_load: true` to expose configured MCP tools
+to the chat agent automatically; it defaults to `false` so startup never launches external
+processes unexpectedly.
 
 ## Skills
 

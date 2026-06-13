@@ -2,6 +2,21 @@
 
 All notable changes to R CLI are documented here.
 
+## [Unreleased]
+
+### Added
+- Local permission policy with risk classification, interactive approval, deny/allow lists, and redacted JSONL audit logs
+- `r permissions explain` and `r permissions audit`
+- Optional MCP client support over stdio with `r mcp add/list/tools/call/remove`
+- MCP tool auto-loading for the chat agent through `mcp.auto_load`
+- Universal `r tool` runner and project-aware `.r-cli.yaml` profiles
+- Project inspection, shell completion, structured CLI output, and `r doctor`
+
+### Changed
+- Tool calls initiated by the LLM, CLI, MCP, and REST API now share the same local permission boundary
+- Direct commands load only the skill they need
+- PDF generation accepts Markdown files and stdin
+
 ## [0.3.2] - 2024-12-17
 
 ### Added

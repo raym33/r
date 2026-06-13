@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 
-from r_cli.core.config import Config, LLMConfig, get_preset
+from r_cli.core.config import Config, LLMConfig, discover_config_path, get_preset
 from r_cli.core.exceptions import (
     ConfigurationError,
     ExecutionError,
@@ -288,6 +288,24 @@ class TestConfig:
         assert config.llm.backend == "ollama"
         assert config.llm.model == "qwen2.5:7b"
         assert config.llm.temperature == 0.5
+
+    def test_load_config_from_environment(self, config_file: Path) -> None:
+        """Verifica R_CLI_CONFIG como ruta de configuración global."""
+        with patch.dict("os.environ", {"R_CLI_CONFIG": str(config_file)}):
+            config = Config.load()
+
+        assert config.llm.backend == "ollama"
+        assert config.llm.model == "qwen2.5:7b"
+
+    def test_discover_project_local_config(self, temp_dir: Path) -> None:
+        project = temp_dir / "project"
+        nested = project / "src" / "feature"
+        nested.mkdir(parents=True)
+        local_config = project / ".r-cli.yaml"
+        local_config.write_text("skills:\n  mode: lite\n")
+
+        with patch.dict("os.environ", {}, clear=True):
+            assert discover_config_path(str(nested)) == local_config.resolve()
 
     def test_save_config(self, temp_dir: Path) -> None:
         """Verifica guardado de configuración."""

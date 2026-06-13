@@ -68,6 +68,7 @@ from r_cli.api.permissions import (
 from r_cli.api.rate_limit import RateLimitMiddleware
 from r_cli.core.agent import Agent
 from r_cli.core.config import Config
+from r_cli.core.permissions import PermissionDeniedError, PermissionManager
 
 # Global state
 _agent: Optional[Agent] = None
@@ -980,8 +981,18 @@ def register_routes(app: FastAPI) -> None:
         )
 
         try:
-            # Call the tool handler
-            result = await asyncio.to_thread(target_tool.handler, **request.arguments)
+            # API scopes authorize the request; local explicit deny rules still win.
+            permission_manager = PermissionManager(
+                agent.config,
+                auto_approve=auth.authenticated,
+            )
+            result = await asyncio.to_thread(
+                permission_manager.execute,
+                request.skill,
+                request.tool,
+                target_tool.handler,
+                request.arguments,
+            )
             duration_ms = (time.time() - start_time) * 1000
 
             audit_log(
@@ -996,6 +1007,13 @@ def register_routes(app: FastAPI) -> None:
             return ToolCallResponse(
                 success=True,
                 result=result,
+                execution_time_ms=duration_ms,
+            )
+        except PermissionDeniedError as e:
+            duration_ms = (time.time() - start_time) * 1000
+            return ToolCallResponse(
+                success=False,
+                error=str(e),
                 execution_time_ms=duration_ms,
             )
         except Exception as e:

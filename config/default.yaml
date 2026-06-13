@@ -49,6 +49,35 @@ ui:
   # Velocidad de animaciones (segundos por frame)
   animation_speed: 0.05
 
+# Política local de ejecución
+security:
+  # ask: solicita aprobación para acciones de riesgo alto/crítico
+  # strict: las bloquea salvo allowlist
+  # permissive: permite todo salvo denylist
+  mode: ask
+  confirm_risk:
+    - high
+    - critical
+  allowed_skills: []
+  denied_skills: []
+  allowed_tools: []
+  denied_tools: []
+  audit_enabled: true
+  audit_path: audit.jsonl
+
+# Servidores MCP locales por stdio
+mcp:
+  enabled: true
+  auto_load: false
+  servers: {}
+
+# Carga y confirmación de skills
+skills:
+  mode: blacklist
+  enabled: []
+  disabled: []
+  require_confirmation: []
+
 # Directorios
 home_dir: ~/.r-cli
 skills_dir: ~/.r-cli/skills

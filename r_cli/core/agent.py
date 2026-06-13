@@ -9,6 +9,7 @@ Orchestrates:
 """
 
 import os
+from dataclasses import replace
 from typing import Optional
 
 from rich.console import Console
@@ -18,6 +19,7 @@ from rich.panel import Panel
 from r_cli.core.config import Config
 from r_cli.core.llm import LLMClient, Tool
 from r_cli.core.memory import Memory
+from r_cli.core.permissions import ApprovalCallback, PermissionManager
 
 console = Console()
 
@@ -63,17 +65,30 @@ class Agent:
     ```
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(
+        self,
+        config: Optional[Config] = None,
+        approval_callback: ApprovalCallback | None = None,
+        auto_approve: bool = False,
+    ):
         self.config = config or Config()
         self.config.ensure_directories()
 
         # Core components
         self.llm = LLMClient(self.config)
         self.memory = Memory(self.config)
+        self.permissions = PermissionManager(
+            self.config,
+            approval_callback=approval_callback,
+            auto_approve=auto_approve,
+        )
+        self.approval_callback = approval_callback
+        self.auto_approve = auto_approve
 
         # Registered skills (loaded dynamically)
         self.skills: dict[str, Skill] = {}
         self.tools: list[Tool] = []
+        self.external_tools: list[Tool] = []
 
         # State
         self.is_running = False
@@ -98,7 +113,12 @@ class Agent:
 
         # Add skill's tools
         for tool in skill.get_tools():
-            self.tools.append(tool)
+            self.tools.append(
+                replace(
+                    tool,
+                    handler=self.permissions.wrap(skill.name, tool.name, tool.handler),
+                )
+            )
 
         if verbose:
             console.print(f"[dim]Skill registered: {skill.name}[/dim]")
@@ -155,6 +175,31 @@ class Agent:
 
         if verbose:
             console.print(f"[dim]Loaded {loaded} skills ({skipped} disabled)[/dim]")
+
+        if self.config.mcp.enabled and self.config.mcp.auto_load:
+            self.load_mcp_tools(verbose=verbose)
+
+    def load_mcp_tools(self, verbose: bool = False) -> None:
+        """Load tools from enabled MCP servers."""
+        from r_cli.mcp_client import MCPClient, MCPError
+
+        client = MCPClient(self.config)
+        for server_name, server in self.config.mcp.servers.items():
+            if not server.enabled:
+                continue
+            try:
+                tools = client.as_r_tools(
+                    server_name,
+                    approval_callback=self.approval_callback,
+                    auto_approve=self.auto_approve,
+                )
+                self.tools.extend(tools)
+                self.external_tools.extend(tools)
+                if verbose:
+                    console.print(f"[dim]Loaded {len(tools)} MCP tools from {server_name}[/dim]")
+            except MCPError as exc:
+                if verbose:
+                    console.print(f"[yellow]{exc}[/yellow]")
 
     def get_relevant_tools(self, user_input: str, max_tools: int = 30) -> list[Tool]:
         """
@@ -322,6 +367,12 @@ class Agent:
                 if len(relevant_tools) >= max_tools:
                     break
 
+        prompt_words = {word for word in user_lower.replace("_", " ").split() if len(word) > 3}
+        for tool in self.external_tools:
+            searchable = f"{tool.name} {tool.description}".lower()
+            if any(word in searchable for word in prompt_words) and tool not in relevant_tools:
+                relevant_tools.append(tool)
+
         return relevant_tools[:max_tools]
 
     def run(self, user_input: str, show_thinking: bool = True, smart_tools: bool = True) -> str:
@@ -411,7 +462,7 @@ class Agent:
             return f"Skill not found: {skill_name}"
 
         skill = self.skills[skill_name]
-        return skill.execute(**kwargs)
+        return self.permissions.execute(skill_name, "direct", skill.execute, kwargs)
 
     def check_connection(self) -> bool:
         """Check connection to the LLM server."""

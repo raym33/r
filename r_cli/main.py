@@ -8,21 +8,44 @@ Usage:
     r --help             # Show help
 """
 
+import contextlib
+import io
+import json
 import sys
+from pathlib import Path
 from typing import Optional
 
 import click
+from click.shell_completion import get_completion_class
 from rich.console import Console
-from rich.prompt import Prompt
+from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from r_cli import __version__
 from r_cli.core.agent import Agent
-from r_cli.core.config import Config
+from r_cli.core.config import Config, discover_config_path
 from r_cli.ui.ps2_loader import PS2Loader
 from r_cli.ui.terminal import Terminal
 
 console = Console()
+
+
+class DirectChatGroup(click.Group):
+    """Treat an unknown positional command as a direct chat message."""
+
+    def resolve_command(self, ctx, args):
+        try:
+            return super().resolve_command(ctx, args)
+        except click.UsageError:
+            if not args or args[0].startswith("-"):
+                raise
+
+            chat_command = self.get_command(ctx, "chat")
+            if chat_command is None:
+                raise
+
+            return "chat", chat_command, args
 
 
 # Skill categories for better organization
@@ -42,6 +65,25 @@ def get_all_skill_names() -> list[str]:
     from r_cli.skills import get_all_skills
 
     return [skill_class.name for skill_class in get_all_skills() if hasattr(skill_class, "name")]
+
+
+def get_config_path() -> str:
+    """Return the active configuration path."""
+    return str(discover_config_path())
+
+
+def approval_prompt(request) -> bool:
+    """Ask the user to approve a high-risk tool call."""
+    console.print(
+        Panel(
+            f"[bold]{request.target}[/bold]\n"
+            f"Risk: [yellow]{request.risk.value}[/yellow]\n"
+            f"Arguments: {json.dumps(request.arguments, default=str)[:1000]}",
+            title="Permission required",
+            border_style="yellow",
+        )
+    )
+    return Confirm.ask("Allow this action?", default=False)
 
 
 def select_skills_interactive() -> list[str]:
@@ -119,6 +161,7 @@ def create_agent(
     config: Optional[Config] = None,
     selected_skills: Optional[list[str]] = None,
     verbose: bool = False,
+    auto_approve: bool = False,
 ) -> Agent:
     """Create and configure the agent."""
     if config is None:
@@ -129,16 +172,31 @@ def create_agent(
         config.skills.mode = "whitelist"
         config.skills.enabled = selected_skills
 
-    agent = Agent(config)
+    callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+    agent = Agent(config, approval_callback=callback, auto_approve=auto_approve)
     agent.load_skills(verbose=verbose)
     return agent
 
 
-@click.group(invoke_without_command=True)
+@click.group(
+    cls=DirectChatGroup,
+    invoke_without_command=True,
+    context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 100},
+    epilog="""
+\b
+Examples:
+  r                              Start interactive mode
+  r "Explain what Python is"     Send a direct message
+  r doctor                       Diagnose the local setup
+  r skills --search pdf          Find relevant skills
+  r --skills-mode lite chat      Use a smaller tool context
+""",
+)
 @click.option("--version", "-v", is_flag=True, help="Show version")
 @click.option("--theme", "-t", default="ps2", help="Visual theme (ps2, matrix, minimal)")
 @click.option("--no-animation", is_flag=True, help="Disable animations")
 @click.option("--stream/--no-stream", default=True, help="Enable/disable response streaming")
+@click.option("--yes", is_flag=True, help="Approve high-risk actions without prompting")
 @click.option(
     "--skills-mode",
     "-s",
@@ -147,23 +205,21 @@ def create_agent(
     help="Skill loading mode",
 )
 @click.pass_context
-def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool, skills_mode: str):
-    """
-    R CLI - Local AI Agent Runtime.
-
-    100% private · 100% offline · 100% yours
-
-    Examples:
-        r                          # Interactive mode
-        r "Explain what Python is" # Direct chat
-        r pdf "My document"        # Generate PDF
-        r sql sales.csv "SELECT * FROM data"
-        r --skills-mode lite       # Use minimal skills for small context
-    """
+def cli(
+    ctx,
+    version: bool,
+    theme: str,
+    no_animation: bool,
+    stream: bool,
+    yes: bool,
+    skills_mode: str,
+):
+    """R CLI - Local AI Agent Runtime. Private, local, and extensible."""
     ctx.ensure_object(dict)
     ctx.obj["theme"] = theme
     ctx.obj["no_animation"] = no_animation
     ctx.obj["stream"] = stream
+    ctx.obj["yes"] = yes
     ctx.obj["skills_mode"] = skills_mode
 
     if version:
@@ -172,30 +228,78 @@ def cli(ctx, version: bool, theme: str, no_animation: bool, stream: bool, skills
 
     # If no subcommand, start interactive mode
     if ctx.invoked_subcommand is None:
-        interactive_mode(theme, not no_animation, stream, skills_mode)
+        if not sys.stdin.isatty():
+            message = sys.stdin.read().strip()
+            if message:
+                single_query(message, theme, False, skills_mode, stream, yes)
+            else:
+                click.echo(ctx.get_help())
+            return
+        interactive_mode(theme, not no_animation, stream, skills_mode, yes)
 
 
 @cli.command()
 @click.argument("message", nargs=-1, required=True)
+@click.option(
+    "--stream/--no-stream",
+    "command_stream",
+    default=None,
+    help="Enable/disable response streaming",
+)
 @click.pass_context
-def chat(ctx, message: tuple):
+def chat(ctx, message: tuple, command_stream: Optional[bool]):
     """Send a message to the agent."""
     theme = ctx.obj.get("theme", "ps2")
     no_animation = ctx.obj.get("no_animation", False)
     skills_mode = ctx.obj.get("skills_mode")
+    use_streaming = ctx.obj.get("stream", True) if command_stream is None else command_stream
 
     msg = " ".join(message)
-    single_query(msg, theme, not no_animation, skills_mode)
+    single_query(
+        msg,
+        theme,
+        not no_animation,
+        skills_mode,
+        use_streaming,
+        ctx.obj.get("yes", False),
+    )
 
 
 @cli.command()
-@click.argument("content", required=True)
+@click.argument("content", required=False)
+@click.option(
+    "--file",
+    "input_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Read content from a text or Markdown file",
+)
 @click.option("--title", "-t", help="Document title")
 @click.option("--output", "-o", help="Output path")
-@click.option("--template", default="minimal", help="Template: minimal, business, academic")
-def pdf(content: str, title: Optional[str], output: Optional[str], template: str):
+@click.option(
+    "--template",
+    type=click.Choice(["minimal", "business", "academic", "report"]),
+    default="minimal",
+)
+@click.option("--author", help="Document author")
+def pdf(
+    content: Optional[str],
+    input_file: Optional[str],
+    title: Optional[str],
+    output: Optional[str],
+    template: str,
+    author: Optional[str],
+):
     """Generate a PDF document."""
-    agent = create_agent()
+    if input_file and content:
+        raise click.UsageError("Use either CONTENT or --file, not both")
+    if input_file:
+        content = Path(input_file).read_text(encoding="utf-8")
+    elif content is None and not sys.stdin.isatty():
+        content = sys.stdin.read()
+    if not content or not content.strip():
+        raise click.UsageError("Provide CONTENT, --file, or pipe text through stdin")
+
+    agent = create_agent(selected_skills=["pdf"])
 
     result = agent.run_skill_directly(
         "pdf",
@@ -203,9 +307,401 @@ def pdf(content: str, title: Optional[str], output: Optional[str], template: str
         title=title,
         output=output,
         template=template,
+        author=author,
     )
 
     console.print(result)
+
+
+@cli.command("tool")
+@click.argument("skill_name")
+@click.argument("tool_name", required=False)
+@click.option("--arg", "values", multiple=True, metavar="KEY=VALUE", help="Tool argument")
+@click.option("--params", help="Tool arguments as a JSON object")
+@click.option("--schema", is_flag=True, help="Print the selected tool's JSON schema")
+@click.option("--json", "as_json", is_flag=True, help="Wrap the result as JSON")
+@click.option("--yes", is_flag=True, help="Approve this action without prompting")
+@click.pass_context
+def tool_command(
+    ctx,
+    skill_name: str,
+    tool_name: Optional[str],
+    values: tuple[str, ...],
+    params: Optional[str],
+    schema: bool,
+    as_json: bool,
+    yes: bool,
+):
+    """List or execute any tool exposed by an R skill."""
+    from r_cli.core.permissions import PermissionDeniedError
+    from r_cli.tool_runner import (
+        ToolRunnerError,
+        build_arguments,
+        execute_tool,
+        load_skill,
+        normalize_result,
+        resolve_tool,
+    )
+
+    try:
+        if tool_name is None:
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                skill = load_skill(skill_name)
+            tools = [
+                {
+                    "name": item.name,
+                    "description": item.description,
+                    "parameters": item.parameters,
+                }
+                for item in skill.get_tools()
+            ]
+            if as_json:
+                click.echo(json.dumps({"skill": skill_name, "tools": tools}, indent=2))
+                return
+
+            table = Table(title=f"{skill_name} tools ({len(tools)})")
+            table.add_column("Tool", style="cyan")
+            table.add_column("Description")
+            for item in tools:
+                table.add_row(item["name"], item["description"])
+            console.print(table)
+            return
+
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            match = resolve_tool(skill_name, tool_name)
+        if schema:
+            click.echo(json.dumps(match.tool.parameters, indent=2))
+            return
+
+        arguments = build_arguments(params, values)
+        auto_approve = yes or ctx.obj.get("yes", False)
+        callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+        result = execute_tool(
+            skill_name,
+            tool_name,
+            arguments,
+            approval_callback=callback,
+            auto_approve=auto_approve,
+        )
+    except (ToolRunnerError, PermissionDeniedError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if as_json:
+        click.echo(
+            json.dumps(
+                {
+                    "skill": skill_name,
+                    "tool": tool_name,
+                    "arguments": arguments,
+                    "result": normalize_result(result),
+                },
+                indent=2,
+                default=str,
+            )
+        )
+    else:
+        console.print(result)
+
+
+@cli.group()
+def project():
+    """Understand and work with local projects."""
+
+
+@project.command("inspect")
+@click.argument("path", default=".", type=click.Path(path_type=str))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def project_inspect(path: str, as_json: bool):
+    """Detect stacks and recommend relevant R skills."""
+    from r_cli.project_inspector import inspect_project
+
+    try:
+        report = inspect_project(path)
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if as_json:
+        click.echo(json.dumps(report.to_dict(), indent=2))
+        return
+
+    table = Table(show_header=False, box=None)
+    table.add_column("Field", style="cyan")
+    table.add_column("Value")
+    table.add_row("Project", report.name)
+    table.add_row("Path", report.path)
+    table.add_row("Stacks", ", ".join(report.stacks) or "Unknown")
+    table.add_row("Traits", ", ".join(report.traits) or "None detected")
+    table.add_row("Files", str(report.files_scanned))
+    table.add_row("Recommended skills", ", ".join(report.recommended_skills) or "None")
+    console.print(Panel(table, title="Project inspection"))
+
+    if report.suggested_commands:
+        console.print("\n[bold]Suggested commands[/bold]")
+        for command in report.suggested_commands:
+            console.print(f"  [dim]$[/dim] {command}")
+
+
+@project.command("init")
+@click.argument("path", default=".", type=click.Path(path_type=str))
+@click.option("--force", is_flag=True, help="Overwrite an existing project profile")
+def project_init(path: str, force: bool):
+    """Create a local .r-cli.yaml profile with recommended skills."""
+    from r_cli.project_inspector import initialize_project
+
+    try:
+        config_path, report = initialize_project(path, force=force)
+    except (FileNotFoundError, NotADirectoryError, FileExistsError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    console.print(f"[green]Created {config_path}[/green]")
+    console.print(f"Enabled {len(report.recommended_skills)} project-aware skills.")
+
+
+@cli.group()
+def permissions():
+    """Inspect local execution policy and audit decisions."""
+
+
+@permissions.command("explain")
+@click.argument("skill_name")
+@click.argument("tool_name", default="direct")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def permissions_explain(skill_name: str, tool_name: str, as_json: bool):
+    """Explain the effective risk and policy for a tool."""
+    from r_cli.core.permissions import classify_risk
+
+    config = Config.load()
+    target = f"{skill_name}.{tool_name}"
+    risk = classify_risk(skill_name, tool_name)
+    explicitly_allowed = (
+        skill_name in config.security.allowed_skills or target in config.security.allowed_tools
+    )
+    explicitly_denied = (
+        skill_name in config.security.denied_skills or target in config.security.denied_tools
+    )
+    requires_confirmation = (
+        skill_name in config.skills.require_confirmation
+        or risk.value in config.security.confirm_risk
+    )
+    result = {
+        "target": target,
+        "risk": risk.value,
+        "mode": config.security.mode,
+        "explicitly_allowed": explicitly_allowed,
+        "explicitly_denied": explicitly_denied,
+        "requires_confirmation": requires_confirmation,
+    }
+
+    if as_json:
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    table = Table(show_header=False, box=None)
+    for key, value in result.items():
+        table.add_row(key.replace("_", " ").title(), str(value))
+    console.print(Panel(table, title="Permission policy"))
+
+
+@permissions.command("audit")
+@click.option("--limit", default=20, type=click.IntRange(min=1, max=1000))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def permissions_audit(limit: int, as_json: bool):
+    """Show recent local tool authorization decisions."""
+    config = Config.load()
+    audit_path = Path(config.security.audit_path).expanduser()
+    if not audit_path.is_absolute():
+        audit_path = Path(config.home_dir).expanduser() / audit_path
+
+    records = []
+    if audit_path.exists():
+        for line in audit_path.read_text(encoding="utf-8").splitlines()[-limit:]:
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+    if as_json:
+        click.echo(json.dumps(records, indent=2))
+        return
+
+    table = Table(title=f"Permission audit ({len(records)})")
+    table.add_column("Time")
+    table.add_column("Decision")
+    table.add_column("Risk")
+    table.add_column("Target")
+    for record in records:
+        table.add_row(
+            record.get("timestamp", ""),
+            record.get("decision", ""),
+            record.get("risk", ""),
+            f"{record.get('skill', '')}.{record.get('tool', '')}",
+        )
+    console.print(table)
+
+
+@cli.group("mcp")
+def mcp_command():
+    """Manage Model Context Protocol servers and tools."""
+
+
+@mcp_command.command("add")
+@click.argument("name")
+@click.option("--command", "server_command", required=True, help="Server executable")
+@click.option("--arg", "server_args", multiple=True, help="Server command argument")
+@click.option("--env", "environment", multiple=True, metavar="KEY=VALUE")
+@click.option("--cwd", type=click.Path(file_okay=False, path_type=str))
+@click.option("--timeout", default=30.0, type=click.FloatRange(min=0.1))
+def mcp_add(
+    name: str,
+    server_command: str,
+    server_args: tuple[str, ...],
+    environment: tuple[str, ...],
+    cwd: Optional[str],
+    timeout: float,
+):
+    """Register a local stdio MCP server."""
+    from r_cli.core.config import MCPServerConfig
+    from r_cli.tool_runner import ToolRunnerError, parse_key_value
+
+    env = {}
+    try:
+        for item in environment:
+            key, value = parse_key_value(item)
+            env[key] = str(value)
+    except ToolRunnerError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    config = Config.load()
+    config.mcp.servers[name] = MCPServerConfig(
+        command=server_command,
+        args=list(server_args),
+        env=env,
+        cwd=cwd,
+        timeout_seconds=timeout,
+    )
+    config.save(get_config_path())
+    console.print(f"[green]Registered MCP server: {name}[/green]")
+
+
+@mcp_command.command("remove")
+@click.argument("name")
+def mcp_remove(name: str):
+    """Remove an MCP server from configuration."""
+    config = Config.load()
+    if name not in config.mcp.servers:
+        raise click.ClickException(f"Unknown MCP server: {name}")
+    del config.mcp.servers[name]
+    config.save(get_config_path())
+    console.print(f"[green]Removed MCP server: {name}[/green]")
+
+
+@mcp_command.command("list")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def mcp_list(as_json: bool):
+    """List configured MCP servers."""
+    config = Config.load()
+    servers = {name: server.model_dump() for name, server in sorted(config.mcp.servers.items())}
+    if as_json:
+        click.echo(json.dumps(servers, indent=2))
+        return
+
+    table = Table(title=f"MCP servers ({len(servers)})")
+    table.add_column("Name", style="cyan")
+    table.add_column("Command")
+    table.add_column("Enabled")
+    table.add_column("Timeout")
+    for name, server in servers.items():
+        command = " ".join([server["command"], *server["args"]])
+        table.add_row(name, command, str(server["enabled"]), str(server["timeout_seconds"]))
+    console.print(table)
+
+
+@mcp_command.command("tools")
+@click.argument("server_name")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def mcp_tools(server_name: str, as_json: bool):
+    """Discover tools exposed by an MCP server."""
+    from r_cli.mcp_client import MCPClient, MCPError
+
+    try:
+        tools = MCPClient().list_tools(server_name)
+    except MCPError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    payload = [
+        {
+            "name": tool.name,
+            "description": tool.description,
+            "input_schema": tool.input_schema,
+        }
+        for tool in tools
+    ]
+    if as_json:
+        click.echo(json.dumps(payload, indent=2))
+        return
+
+    table = Table(title=f"{server_name} MCP tools ({len(payload)})")
+    table.add_column("Tool", style="cyan")
+    table.add_column("Description")
+    for tool in payload:
+        table.add_row(tool["name"], tool["description"])
+    console.print(table)
+
+
+@mcp_command.command("call")
+@click.argument("server_name")
+@click.argument("tool_name")
+@click.option("--arg", "values", multiple=True, metavar="KEY=VALUE")
+@click.option("--params", help="Tool arguments as a JSON object")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+@click.option("--yes", is_flag=True, help="Approve this action without prompting")
+@click.pass_context
+def mcp_call(
+    ctx,
+    server_name: str,
+    tool_name: str,
+    values: tuple[str, ...],
+    params: Optional[str],
+    as_json: bool,
+    yes: bool,
+):
+    """Call a tool on a configured MCP server."""
+    from r_cli.core.permissions import PermissionDeniedError
+    from r_cli.mcp_client import MCPClient, MCPError
+    from r_cli.tool_runner import ToolRunnerError, build_arguments, normalize_result
+
+    try:
+        arguments = build_arguments(params, values)
+        auto_approve = yes or ctx.obj.get("yes", False)
+        callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+        result = MCPClient().call_tool(
+            server_name,
+            tool_name,
+            arguments,
+            approval_callback=callback,
+            auto_approve=auto_approve,
+        )
+    except (MCPError, ToolRunnerError, PermissionDeniedError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if as_json:
+        click.echo(
+            json.dumps(
+                {
+                    "server": server_name,
+                    "tool": tool_name,
+                    "arguments": arguments,
+                    "result": normalize_result(result),
+                },
+                indent=2,
+                default=str,
+            )
+        )
+    else:
+        console.print(result)
 
 
 @cli.command()
@@ -213,7 +709,7 @@ def pdf(content: str, title: Optional[str], output: Optional[str], template: str
 @click.option("--style", "-s", default="concise", help="Style: concise, detailed, bullets")
 def resume(file_path: str, style: str):
     """Summarize a document."""
-    agent = create_agent()
+    agent = create_agent(selected_skills=["resume"])
 
     result = agent.run_skill_directly("resume", file=file_path, style=style)
     console.print(result)
@@ -224,7 +720,7 @@ def resume(file_path: str, style: str):
 @click.option("--csv", "-c", help="CSV file to query")
 def sql(query: str, csv: Optional[str]):
     """Execute a SQL query."""
-    agent = create_agent()
+    agent = create_agent(selected_skills=["sql"])
 
     result = agent.run_skill_directly("sql", query=query, csv=csv)
     console.print(result)
@@ -234,9 +730,13 @@ def sql(query: str, csv: Optional[str]):
 @click.argument("code", required=True)
 @click.option("--filename", "-f", default="script.py", help="File name")
 @click.option("--run", "-r", is_flag=True, help="Run after creating")
-def code(code: str, filename: str, run: bool):
+@click.pass_context
+def code(ctx, code: str, filename: str, run: bool):
     """Generate code."""
-    agent = create_agent()
+    agent = create_agent(
+        selected_skills=["code"],
+        auto_approve=ctx.obj.get("yes", False),
+    )
 
     result = agent.run_skill_directly("code", code=code, filename=filename, action="write")
     console.print(result)
@@ -252,26 +752,55 @@ def code(code: str, filename: str, run: bool):
 @click.option("--pattern", "-p", help="Search pattern (e.g., *.py)")
 def ls(path: str, pattern: Optional[str]):
     """List files in a directory."""
-    agent = create_agent()
+    agent = create_agent(selected_skills=["fs"])
 
     result = agent.run_skill_directly("fs", action="list", path=path, pattern=pattern)
     console.print(result)
 
 
 @cli.command()
-def skills():
+@click.option("--search", "-s", help="Filter skills by name or description")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def skills(search: Optional[str], as_json: bool):
     """List available skills."""
-    term = Terminal()
-    agent = create_agent(verbose=True)
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        agent = create_agent()
+    skill_items = [
+        {
+            "name": name,
+            "description": skill.description,
+            "tools": [tool.name for tool in skill.get_tools()],
+        }
+        for name, skill in sorted(agent.skills.items())
+        if not search
+        or search.lower() in name.lower()
+        or search.lower() in skill.description.lower()
+    ]
 
-    term.print_skill_list(agent.skills)
+    if as_json:
+        click.echo(json.dumps(skill_items, indent=2))
+        return
+
+    table = Table(title=f"Available Skills ({len(skill_items)})")
+    table.add_column("Skill", style="cyan")
+    table.add_column("Description")
+    table.add_column("Tools", justify="right")
+    for item in skill_items:
+        table.add_row(item["name"], item["description"], str(len(item["tools"])))
+    console.print(table)
 
 
-def show_config():
+def show_config(as_json: bool = False):
     """Show current configuration (helper function)."""
-    cfg = Config.load()
+    cfg = Config.load(get_config_path())
+    config_data = cfg.model_dump()
+
+    if as_json:
+        click.echo(json.dumps(config_data, indent=2))
+        return
 
     console.print("[bold]R CLI Configuration[/bold]\n")
+    console.print(f"Config file: {get_config_path()}")
     console.print(f"LLM Provider: {cfg.llm.provider}")
     console.print(f"LLM URL: {cfg.llm.base_url}")
     console.print(f"Model: {cfg.llm.model}")
@@ -283,9 +812,67 @@ def show_config():
 
 
 @cli.command("config")
-def config_command():
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+@click.option("--path", "show_path", is_flag=True, help="Print the configuration file path")
+def config_command(as_json: bool, show_path: bool):
     """Show current configuration."""
-    show_config()
+    if show_path:
+        click.echo(get_config_path())
+        return
+    show_config(as_json=as_json)
+
+
+@cli.command()
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def doctor(as_json: bool):
+    """Diagnose configuration, storage, and local LLM backends."""
+    from r_cli.diagnostics import collect_diagnostics, diagnostics_status
+
+    checks = collect_diagnostics(get_config_path())
+    overall = diagnostics_status(checks)
+
+    if as_json:
+        click.echo(
+            json.dumps(
+                {
+                    "status": overall,
+                    "checks": [check.to_dict() for check in checks],
+                },
+                indent=2,
+            )
+        )
+        return
+
+    symbols = {
+        "ok": "[green]OK[/green]",
+        "warning": "[yellow]WARN[/yellow]",
+        "error": "[red]FAIL[/red]",
+    }
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Status", width=8)
+    table.add_column("Check")
+    table.add_column("Details")
+    for check in checks:
+        table.add_row(symbols[check.status], check.name, check.message)
+        if check.hint:
+            table.add_row("", "", f"[dim]{check.hint}[/dim]")
+
+    console.print(Panel(table, title=f"R CLI doctor: {overall.upper()}"))
+
+
+cli.add_command(doctor, "status")
+
+
+@cli.command()
+@click.argument("shell", type=click.Choice(["bash", "zsh", "fish"]))
+def completion(shell: str):
+    """Generate a shell completion script."""
+    completion_class = get_completion_class(shell)
+    if completion_class is None:
+        raise click.ClickException(f"Shell completion is not available for {shell}")
+
+    script = completion_class(cli, {}, "r", "_R_COMPLETE").source()
+    click.echo(script)
 
 
 @cli.command()
@@ -329,6 +916,7 @@ def interactive_mode(
     show_animation: bool = True,
     use_streaming: bool = True,
     skills_mode: str | None = None,
+    auto_approve: bool = False,
 ):
     """Main interactive mode."""
     term = Terminal(theme=theme)
@@ -357,7 +945,7 @@ def interactive_mode(
         loader.show_once("Initializing R CLI", duration=2)
 
     # Create agent with selected skills
-    agent = create_agent(config, selected_skills)
+    agent = create_agent(config, selected_skills, auto_approve=auto_approve)
 
     # Check LLM connection
     llm_connected = agent.check_connection()
@@ -444,7 +1032,12 @@ def interactive_mode(
 
 
 def single_query(
-    message: str, theme: str = "ps2", show_animation: bool = True, skills_mode: str | None = None
+    message: str,
+    theme: str = "ps2",
+    show_animation: bool = True,
+    skills_mode: str | None = None,
+    use_streaming: bool = True,
+    auto_approve: bool = False,
 ):
     """Execute a single query and exit."""
     term = Terminal(theme=theme)
@@ -457,7 +1050,14 @@ def single_query(
         else:
             config.skills.mode = skills_mode
 
-    agent = create_agent(config)
+    agent = create_agent(config, auto_approve=auto_approve)
+
+    if use_streaming and not agent.tools:
+        term.print_stream_start()
+        for chunk in agent.run_stream(message):
+            term.print_stream_chunk(chunk)
+        term.print_stream_end()
+        return
 
     # Brief animation
     if show_animation:

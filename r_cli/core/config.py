@@ -15,6 +15,22 @@ import yaml
 from pydantic import BaseModel
 
 
+def discover_config_path(start_dir: Optional[str] = None) -> Path:
+    """Find the active config using env, project-local, then user defaults."""
+    environment_path = os.environ.get("R_CLI_CONFIG")
+    if environment_path:
+        return Path(os.path.expanduser(environment_path))
+
+    current = Path(start_dir or os.getcwd()).expanduser().resolve()
+    for directory in [current, *current.parents]:
+        for relative_path in (".r-cli.yaml", ".r-cli/config.yaml"):
+            candidate = directory / relative_path
+            if candidate.exists():
+                return candidate
+
+    return Path(os.path.expanduser("~/.r-cli/config.yaml"))
+
+
 class LLMConfig(BaseModel):
     """LLM backend configuration."""
 
@@ -153,6 +169,38 @@ class SkillsConfig(BaseModel):
             return "full"
 
 
+class SecurityConfig(BaseModel):
+    """Local execution policy for skills and tools."""
+
+    mode: str = "ask"  # ask, strict, permissive
+    confirm_risk: list[str] = ["high", "critical"]
+    allowed_skills: list[str] = []
+    denied_skills: list[str] = []
+    allowed_tools: list[str] = []
+    denied_tools: list[str] = []
+    audit_enabled: bool = True
+    audit_path: str = "audit.jsonl"
+
+
+class MCPServerConfig(BaseModel):
+    """A local MCP server launched over stdio."""
+
+    command: str
+    args: list[str] = []
+    env: dict[str, str] = {}
+    cwd: Optional[str] = None
+    enabled: bool = True
+    timeout_seconds: float = 30.0
+
+
+class MCPConfig(BaseModel):
+    """Model Context Protocol integration."""
+
+    enabled: bool = True
+    auto_load: bool = False
+    servers: dict[str, MCPServerConfig] = {}
+
+
 class Config(BaseModel):
     """Main R CLI configuration."""
 
@@ -160,6 +208,8 @@ class Config(BaseModel):
     rag: RAGConfig = RAGConfig()
     ui: UIConfig = UIConfig()
     skills: SkillsConfig = SkillsConfig()
+    security: SecurityConfig = SecurityConfig()
+    mcp: MCPConfig = MCPConfig()
 
     # Directories
     home_dir: str = "~/.r-cli"
@@ -171,9 +221,9 @@ class Config(BaseModel):
         """Load configuration from YAML file or use defaults."""
 
         if config_path is None:
-            config_path = os.path.expanduser("~/.r-cli/config.yaml")
-
-        path = Path(config_path)
+            path = discover_config_path()
+        else:
+            path = Path(os.path.expanduser(config_path))
 
         if path.exists():
             with open(path) as f:

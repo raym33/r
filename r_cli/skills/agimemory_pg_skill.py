@@ -74,10 +74,6 @@ class AGIMemoryPGSkill(Skill):
         self._embedder = None
         self.embedding_dim = 384  # all-MiniLM-L6-v2
 
-        # Check dependencies
-        if not HAS_PSYCOPG:
-            print("[agimemory_pg] Warning: psycopg not installed. Run: pip install psycopg[binary]")
-
     @property
     def conn(self):
         """Lazy database connection."""
