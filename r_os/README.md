@@ -1,8 +1,12 @@
-# R OS - Terminal UI for Edge Devices (Experimental)
+# R OS Visual Shell for Edge Devices (Experimental)
 
-R OS is a terminal-based interface (TUI) for R CLI, designed for Raspberry Pi and edge devices. It provides an Android-like visual experience in the terminal using [Textual](https://textual.textualize.io/).
+This package is the visual shell for R's Agent OS, designed for Raspberry Pi and edge
+devices. It provides an Android-like terminal interface using
+[Textual](https://textual.textualize.io/).
 
-**Note:** This is NOT an operating system. It's a TUI that runs on top of your existing OS and provides a visual interface to R CLI's skills.
+The actual agent runtime, identities, process table, permissions, workflows, and event
+stream live in `r_cli.agent_os` and are managed with `r os`. This TUI remains an
+experimental presentation layer on top of that runtime.
 
 ## Features
 

@@ -122,6 +122,28 @@ def test_workflow_init_validate_and_run(tmp_path):
     assert payload["steps"][-1]["result"] == 84
 
 
+def test_agent_os_manifest_lifecycle(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"home_dir: {tmp_path / 'home'}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+    manifest = tmp_path / "agent.yaml"
+
+    initialized = runner.invoke(cli, ["os", "init", str(manifest)], env=environment)
+    installed = runner.invoke(
+        cli,
+        ["os", "agent", "install", str(manifest)],
+        env=environment,
+    )
+    listed = runner.invoke(cli, ["os", "agent", "list", "--json"], env=environment)
+    status = runner.invoke(cli, ["os", "status", "--json"], env=environment)
+
+    assert initialized.exit_code == 0
+    assert installed.exit_code == 0
+    assert json.loads(listed.output)[0]["name"] == "researcher"
+    assert json.loads(status.output)["agents"] == 1
+
+
 def test_mcp_add_and_list(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

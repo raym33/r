@@ -760,6 +760,232 @@ steps:
     console.print(f"[green]Created workflow {path}[/green]")
 
 
+@cli.group("os")
+def agent_os_command():
+    """Run and inspect the persistent operating layer for AI agents."""
+
+
+@agent_os_command.command("init")
+@click.argument("path", default="r-agent.yaml", type=click.Path(path_type=Path))
+@click.option("--force", is_flag=True, help="Overwrite an existing manifest")
+def agent_os_init(path: Path, force: bool):
+    """Create an example agent manifest."""
+    if path.exists() and not force:
+        raise click.ClickException(f"File already exists: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        """name: researcher
+description: Local research and document analysis agent
+kind: assistant
+system_prompt: |
+  You are a rigorous local research agent.
+  Cite the files and evidence you use. Never invent missing facts.
+skills:
+  - fs
+  - pdf
+  - pdftools
+  - rag
+  - text
+""",
+        encoding="utf-8",
+    )
+    console.print(f"[green]Created agent manifest {path}[/green]")
+
+
+@agent_os_command.group("agent")
+def agent_os_agents():
+    """Install and inspect agent identities."""
+
+
+@agent_os_agents.command("install")
+@click.argument("manifest", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--replace", is_flag=True, help="Replace an existing agent")
+def agent_os_agent_install(manifest: Path, replace: bool):
+    """Install an agent manifest into the local registry."""
+    from r_cli.agent_os import (
+        AgentOS,
+        AgentOSError,
+        load_agent_manifest,
+        validate_agent_capabilities,
+    )
+
+    try:
+        definition = load_agent_manifest(manifest)
+        validate_agent_capabilities(definition)
+        AgentOS(Config.load()).install(definition, replace=replace)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    console.print(f"[green]Installed agent {definition.name}[/green]")
+
+
+@agent_os_agents.command("list")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_agent_list(as_json: bool):
+    """List installed agents and task counts."""
+    from r_cli.agent_os import AgentOS
+
+    agents = AgentOS(Config.load()).list_agents()
+    if as_json:
+        click.echo(json.dumps(agents, indent=2))
+        return
+    table = Table(title=f"Agent OS identities ({len(agents)})")
+    table.add_column("Agent", style="cyan")
+    table.add_column("Kind")
+    table.add_column("Description")
+    table.add_column("Skills")
+    table.add_column("Tasks", justify="right")
+    for agent in agents:
+        table.add_row(
+            agent["name"],
+            agent["kind"],
+            agent["description"],
+            ", ".join(agent.get("skills") or []) or "-",
+            str(agent["task_count"]),
+        )
+    console.print(table)
+
+
+@agent_os_agents.command("show")
+@click.argument("name")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_agent_show(name: str, as_json: bool):
+    """Show one installed agent manifest."""
+    import yaml
+
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        manifest = AgentOS(Config.load()).get_agent(name)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(manifest.to_dict(), indent=2))
+    else:
+        click.echo(yaml.safe_dump(manifest.to_dict(), sort_keys=False))
+
+
+@agent_os_agents.command("remove")
+@click.argument("name")
+def agent_os_agent_remove(name: str):
+    """Remove an agent without task history."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        AgentOS(Config.load()).remove(name)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    console.print(f"[green]Removed agent {name}[/green]")
+
+
+@agent_os_command.command("run")
+@click.argument("agent_name")
+@click.argument("task", nargs=-1, required=True)
+@click.option("--yes", is_flag=True, help="Approve risky actions without prompting")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+@click.pass_context
+def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json: bool):
+    """Submit and supervise one task for an installed agent."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    auto_approve = yes or ctx.obj.get("yes", False)
+    callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+    try:
+        result = AgentOS(Config.load()).run(
+            agent_name,
+            " ".join(task),
+            approval_callback=callback,
+            auto_approve=auto_approve,
+        )
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(result, indent=2, default=str))
+    elif result["status"] == "completed":
+        console.print(result["result"])
+        console.print(f"[dim]Task {result['id']} completed[/dim]")
+    else:
+        console.print(f"[red]Task {result['id']} failed:[/red] {result['error']}")
+    if result["status"] == "failed":
+        ctx.exit(1)
+
+
+@agent_os_command.command("tasks")
+@click.option("--limit", default=20, type=click.IntRange(min=1, max=1000))
+@click.option("--status", type=click.Choice(["queued", "running", "completed", "failed"]))
+@click.option("--agent", "agent_name")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_tasks(limit: int, status: str | None, agent_name: str | None, as_json: bool):
+    """Inspect the persistent process table."""
+    from r_cli.agent_os import AgentOS
+
+    tasks = AgentOS(Config.load()).list_tasks(limit, status, agent_name)
+    if as_json:
+        click.echo(json.dumps(tasks, indent=2, default=str))
+        return
+    table = Table(title=f"Agent OS tasks ({len(tasks)})")
+    table.add_column("ID", style="cyan")
+    table.add_column("Agent")
+    table.add_column("Status")
+    table.add_column("Created")
+    table.add_column("Input")
+    for task in tasks:
+        table.add_row(
+            task["id"],
+            task["agent_name"],
+            task["status"],
+            task["created_at"],
+            task["input"][:60],
+        )
+    console.print(table)
+
+
+@agent_os_command.command("events")
+@click.option("--limit", default=50, type=click.IntRange(min=1, max=1000))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_events(limit: int, as_json: bool):
+    """Inspect the append-only Agent OS event stream."""
+    from r_cli.agent_os import AgentOS
+
+    events = AgentOS(Config.load()).list_events(limit)
+    if as_json:
+        click.echo(json.dumps(events, indent=2))
+        return
+    table = Table(title=f"Agent OS events ({len(events)})")
+    table.add_column("Time")
+    table.add_column("Event", style="cyan")
+    table.add_column("Agent")
+    table.add_column("Task")
+    for event in events:
+        table.add_row(
+            event["timestamp"],
+            event["event_type"],
+            event["agent_name"] or "-",
+            event["task_id"] or "-",
+        )
+    console.print(table)
+
+
+@agent_os_command.command("status")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_status(as_json: bool):
+    """Show kernel storage and process counts."""
+    from r_cli.agent_os import AgentOS
+
+    status = AgentOS(Config.load()).status()
+    if as_json:
+        click.echo(json.dumps(status, indent=2))
+        return
+    table = Table(show_header=False, box=None)
+    table.add_column("Field", style="cyan")
+    table.add_column("Value")
+    table.add_row("Database", status["database"])
+    table.add_row("Agents", str(status["agents"]))
+    table.add_row("Events", str(status["events"]))
+    for task_status, count in status["tasks"].items():
+        table.add_row(f"Tasks {task_status}", str(count))
+    console.print(Panel(table, title="Agent OS"))
+
+
 @cli.group("mcp")
 def mcp_command():
     """Manage Model Context Protocol servers and tools."""

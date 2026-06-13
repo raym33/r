@@ -170,6 +170,12 @@ r workflow init report.yaml
 r workflow validate report.yaml
 r workflow run report.yaml --var multiplier=3
 
+# Install and run a persistent AI agent
+r os init researcher.yaml
+r os agent install researcher.yaml
+r os run researcher "Analyze the PDFs in this project"
+r os tasks
+
 # Deliberately approve an automated action
 r --yes tool code run_python --arg 'code=print("hello")'
 ```
@@ -230,6 +236,35 @@ r workflow validate workflow.yaml
 r workflow run workflow.yaml --dry-run
 r workflow run workflow.yaml --var expression='100 / 4' --json
 ```
+
+## Agent OS
+
+R includes a persistent operating layer for AI agents. Agent manifests define identity,
+instructions, capabilities, and execution type. SQLite stores the process table and an
+append-only event stream, while every identity receives isolated session memory.
+
+```yaml
+name: researcher
+description: Local research and document analysis agent
+kind: assistant
+system_prompt: |
+  You are a rigorous local research agent.
+  Cite the files and evidence you use.
+skills: [fs, pdf, pdftools, rag, text]
+```
+
+```bash
+r os agent install researcher.yaml
+r os agent list
+r os run researcher "Compare all PDF reports" --json
+r os tasks --agent researcher
+r os events
+r os status
+```
+
+Agents may also use `kind: workflow` with a relative `workflow:` path for deterministic
+processes. All execution remains behind the same permission policy and trace system.
+See [Agent OS architecture](docs/AGENT_OS.md).
 
 ## MCP Plugins
 

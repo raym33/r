@@ -70,18 +70,20 @@ class Agent:
         config: Optional[Config] = None,
         approval_callback: ApprovalCallback | None = None,
         auto_approve: bool = False,
+        source: str = "agent",
+        memory_namespace: str | None = None,
     ):
         self.config = config or Config()
         self.config.ensure_directories()
 
         # Core components
         self.llm = LLMClient(self.config)
-        self.memory = Memory(self.config)
+        self.memory = Memory(self.config, namespace=memory_namespace)
         self.permissions = PermissionManager(
             self.config,
             approval_callback=approval_callback,
             auto_approve=auto_approve,
-            source="agent",
+            source=source,
         )
         self.approval_callback = approval_callback
         self.auto_approve = auto_approve

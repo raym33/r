@@ -55,7 +55,7 @@ class Memory:
     - Long-term: ChromaDB para RAG persistente
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None, namespace: str | None = None):
         self.config = config or Config()
         self.config.ensure_directories()
 
@@ -64,7 +64,9 @@ class Memory:
 
         # Paths
         self.home_dir = Path(os.path.expanduser(self.config.home_dir))
-        self.session_file = self.home_dir / "session.json"
+        session_dir = self.home_dir / "agents" / namespace if namespace else self.home_dir
+        session_dir.mkdir(parents=True, exist_ok=True)
+        self.session_file = session_dir / "session.json"
         self.long_term_dir = Path(os.path.expanduser(self.config.rag.persist_directory))
 
         # ChromaDB para long-term (lazy loading)
