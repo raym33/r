@@ -157,6 +157,7 @@ class MCPClient:
             self.config,
             approval_callback=approval_callback,
             auto_approve=auto_approve,
+            source=f"mcp:{server_name}",
         )
         return permissions.execute(
             f"mcp:{server_name}",

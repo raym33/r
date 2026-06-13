@@ -985,6 +985,7 @@ def register_routes(app: FastAPI) -> None:
             permission_manager = PermissionManager(
                 agent.config,
                 auto_approve=auth.authenticated,
+                source="api",
             )
             result = await asyncio.to_thread(
                 permission_manager.execute,

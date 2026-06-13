@@ -76,6 +76,36 @@ def test_permissions_explain_outputs_risk_json():
     assert payload["requires_confirmation"] is True
 
 
+def test_traces_summary_outputs_json(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    audit_path = tmp_path / "audit.jsonl"
+    config_path.write_text(
+        f"home_dir: {tmp_path}\nsecurity:\n  audit_path: {audit_path}\n",
+        encoding="utf-8",
+    )
+    audit_path.write_text(
+        json.dumps(
+            {
+                "decision": "completed",
+                "skill": "math",
+                "source": "cli",
+                "duration_ms": 12,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        ["traces", "summary", "--json"],
+        env={"R_CLI_CONFIG": str(config_path)},
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["completed"] == 1
+
+
 def test_mcp_add_and_list(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

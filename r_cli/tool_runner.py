@@ -113,6 +113,7 @@ def execute_tool(
         active_config,
         approval_callback=approval_callback,
         auto_approve=auto_approve,
+        source="cli",
     )
     return permissions.execute(skill_name, tool_name, match.tool.handler, arguments)
 

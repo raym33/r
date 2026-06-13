@@ -542,6 +542,98 @@ def permissions_audit(limit: int, as_json: bool):
     console.print(table)
 
 
+@cli.group()
+def traces():
+    """Inspect performance and outcomes of local tool executions."""
+
+
+@traces.command("list")
+@click.option("--limit", default=20, type=click.IntRange(min=1, max=1000))
+@click.option("--decision", type=click.Choice(["completed", "denied", "error"]))
+@click.option("--risk", type=click.Choice(["low", "medium", "high", "critical"]))
+@click.option("--skill")
+@click.option("--source")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def traces_list(
+    limit: int,
+    decision: str | None,
+    risk: str | None,
+    skill: str | None,
+    source: str | None,
+    as_json: bool,
+):
+    """List recent completed, denied, or failed executions."""
+    from r_cli.observability import TraceStore
+
+    records = TraceStore(Config.load()).read(
+        limit=limit,
+        decision=decision,
+        risk=risk,
+        skill=skill,
+        source=source,
+        terminal_only=True,
+    )
+    if as_json:
+        click.echo(json.dumps(records, indent=2))
+        return
+
+    table = Table(title=f"Execution traces ({len(records)})")
+    table.add_column("Time")
+    table.add_column("Status")
+    table.add_column("Source")
+    table.add_column("Target")
+    table.add_column("Risk")
+    table.add_column("Duration")
+    for record in records:
+        duration = record.get("duration_ms")
+        table.add_row(
+            record.get("timestamp", ""),
+            record.get("decision", ""),
+            record.get("source", "local"),
+            f"{record.get('skill', '')}.{record.get('tool', '')}",
+            record.get("risk", ""),
+            f"{duration:.1f} ms" if isinstance(duration, (int, float)) else "-",
+        )
+    console.print(table)
+
+
+@traces.command("summary")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def traces_summary(as_json: bool):
+    """Summarize execution reliability and latency."""
+    from r_cli.observability import TraceStore
+
+    result = TraceStore(Config.load()).summary()
+    if as_json:
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    table = Table(show_header=False, box=None)
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value")
+    table.add_row("Executions", str(result["total"]))
+    table.add_row("Completed", str(result["completed"]))
+    table.add_row("Errors", str(result["errors"]))
+    table.add_row("Denied", str(result["denied"]))
+    table.add_row("Success rate", f"{result['success_rate']:.2f}%")
+    table.add_row("Average latency", f"{result['average_duration_ms']:.1f} ms")
+    table.add_row("P50 latency", f"{result['p50_duration_ms']:.1f} ms")
+    table.add_row("P95 latency", f"{result['p95_duration_ms']:.1f} ms")
+    console.print(Panel(table, title="Execution summary"))
+
+
+@traces.command("export")
+@click.argument("output", type=click.Path(path_type=Path))
+@click.option("--format", "file_format", type=click.Choice(["json", "csv"]))
+def traces_export(output: Path, file_format: str | None):
+    """Export the complete trace history to JSON or CSV."""
+    from r_cli.observability import TraceStore
+
+    selected_format = file_format or ("csv" if output.suffix.lower() == ".csv" else "json")
+    count = TraceStore(Config.load()).export(output, selected_format)
+    console.print(f"[green]Exported {count} trace records to {output}[/green]")
+
+
 @cli.group("mcp")
 def mcp_command():
     """Manage Model Context Protocol servers and tools."""

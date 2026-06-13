@@ -11,6 +11,8 @@ All notable changes to R CLI are documented here.
 - MCP tool auto-loading for the chat agent through `mcp.auto_load`
 - Universal `r tool` runner and project-aware `.r-cli.yaml` profiles
 - Project inspection, shell completion, structured CLI output, and `r doctor`
+- Unified execution traces with source, trace IDs, latency, reliability summaries, and JSON/CSV export
+- `r traces list`, `r traces summary`, and `r traces export`
 
 ### Changed
 - Tool calls initiated by the LLM, CLI, MCP, and REST API now share the same local permission boundary

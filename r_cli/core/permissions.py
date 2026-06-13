@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import time
+import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -130,6 +132,8 @@ class PermissionRequest:
     risk: RiskLevel
     arguments: dict[str, Any]
     reason: str
+    trace_id: str
+    source: str
 
     @property
     def target(self) -> str:
@@ -181,11 +185,13 @@ class PermissionManager:
         config: Config,
         approval_callback: ApprovalCallback | None = None,
         auto_approve: bool = False,
+        source: str = "local",
     ):
         self.config = config
         self.security = config.security
         self.approval_callback = approval_callback
         self.auto_approve = auto_approve
+        self.source = source
 
     def authorize(
         self,
@@ -210,7 +216,13 @@ class PermissionManager:
 
         if skill_name in self.security.allowed_skills or target in self.security.allowed_tools:
             request = PermissionRequest(
-                skill_name, tool_name, risk, audit_arguments, "explicitly allowed by policy"
+                skill_name,
+                tool_name,
+                risk,
+                audit_arguments,
+                "explicitly allowed by policy",
+                uuid.uuid4().hex,
+                self.source,
             )
             self._audit(request, "allowed")
             return request
@@ -228,6 +240,8 @@ class PermissionManager:
                 risk,
                 audit_arguments,
                 "allowed by policy",
+                uuid.uuid4().hex,
+                self.source,
             )
             self._audit(request, "allowed")
             return request
@@ -247,6 +261,8 @@ class PermissionManager:
             risk,
             audit_arguments,
             f"{risk.value}-risk action requires approval",
+            uuid.uuid4().hex,
+            self.source,
         )
         approved = self.auto_approve or (
             self.approval_callback is not None and self.approval_callback(request)
@@ -273,12 +289,15 @@ class PermissionManager:
         """Authorize, execute, and audit a handler."""
         arguments = arguments or {}
         request = self.authorize(skill_name, tool_name, arguments)
+        started_at = time.perf_counter()
         try:
             result = handler(**arguments)
         except Exception as exc:
-            self._audit(request, "error", error=str(exc))
+            duration_ms = (time.perf_counter() - started_at) * 1000
+            self._audit(request, "error", error=str(exc), duration_ms=duration_ms)
             raise
-        self._audit(request, "completed")
+        duration_ms = (time.perf_counter() - started_at) * 1000
+        self._audit(request, "completed", duration_ms=duration_ms)
         return result
 
     def wrap(
@@ -302,7 +321,15 @@ class PermissionManager:
         arguments: dict[str, Any],
         reason: str,
     ) -> PermissionRequest:
-        request = PermissionRequest(skill_name, tool_name, risk, arguments, reason)
+        request = PermissionRequest(
+            skill_name,
+            tool_name,
+            risk,
+            arguments,
+            reason,
+            uuid.uuid4().hex,
+            self.source,
+        )
         self._audit(request, "denied")
         raise PermissionDeniedError(
             f"Permission denied for {request.target} ({risk.value} risk): {reason}"
@@ -313,6 +340,7 @@ class PermissionManager:
         request: PermissionRequest,
         decision: str,
         error: str | None = None,
+        duration_ms: float | None = None,
     ) -> None:
         if not self.security.audit_enabled:
             return
@@ -329,6 +357,8 @@ class PermissionManager:
         }
         if error:
             payload["error"] = error
+        if duration_ms is not None:
+            payload["duration_ms"] = round(duration_ms, 3)
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, default=str) + "\n")
 

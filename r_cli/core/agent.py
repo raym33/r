@@ -81,6 +81,7 @@ class Agent:
             self.config,
             approval_callback=approval_callback,
             auto_approve=auto_approve,
+            source="agent",
         )
         self.approval_callback = approval_callback
         self.auto_approve = auto_approve

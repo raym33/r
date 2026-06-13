@@ -77,6 +77,9 @@ def test_audit_log_records_decisions(tmp_path: Path):
     assert records[-1]["decision"] == "completed"
     assert records[-1]["skill"] == "code"
     assert records[-1]["tool"] == "write_code"
+    assert records[-1]["trace_id"]
+    assert records[-1]["source"] == "local"
+    assert records[-1]["duration_ms"] >= 0
 
 
 def test_audit_log_redacts_secrets(tmp_path: Path):

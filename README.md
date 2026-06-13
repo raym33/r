@@ -160,6 +160,11 @@ r permissions explain docker docker_run
 # Review recent decisions
 r permissions audit
 
+# Inspect reliability and latency across CLI, agents, API, and MCP
+r traces list
+r traces summary
+r traces export traces.csv
+
 # Deliberately approve an automated action
 r --yes tool code run_python --arg 'code=print("hello")'
 ```
@@ -179,6 +184,10 @@ security:
 
 Explicit deny rules always win over `--yes`. Audit records redact common secrets such as
 passwords, tokens, API keys, credentials, and authorization headers.
+
+Every tool execution also receives a trace ID, source, outcome, and duration. Use
+`r traces list` to filter recent runs, `r traces summary` for success rate and P50/P95
+latency, or `r traces export` to analyze the history as JSON or CSV.
 
 ## MCP Plugins
 
