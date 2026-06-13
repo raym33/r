@@ -165,6 +165,11 @@ r traces list
 r traces summary
 r traces export traces.csv
 
+# Create, validate, and run a reproducible workflow
+r workflow init report.yaml
+r workflow validate report.yaml
+r workflow run report.yaml --var multiplier=3
+
 # Deliberately approve an automated action
 r --yes tool code run_python --arg 'code=print("hello")'
 ```
@@ -188,6 +193,43 @@ passwords, tokens, API keys, credentials, and authorization headers.
 Every tool execution also receives a trace ID, source, outcome, and duration. Use
 `r traces list` to filter recent runs, `r traces summary` for success rate and P50/P95
 latency, or `r traces export` to analyze the history as JSON or CSV.
+
+## Workflows
+
+Workflows compose registered R tools without granting arbitrary shell access:
+
+```yaml
+version: 1
+name: calculation-report
+
+variables:
+  expression: 6 * 7
+  multiplier: 2
+
+steps:
+  - id: calculate
+    uses: math.calculate
+    with:
+      expression: "{{ vars.expression }}"
+
+  - id: scale
+    uses: math.calculate
+    depends_on: [calculate]
+    retry: 2
+    with:
+      expression: "{{ steps.calculate.result }} * {{ vars.multiplier }}"
+```
+
+Use `if` for conditional steps and `continue_on_error: true` for recoverable failures.
+Templates run in a sandboxed Jinja environment and preserve native values. Every tool call
+still passes through R's permission policy and appears in traces as
+`workflow:<workflow-name>`.
+
+```bash
+r workflow validate workflow.yaml
+r workflow run workflow.yaml --dry-run
+r workflow run workflow.yaml --var expression='100 / 4' --json
+```
 
 ## MCP Plugins
 

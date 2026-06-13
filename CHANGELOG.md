@@ -13,6 +13,8 @@ All notable changes to R CLI are documented here.
 - Project inspection, shell completion, structured CLI output, and `r doctor`
 - Unified execution traces with source, trace IDs, latency, reliability summaries, and JSON/CSV export
 - `r traces list`, `r traces summary`, and `r traces export`
+- Declarative YAML workflows with dependencies, typed templates, conditions, retries, variables, and dry runs
+- `r workflow init`, `r workflow validate`, and `r workflow run`
 
 ### Changed
 - Tool calls initiated by the LLM, CLI, MCP, and REST API now share the same local permission boundary

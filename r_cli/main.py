@@ -634,6 +634,132 @@ def traces_export(output: Path, file_format: str | None):
     console.print(f"[green]Exported {count} trace records to {output}[/green]")
 
 
+@cli.group()
+def workflow():
+    """Validate and run reproducible YAML workflows."""
+
+
+@workflow.command("validate")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def workflow_validate(path: Path, as_json: bool):
+    """Validate structure, dependencies, tools, and argument names."""
+    from r_cli.tool_runner import ToolRunnerError
+    from r_cli.workflows import WorkflowError, load_workflow, validate_workflow_tools
+
+    try:
+        definition = load_workflow(path)
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            validate_workflow_tools(definition)
+    except (WorkflowError, ToolRunnerError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    result = {
+        "valid": True,
+        "name": definition.name,
+        "version": definition.version,
+        "steps": len(definition.steps),
+    }
+    if as_json:
+        click.echo(json.dumps(result, indent=2))
+    else:
+        console.print(
+            f"[green]Valid workflow[/green] {definition.name} ({len(definition.steps)} steps)"
+        )
+
+
+@workflow.command("run")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--var", "values", multiple=True, metavar="KEY=VALUE", help="Workflow variable")
+@click.option("--dry-run", is_flag=True, help="Render and plan without executing tools")
+@click.option("--yes", is_flag=True, help="Approve risky actions without prompting")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+@click.pass_context
+def workflow_run(
+    ctx,
+    path: Path,
+    values: tuple[str, ...],
+    dry_run: bool,
+    yes: bool,
+    as_json: bool,
+):
+    """Execute a workflow with dependency-aware tool calls."""
+    from r_cli.tool_runner import ToolRunnerError, parse_key_value
+    from r_cli.workflows import WorkflowError, load_workflow, run_workflow
+
+    try:
+        variables = dict(parse_key_value(value) for value in values)
+        definition = load_workflow(path)
+        auto_approve = yes or ctx.obj.get("yes", False)
+        callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+        result = run_workflow(
+            definition,
+            variables=variables,
+            approval_callback=callback,
+            auto_approve=auto_approve,
+            dry_run=dry_run,
+        )
+    except (WorkflowError, ToolRunnerError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    payload = result.to_dict()
+    if as_json:
+        click.echo(json.dumps(payload, indent=2, default=str))
+    else:
+        table = Table(title=f"Workflow: {result.name}")
+        table.add_column("Step", style="cyan")
+        table.add_column("Tool")
+        table.add_column("Status")
+        table.add_column("Attempts", justify="right")
+        table.add_column("Duration", justify="right")
+        for step in result.steps:
+            table.add_row(
+                step.id,
+                step.target,
+                step.status,
+                str(step.attempts or "-"),
+                f"{step.duration_ms:.1f} ms",
+            )
+        console.print(table)
+        console.print(f"Status: [bold]{result.status}[/bold] ({result.duration_ms:.1f} ms)")
+
+    if result.status == "error":
+        ctx.exit(1)
+
+
+@workflow.command("init")
+@click.argument("path", default="r-workflow.yaml", type=click.Path(path_type=Path))
+@click.option("--force", is_flag=True, help="Overwrite an existing file")
+def workflow_init(path: Path, force: bool):
+    """Create an example workflow."""
+    if path.exists() and not force:
+        raise click.ClickException(f"File already exists: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        """version: 1
+name: calculation-report
+
+variables:
+  expression: 6 * 7
+  multiplier: 2
+
+steps:
+  - id: calculate
+    uses: math.calculate
+    with:
+      expression: "{{ vars.expression }}"
+
+  - id: scale
+    uses: math.calculate
+    depends_on: [calculate]
+    with:
+      expression: "{{ steps.calculate.result }} * {{ vars.multiplier }}"
+""",
+        encoding="utf-8",
+    )
+    console.print(f"[green]Created workflow {path}[/green]")
+
+
 @cli.group("mcp")
 def mcp_command():
     """Manage Model Context Protocol servers and tools."""

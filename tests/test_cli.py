@@ -106,6 +106,22 @@ def test_traces_summary_outputs_json(tmp_path):
     assert json.loads(result.output)["completed"] == 1
 
 
+def test_workflow_init_validate_and_run(tmp_path):
+    runner = CliRunner()
+    path = tmp_path / "workflow.yaml"
+
+    initialized = runner.invoke(cli, ["workflow", "init", str(path)])
+    validated = runner.invoke(cli, ["workflow", "validate", str(path), "--json"])
+    executed = runner.invoke(cli, ["workflow", "run", str(path), "--json"])
+
+    assert initialized.exit_code == 0
+    assert json.loads(validated.output)["valid"] is True
+    payload = json.loads(executed.output)
+    assert executed.exit_code == 0
+    assert payload["status"] == "completed"
+    assert payload["steps"][-1]["result"] == 84
+
+
 def test_mcp_add_and_list(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

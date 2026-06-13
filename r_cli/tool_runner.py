@@ -104,6 +104,7 @@ def execute_tool(
     config: Config | None = None,
     approval_callback: ApprovalCallback | None = None,
     auto_approve: bool = False,
+    source: str = "cli",
 ) -> Any:
     """Resolve, validate, and execute a tool."""
     active_config = config or Config.load()
@@ -113,7 +114,7 @@ def execute_tool(
         active_config,
         approval_callback=approval_callback,
         auto_approve=auto_approve,
-        source="cli",
+        source=source,
     )
     return permissions.execute(skill_name, tool_name, match.tool.handler, arguments)
 
