@@ -132,7 +132,7 @@ class CodeSkill(Skill):
                         break
 
             # Output path
-            out_path = Path(self.output_dir) / filename
+            out_path = self._resolve_output_file(filename)
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write file
@@ -148,6 +148,23 @@ class CodeSkill(Skill):
 
         except Exception as e:
             return f"Error writing code: {e}"
+
+    def _resolve_output_file(self, filename: str) -> Path:
+        """Resolve a generated file path without escaping the output directory."""
+        if not filename or not filename.strip():
+            raise ValueError("filename must be a non-empty relative path")
+
+        relative = Path(filename).expanduser()
+        if relative.is_absolute():
+            raise ValueError("filename must be relative to the output directory")
+
+        output_root = Path(self.output_dir).expanduser().resolve(strict=False)
+        resolved = (output_root / relative).resolve(strict=False)
+        if resolved != output_root and output_root not in resolved.parents:
+            raise ValueError("filename must stay inside the output directory")
+        if resolved == output_root:
+            raise ValueError("filename must include a file name")
+        return resolved
 
     def run_python(self, code: str, timeout: int = 30) -> str:
         """Execute Python code in an isolated environment."""

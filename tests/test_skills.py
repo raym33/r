@@ -134,6 +134,36 @@ class TestCodeSkill:
         assert "✅" in result
         assert Path(temp_dir, "hello.py").exists()
 
+    def test_write_code_allows_nested_relative_paths(self, temp_dir, config):
+        """Test generated code can be written into subdirectories."""
+        skill = CodeSkill(config)
+        skill.output_dir = temp_dir
+
+        result = skill.write_code(
+            code="print('nested')",
+            filename="nested/hello.py",
+            language="python",
+        )
+
+        assert "✅" in result
+        assert Path(temp_dir, "nested", "hello.py").exists()
+
+    @pytest.mark.parametrize("filename", ["/tmp/escape.py", "../escape.py", "nested/../../x.py"])
+    def test_write_code_rejects_paths_outside_output_dir(self, temp_dir, config, filename):
+        """Test generated code cannot escape the configured output directory."""
+        skill = CodeSkill(config)
+        skill.output_dir = temp_dir
+
+        result = skill.write_code(
+            code="print('escape')",
+            filename=filename,
+            language="python",
+        )
+
+        assert "Error writing code" in result
+        assert "output directory" in result
+        assert not Path(temp_dir).parent.joinpath("escape.py").exists()
+
     def test_run_python(self, temp_dir, config):
         """Test ejecutar Python."""
         skill = CodeSkill(config)
