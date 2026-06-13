@@ -119,9 +119,7 @@ def load_workflow(path: str | Path) -> Workflow:
         raise WorkflowError("Workflow must be a YAML object")
     unknown_root_keys = set(raw) - ROOT_KEYS
     if unknown_root_keys:
-        raise WorkflowError(
-            f"Unknown workflow fields: {', '.join(sorted(unknown_root_keys))}"
-        )
+        raise WorkflowError(f"Unknown workflow fields: {', '.join(sorted(unknown_root_keys))}")
     if raw.get("version", 1) != 1:
         raise WorkflowError("Unsupported workflow version; expected version: 1")
     name = raw.get("name") or workflow_path.stem
@@ -175,7 +173,8 @@ def run_workflow(
         ready = [
             step
             for step in workflow.steps
-            if step.id in pending and all(dependency in context["steps"] for dependency in step.depends_on)
+            if step.id in pending
+            and all(dependency in context["steps"] for dependency in step.depends_on)
         ]
         if not ready:
             raise WorkflowError("Workflow dependencies could not be resolved")
@@ -210,9 +209,7 @@ def run_workflow(
             results.append(result)
             context["steps"][step.id] = {
                 "status": result.status,
-                "result": f"<result:{step.id}>"
-                if result.status == "planned"
-                else result.result,
+                "result": f"<result:{step.id}>" if result.status == "planned" else result.result,
                 "error": result.error,
             }
             if result.status == "error":
@@ -251,9 +248,7 @@ def _parse_step(raw: Any, index: int) -> WorkflowStep:
         raise WorkflowError(f"Step {index} must be an object")
     unknown_keys = set(raw) - STEP_KEYS
     if unknown_keys:
-        raise WorkflowError(
-            f"Step {index} has unknown fields: {', '.join(sorted(unknown_keys))}"
-        )
+        raise WorkflowError(f"Step {index} has unknown fields: {', '.join(sorted(unknown_keys))}")
     step_id = raw.get("id")
     uses = raw.get("uses")
     if not isinstance(step_id, str) or not step_id.strip():

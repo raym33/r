@@ -198,7 +198,7 @@ class IPSkill(Skill):
 
         try:
             # Determine class
-            first_octet = int(ip.split(".")[0])
+            first_octet = int(ip.split(".", 1)[0])
             if first_octet < 128:
                 ip_class = "A"
                 default_mask = "255.0.0.0"

@@ -67,15 +67,11 @@ class TraceStore:
             "errors": errors,
             "denied": decisions["denied"],
             "success_rate": round(completed / executed * 100, 2) if executed else 0.0,
-            "average_duration_ms": round(sum(durations) / len(durations), 3)
-            if durations
-            else 0.0,
+            "average_duration_ms": round(sum(durations) / len(durations), 3) if durations else 0.0,
             "p50_duration_ms": _percentile(durations, 0.50),
             "p95_duration_ms": _percentile(durations, 0.95),
             "by_skill": dict(Counter(record.get("skill", "unknown") for record in records)),
-            "by_source": dict(
-                Counter(record.get("source", "local") for record in records)
-            ),
+            "by_source": dict(Counter(record.get("source", "local") for record in records)),
         }
 
     def export(self, output: Path, file_format: str) -> int:

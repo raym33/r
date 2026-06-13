@@ -316,7 +316,7 @@ class SSHSkill(Skill):
                 dest = Path(local_path).expanduser()
             else:
                 # Extract filename from remote path
-                filename = remote_path.split(":")[-1].split("/")[-1]
+                filename = remote_path.rsplit(":", 1)[-1].rsplit("/", 1)[-1]
                 dest = Path(self.output_dir) / filename
 
             dest.parent.mkdir(parents=True, exist_ok=True)
