@@ -66,6 +66,27 @@ def test_explicit_deny_wins_over_auto_approve(tmp_path: Path):
         manager.execute("code", "write_code", lambda **_: "written", {"code": "x"})
 
 
+def test_empty_capability_whitelist_denies_every_skill(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.skills.mode = "whitelist"
+    config.skills.enabled = []
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="capability whitelist"):
+        manager.execute("math", "calculate", lambda **_: 4, {"expression": "2 + 2"})
+
+
+def test_capability_whitelist_allows_only_named_skills(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.skills.mode = "whitelist"
+    config.skills.enabled = ["math"]
+    manager = PermissionManager(config, auto_approve=True)
+
+    assert manager.execute("math", "calculate", lambda **_: 4, {}) == 4
+    with pytest.raises(PermissionDeniedError, match="capability whitelist"):
+        manager.execute("fs", "read_file", lambda **_: "secret", {"path": "secret.txt"})
+
+
 def test_audit_log_records_decisions(tmp_path: Path):
     config = permission_config(tmp_path)
     manager = PermissionManager(config, auto_approve=True)
@@ -176,6 +197,43 @@ def test_explicit_host_argument_uses_allowlist(tmp_path: Path):
         )
 
 
+def test_nested_network_destination_uses_allowlist(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.security.network_access = True
+    config.security.allowed_hosts = ["smtp.example.com"]
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="not explicitly allowed"):
+        manager.execute(
+            "email",
+            "send",
+            lambda **_: "sent",
+            {"connection": {"smtp_server": "evil.example"}},
+        )
+
+
+def test_undeclared_network_skill_is_denied_by_default(tmp_path: Path):
+    manager = PermissionManager(permission_config(tmp_path), auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="network access is disabled"):
+        manager.execute(
+            "network",
+            "http_get",
+            lambda **_: "leaked",
+            {"url": "https://example.com/private"},
+        )
+
+
+def test_opaque_network_destination_stays_blocked_when_network_is_enabled(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.security.network_access = True
+    config.security.allowed_hosts = ["api.exchangerate.host"]
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="cannot be verified"):
+        manager.execute("currency", "currency_rates", lambda **_: "leaked", {"base": "USD"})
+
+
 def test_filesystem_path_must_stay_inside_roots(tmp_path: Path):
     config = permission_config(tmp_path)
     allowed = tmp_path / "workspace"
@@ -198,4 +256,35 @@ def test_filesystem_path_must_stay_inside_roots(tmp_path: Path):
             "read_file",
             lambda **_: "blocked",
             {"path": str(allowed / ".." / "secret.txt")},
+        )
+
+
+def test_nested_filesystem_path_must_stay_inside_roots(tmp_path: Path):
+    config = permission_config(tmp_path)
+    allowed = tmp_path / "workspace"
+    allowed.mkdir()
+    config.security.filesystem_roots = [str(allowed)]
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="outside the allowed"):
+        manager.execute(
+            "fs",
+            "batch",
+            lambda **_: "blocked",
+            {"job": {"output_file": str(tmp_path / "secret.txt")}},
+        )
+
+
+def test_empty_enforced_filesystem_roots_deny_path_access(tmp_path: Path):
+    config = permission_config(tmp_path)
+    config.security.enforce_filesystem_roots = True
+    config.security.filesystem_roots = []
+    manager = PermissionManager(config, auto_approve=True)
+
+    with pytest.raises(PermissionDeniedError, match="outside the allowed"):
+        manager.execute(
+            "code",
+            "write_code",
+            lambda **_: "blocked",
+            {"filename": str(tmp_path / "script.py"), "code": "print('no')"},
         )

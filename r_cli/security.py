@@ -8,9 +8,15 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 NETWORK_SKILLS = {
+    "android",
+    "currency",
     "distributed_ai",
     "email",
+    "hublab",
     "http",
+    "ip",
+    "network",
+    "openapi",
     "p2p",
     "rss",
     "sitemap",
@@ -26,6 +32,7 @@ PARAMETERIZED_NETWORK_SKILLS = {
     "distributed_ai",
     "email",
     "http",
+    "network",
     "p2p",
     "rss",
     "sitemap",
@@ -34,6 +41,7 @@ PARAMETERIZED_NETWORK_SKILLS = {
 }
 
 HOST_ARGUMENTS = {
+    "address",
     "host",
     "hostname",
     "server",
@@ -43,20 +51,43 @@ HOST_ARGUMENTS = {
 UNCONFINED_SKILLS = {"code", "docker", "plugin", "power", "ssh", "system"}
 
 PATH_ARGUMENTS = {
+    "archive_path",
+    "audio_path",
+    "base_path",
+    "compose_file",
     "cwd",
+    "csv",
+    "csv_path",
+    "db_path",
     "destination",
     "directory",
+    "env_file",
     "file",
     "file_path",
+    "filename",
+    "files",
     "folder",
+    "icons_path",
+    "identity_file",
+    "image_path",
     "input",
     "input_file",
+    "input_path",
+    "input_paths",
     "local_path",
+    "manifest_path",
     "output",
     "output_dir",
     "output_file",
+    "output_path",
     "path",
+    "pdf_path",
+    "save_path",
+    "schema_path",
+    "script_path",
     "source",
+    "source_paths",
+    "template_file",
 }
 
 
@@ -101,6 +132,38 @@ def host_is_allowed(url: str, allowed_hosts: list[str]) -> bool:
     return bool(hostname) and hostname in {host.rstrip(".").lower() for host in allowed_hosts}
 
 
+def normalize_host_rule(host: str) -> str:
+    """Validate and normalize one exact host allowlist entry."""
+    normalized = host.strip().rstrip(".").lower()
+    if not normalized:
+        raise ValueError("host must not be empty")
+    if any(character.isspace() for character in normalized):
+        raise ValueError("host must not contain whitespace")
+    if "://" in normalized or any(character in normalized for character in "/?#@"):
+        raise ValueError("use a host name or IP address without a URL, path, or credentials")
+
+    candidate = normalized.strip("[]")
+    try:
+        ipaddress.ip_address(candidate)
+        return candidate
+    except ValueError:
+        pass
+
+    if ":" in candidate:
+        raise ValueError("host allowlist entries must not include ports")
+    labels = candidate.split(".")
+    if any(
+        not label
+        or len(label) > 63
+        or label.startswith("-")
+        or label.endswith("-")
+        or not all(character.isalnum() or character == "-" for character in label)
+        for label in labels
+    ):
+        raise ValueError("invalid host name")
+    return candidate
+
+
 def find_urls(value: object) -> list[str]:
     """Find URL-shaped strings recursively in tool arguments."""
     if isinstance(value, str):
@@ -114,11 +177,17 @@ def find_urls(value: object) -> list[str]:
 
 def find_hosts(arguments: dict[str, object]) -> list[str]:
     """Extract explicit host arguments from network tools."""
-    return [
-        value.rstrip(".").lower()
-        for key, value in arguments.items()
-        if key.lower() in HOST_ARGUMENTS and isinstance(value, str) and value
-    ]
+    hosts: list[str] = []
+    for key, value in arguments.items():
+        if key.lower() in HOST_ARGUMENTS and isinstance(value, str) and value:
+            hosts.append(value.strip().strip("[]").rstrip(".").lower())
+        elif isinstance(value, dict):
+            hosts.extend(find_hosts(value))
+        elif isinstance(value, list):
+            hosts.extend(
+                host for item in value if isinstance(item, dict) for host in find_hosts(item)
+            )
+    return hosts
 
 
 def find_paths(arguments: dict[str, object]) -> list[Path]:
@@ -126,11 +195,17 @@ def find_paths(arguments: dict[str, object]) -> list[Path]:
     paths: list[Path] = []
     for key, value in arguments.items():
         normalized = key.lower()
-        if normalized not in PATH_ARGUMENTS or not isinstance(value, str) or not value:
-            continue
-        if urlparse(value).scheme:
-            continue
-        paths.append(Path(value).expanduser().resolve(strict=False))
+        if normalized in PATH_ARGUMENTS:
+            values = value if isinstance(value, list) else [value]
+            for item in values:
+                if isinstance(item, str) and item and not urlparse(item).scheme:
+                    paths.append(Path(item).expanduser().resolve(strict=False))
+        if isinstance(value, dict):
+            paths.extend(find_paths(value))
+        elif isinstance(value, list):
+            paths.extend(
+                path for item in value if isinstance(item, dict) for path in find_paths(item)
+            )
     return paths
 
 

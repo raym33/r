@@ -98,6 +98,7 @@ class AgentOS:
 
     def install(self, manifest: AgentManifest, replace: bool = False) -> None:
         """Install an agent identity from a validated manifest."""
+        validate_agent_capabilities(manifest)
         now = _now()
         payload = json.dumps(manifest.to_dict())
         with self._connect() as connection:
@@ -232,9 +233,6 @@ class AgentOS:
 
         config = self.config.model_copy(deep=True)
         _apply_agent_security(config, manifest)
-        if manifest.skills:
-            config.skills.mode = "whitelist"
-            config.skills.enabled = manifest.skills
         agent = Agent(
             config,
             approval_callback=approval_callback,
@@ -455,13 +453,28 @@ def load_agent_manifest(path: str | Path) -> AgentManifest:
             raise AgentOSError(f"Agent workflow not found: {workflow_path}")
         workflow = str(workflow_path)
 
+    network_access = raw.get("network_access", False)
+    unsafe_capabilities = raw.get("unsafe_capabilities", False)
+    if not isinstance(network_access, bool):
+        raise AgentOSError("Agent network_access must be true or false")
+    if not isinstance(unsafe_capabilities, bool):
+        raise AgentOSError("Agent unsafe_capabilities must be true or false")
+
     allowed_hosts = raw.get("allowed_hosts", [])
     if not isinstance(allowed_hosts, list) or not all(
         isinstance(host, str) and host for host in allowed_hosts
     ):
         raise AgentOSError("Agent allowed_hosts must be a list of host names")
+    from r_cli.security import normalize_host_rule
+
+    try:
+        allowed_hosts = [normalize_host_rule(host) for host in allowed_hosts]
+    except ValueError as exc:
+        raise AgentOSError(f"Invalid agent allowed host: {exc}") from exc
     roots = raw.get("filesystem_roots", [])
-    if not isinstance(roots, list) or not all(isinstance(root, str) for root in roots):
+    if not isinstance(roots, list) or not all(
+        isinstance(root, str) and root.strip() for root in roots
+    ):
         raise AgentOSError("Agent filesystem_roots must be a list of paths")
     resolved_roots = [
         str((manifest_path.parent / root).resolve()) if not Path(root).is_absolute() else root
@@ -475,38 +488,67 @@ def load_agent_manifest(path: str | Path) -> AgentManifest:
         system_prompt=system_prompt.strip(),
         skills=skills,
         workflow=workflow,
-        network_access=bool(raw.get("network_access", False)),
+        network_access=network_access,
         allowed_hosts=allowed_hosts,
         filesystem_roots=resolved_roots,
-        unsafe_capabilities=bool(raw.get("unsafe_capabilities", False)),
+        unsafe_capabilities=unsafe_capabilities,
     )
 
 
 def validate_agent_capabilities(manifest: AgentManifest) -> None:
     """Ensure native skill capabilities exist before installing an agent."""
-    if not manifest.skills:
-        return
+    if not isinstance(manifest.network_access, bool):
+        raise AgentOSError("Agent network_access must be true or false")
+    if not isinstance(manifest.unsafe_capabilities, bool):
+        raise AgentOSError("Agent unsafe_capabilities must be true or false")
+    if manifest.skills is not None and (
+        not isinstance(manifest.skills, list)
+        or not all(isinstance(skill, str) and skill for skill in manifest.skills)
+    ):
+        raise AgentOSError("Agent skills must be a list of names")
+    if manifest.allowed_hosts is not None and (
+        not isinstance(manifest.allowed_hosts, list)
+        or not all(isinstance(host, str) and host for host in manifest.allowed_hosts)
+    ):
+        raise AgentOSError("Agent allowed_hosts must be a list of host names")
+    if manifest.filesystem_roots is not None and (
+        not isinstance(manifest.filesystem_roots, list)
+        or not all(isinstance(root, str) and root for root in manifest.filesystem_roots)
+    ):
+        raise AgentOSError("Agent filesystem_roots must be a list of paths")
+
     from r_cli.skills import get_all_skills
 
     available = {skill.name for skill in get_all_skills()}
-    unknown = sorted(set(manifest.skills) - available)
+    skills = set(manifest.skills or [])
+    unknown = sorted(skills - available)
     if unknown:
         raise AgentOSError(f"Unknown agent skills: {', '.join(unknown)}")
     from r_cli.security import UNCONFINED_SKILLS
 
-    broad = sorted(set(manifest.skills) & UNCONFINED_SKILLS)
+    broad = sorted(skills & UNCONFINED_SKILLS)
     if broad and not manifest.unsafe_capabilities:
         raise AgentOSError(
             "Broad host capabilities require unsafe_capabilities: true: " + ", ".join(broad)
         )
     if manifest.network_access and not manifest.allowed_hosts:
         raise AgentOSError("Network-enabled agents require at least one allowed host")
+    if manifest.allowed_hosts:
+        from r_cli.security import normalize_host_rule
+
+        try:
+            manifest.allowed_hosts = [normalize_host_rule(host) for host in manifest.allowed_hosts]
+        except (TypeError, ValueError) as exc:
+            raise AgentOSError(f"Invalid agent allowed host: {exc}") from exc
 
 
 def _apply_agent_security(config: Config, manifest: AgentManifest) -> None:
+    config.skills.mode = "whitelist"
+    config.skills.enabled = list(manifest.skills or [])
     config.security.network_access = manifest.network_access
     config.security.allowed_hosts = manifest.allowed_hosts or []
     config.security.filesystem_roots = manifest.filesystem_roots or []
+    config.security.enforce_filesystem_roots = True
 
 
 def _task_dict(row: sqlite3.Row) -> dict[str, Any]:

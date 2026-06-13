@@ -4,8 +4,12 @@ import pytest
 
 from r_cli.core.config import Config
 from r_cli.security import (
+    NETWORK_SKILLS,
+    find_hosts,
+    find_paths,
     is_loopback_host,
     is_loopback_url,
+    normalize_host_rule,
     security_report,
     validate_local_llm_endpoint,
 )
@@ -64,3 +68,72 @@ def test_only_loopback_bind_hosts_are_private():
     assert is_loopback_host("localhost")
     assert not is_loopback_host("0.0.0.0")
     assert not is_loopback_host("192.168.1.20")
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("API.Example.COM.", "api.example.com"),
+        ("127.0.0.1", "127.0.0.1"),
+        ("[::1]", "::1"),
+    ],
+)
+def test_host_allowlist_rules_are_normalized(value, expected):
+    assert normalize_host_rule(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "https://api.example.com",
+        "api.example.com:443",
+        "*.example.com",
+        "user@example.com",
+        "api.example.com/path",
+    ],
+)
+def test_host_allowlist_rules_reject_ambiguous_values(value):
+    with pytest.raises(ValueError):
+        normalize_host_rule(value)
+
+
+def test_nested_host_and_path_arguments_are_discovered(tmp_path):
+    document = tmp_path / "workspace" / "report.txt"
+    arguments = {
+        "connection": {"server": "SMTP.Example.com."},
+        "jobs": [{"options": {"output_file": str(document)}}],
+    }
+
+    assert find_hosts(arguments) == ["smtp.example.com"]
+    assert find_paths(arguments) == [document.resolve()]
+
+
+def test_path_lists_and_common_filename_fields_are_discovered(tmp_path):
+    arguments = {
+        "filename": str(tmp_path / "script.py"),
+        "input_paths": [
+            str(tmp_path / "one.pdf"),
+            str(tmp_path / "two.pdf"),
+        ],
+    }
+
+    assert find_paths(arguments) == [
+        (tmp_path / "script.py").resolve(),
+        (tmp_path / "one.pdf").resolve(),
+        (tmp_path / "two.pdf").resolve(),
+    ]
+
+
+def test_known_network_capabilities_are_governed():
+    assert {
+        "android",
+        "currency",
+        "hublab",
+        "http",
+        "ip",
+        "network",
+        "openapi",
+        "social",
+        "weather",
+        "websearch",
+    } <= NETWORK_SKILLS

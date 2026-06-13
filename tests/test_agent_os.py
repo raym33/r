@@ -70,6 +70,13 @@ def test_duplicate_agent_requires_replace(tmp_path):
     assert runtime.get_agent("writer").description == "Second"
 
 
+def test_programmatic_install_validates_broad_capabilities(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+
+    with pytest.raises(AgentOSError, match="unsafe_capabilities"):
+        runtime.install(AgentManifest("coder", "Coder", skills=["code"]))
+
+
 def test_run_records_completed_task_and_events(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))
@@ -147,3 +154,119 @@ def test_network_agent_requires_explicit_hosts():
         validate_agent_capabilities(
             AgentManifest("agent", "Agent", skills=["http"], network_access=True)
         )
+
+
+def test_network_policy_is_validated_even_without_skills():
+    with pytest.raises(AgentOSError, match="allowed host"):
+        validate_agent_capabilities(AgentManifest("agent", "Agent", network_access=True))
+
+
+def test_empty_agent_skill_list_is_a_deny_all_capability_set(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    manifest = AgentManifest("chat-only", "No tool access", skills=[])
+    captured = {}
+
+    class FakeLLM:
+        def set_system_prompt(self, prompt):
+            captured["prompt"] = prompt
+
+    class FakeAgent:
+        def __init__(self, config, **kwargs):
+            captured["mode"] = config.skills.mode
+            captured["enabled"] = config.skills.enabled
+            captured["enforce_roots"] = config.security.enforce_filesystem_roots
+            self.llm = FakeLLM()
+
+        def load_skills(self, verbose=False):
+            captured["loaded"] = True
+
+        def run(self, task_input, show_thinking=False):
+            return "done"
+
+    with patch("r_cli.core.agent.Agent", FakeAgent):
+        result = runtime._run_assistant(manifest, "Hello", None, False)
+
+    assert result == "done"
+    assert captured["mode"] == "whitelist"
+    assert captured["enabled"] == []
+    assert captured["enforce_roots"] is True
+
+
+def test_workflow_agent_uses_the_same_capability_boundary(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    workflow = tmp_path / "workflow.yaml"
+    workflow.write_text("steps: []\n", encoding="utf-8")
+    manifest = AgentManifest(
+        "calculator",
+        "Restricted workflow",
+        kind="workflow",
+        workflow=str(workflow),
+        skills=["math"],
+    )
+    captured = {}
+
+    class FakeResult:
+        status = "ok"
+        steps = []
+
+        def to_dict(self):
+            return {"status": "ok"}
+
+    def fake_run_workflow(definition, **kwargs):
+        config = kwargs["config"]
+        captured["mode"] = config.skills.mode
+        captured["enabled"] = config.skills.enabled
+        captured["enforce_roots"] = config.security.enforce_filesystem_roots
+        return FakeResult()
+
+    with (
+        patch("r_cli.workflows.load_workflow", return_value={"steps": []}),
+        patch("r_cli.workflows.run_workflow", side_effect=fake_run_workflow),
+    ):
+        result = runtime._run_workflow_agent(manifest, "Calculate", None, False)
+
+    assert result == {"status": "ok"}
+    assert captured == {
+        "mode": "whitelist",
+        "enabled": ["math"],
+        "enforce_roots": True,
+    }
+
+
+@pytest.mark.parametrize("field", ["network_access", "unsafe_capabilities"])
+def test_manifest_rejects_string_booleans(tmp_path, field):
+    manifest = tmp_path / "agent.yaml"
+    manifest.write_text(
+        f"""
+name: unsafe
+description: Invalid boolean
+skills: []
+{field}: "false"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AgentOSError, match=field):
+        load_agent_manifest(manifest)
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["https://api.example.com", "api.example.com:443", "*.example.com"],
+)
+def test_manifest_rejects_ambiguous_allowed_hosts(tmp_path, host):
+    manifest = tmp_path / "agent.yaml"
+    manifest.write_text(
+        f"""
+name: networked
+description: Invalid host rule
+skills: [http]
+network_access: true
+allowed_hosts:
+  - "{host}"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AgentOSError, match="Invalid agent allowed host"):
+        load_agent_manifest(manifest)

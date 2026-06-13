@@ -217,6 +217,17 @@ class PermissionManager:
         risk = classify_risk(skill_name, tool_name, arguments)
         audit_arguments = _redact_arguments(arguments)
 
+        if self.config.skills.mode == "whitelist" and not self.config.skills.is_skill_enabled(
+            skill_name
+        ):
+            return self._deny(
+                skill_name,
+                tool_name,
+                RiskLevel.CRITICAL,
+                audit_arguments,
+                "skill is not granted by the active capability whitelist",
+            )
+
         if skill_name in NETWORK_SKILLS:
             if not self.security.network_access:
                 return self._deny(
@@ -266,7 +277,7 @@ class PermissionManager:
                     "destination host is not explicitly allowed",
                 )
 
-        if self.security.filesystem_roots:
+        if self.security.filesystem_roots or self.security.enforce_filesystem_roots:
             blocked_paths = [
                 path
                 for path in find_paths(arguments)

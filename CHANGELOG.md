@@ -23,6 +23,9 @@ All notable changes to R CLI are documented here.
 - Local-only LLM endpoint enforcement and deny-by-default outbound tool networking
 - Per-agent filesystem roots, network host allowlists, and `r os security`
 - Explicit `--expose` requirement for non-loopback API binds
+- Fail-closed Agent OS capability whitelists and filesystem roots
+- Recursive path and network destination checks for governed tool arguments
+- Strict agent manifest booleans and exact host allowlist validation
 
 ### Changed
 - Tool calls initiated by the LLM, CLI, MCP, and REST API now share the same local permission boundary

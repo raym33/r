@@ -10,7 +10,7 @@ Under the default configuration:
 1. Prompts may only be sent to an LLM endpoint on `localhost`, `127.0.0.1`, or `::1`.
 2. Tool skills with outbound network capability are denied.
 3. Agent network access requires both `network_access: true` and explicit allowed hosts.
-4. Agent file access can be constrained to resolved filesystem roots.
+4. Agent file access is denied unless the path resolves inside a declared filesystem root.
 5. MCP calls are classified as critical and require approval.
 6. MCP auto-loading is disabled.
 7. API servers bind to loopback and refuse broader binds without `--expose`.
@@ -46,8 +46,16 @@ allowed_hosts:
   - internal.example.com
 ```
 
-Host allowlists constrain URL-bearing tool arguments. Skills that internally contact a
-fixed service must still be treated as trusted code and reviewed before being granted.
+Host allowlists use exact host names or IP addresses. URL-shaped rules, ports, credentials,
+paths, and wildcard hosts are rejected. Skills whose destination cannot be verified from
+their arguments remain blocked even when network access is enabled.
+
+Agent capability and filesystem lists are fail-closed:
+
+- an empty `skills` list exposes no built-in tools;
+- a skill outside the manifest list is denied at execution time;
+- an empty `filesystem_roots` list allows no path-bearing tool arguments;
+- nested path and network destination arguments are checked recursively.
 
 ## Trust Boundaries
 

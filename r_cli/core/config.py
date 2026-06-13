@@ -137,7 +137,7 @@ class SkillsConfig(BaseModel):
             return skill_name in self.STANDARD_SKILLS
         elif self.mode == "whitelist":
             # In whitelist mode, only explicitly enabled skills
-            return skill_name in self.enabled if self.enabled else True
+            return skill_name in self.enabled
         else:
             # In blacklist mode, all except disabled
             return skill_name not in self.disabled
@@ -184,6 +184,7 @@ class SecurityConfig(BaseModel):
     network_access: bool = False
     allowed_hosts: list[str] = []
     filesystem_roots: list[str] = []
+    enforce_filesystem_roots: bool = False
 
 
 class MCPServerConfig(BaseModel):
