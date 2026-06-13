@@ -7,8 +7,8 @@ persistent processes on top of the host operating system.
 ## Current Kernel
 
 - **Identity:** YAML manifests define an agent's name, prompt, capabilities, and executor.
-- **Processes:** Tasks move through `queued`, `running`, `completed`, `failed`, and
-  `cancelled`.
+- **Processes:** Tasks move through `queued`, `paused`, `running`, `completed`, `failed`,
+  and `cancelled`.
 - **Persistence:** SQLite stores identities, task history, and events.
 - **Memory:** Every agent receives an isolated session namespace.
 - **Capabilities:** Skills are explicitly assigned to assistant agents.
@@ -46,11 +46,18 @@ r os agent list
 r os agent show researcher
 r os run researcher "Analyze this project"
 r os tasks --status completed
+r os pause <task-id>
+r os resume <task-id>
 r os cancel <task-id>
 r os events
 r os status
 r os security
 ```
+
+Tasks can be paused while they are still queued. A paused task will not be moved to
+`running` until it is resumed, which gives operators a simple approval checkpoint before
+future background workers pick up queued work. Running tasks cannot be paused yet; cancel
+them instead.
 
 ## Workflow Agents
 

@@ -193,6 +193,44 @@ def test_agent_os_cancel_marks_running_task(tmp_path):
     assert payload["error"] == "stop now"
 
 
+def test_agent_os_pause_and_resume_task(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Does work"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, created_at)
+            VALUES ('task123', 'worker', 'work', 'queued', 'now')
+            """
+        )
+
+    paused = runner.invoke(
+        cli,
+        ["os", "pause", "task123", "--reason", "needs review", "--json"],
+        env=environment,
+    )
+    resumed = runner.invoke(
+        cli,
+        ["os", "resume", "task123", "--json"],
+        env=environment,
+    )
+
+    assert paused.exit_code == 0
+    assert json.loads(paused.output)["status"] == "paused"
+    assert json.loads(paused.output)["error"] == "needs review"
+    assert resumed.exit_code == 0
+    assert json.loads(resumed.output)["status"] == "queued"
+
+
 def test_serve_refuses_network_bind_without_explicit_expose():
     runner = CliRunner()
 

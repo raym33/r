@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from r_cli.core.permissions import ApprovalCallback
 
 AGENT_KINDS = {"assistant", "workflow"}
-TASK_STATES = {"queued", "running", "completed", "failed", "cancelled"}
+TASK_STATES = {"queued", "paused", "running", "completed", "failed", "cancelled"}
 TERMINAL_TASK_STATES = {"completed", "failed", "cancelled"}
 
 
@@ -250,6 +250,63 @@ class AgentOS:
             )
         return self.get_task(task_id)
 
+    def pause_task(self, task_id: str, reason: str = "paused by user") -> dict[str, Any]:
+        """Pause a queued task before a worker starts it."""
+        reason = reason.strip() or "paused by user"
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if row is None:
+                raise AgentOSError(f"Unknown task: {task_id}")
+            if row["status"] in TERMINAL_TASK_STATES:
+                raise AgentOSError(f"Task {task_id} is already {row['status']}")
+            if row["status"] == "paused":
+                raise AgentOSError(f"Task {task_id} is already paused")
+            if row["status"] == "running":
+                raise AgentOSError(
+                    f"Task {task_id} is already running; cancel it instead"
+                )
+            connection.execute(
+                """
+                UPDATE tasks
+                SET status = 'paused', error = ?, finished_at = NULL
+                WHERE id = ?
+                """,
+                (reason, task_id),
+            )
+            self._emit(
+                connection,
+                "task.paused",
+                row["agent_name"],
+                task_id,
+                {"reason": reason, "previous_status": row["status"]},
+            )
+        return self.get_task(task_id)
+
+    def resume_task(self, task_id: str) -> dict[str, Any]:
+        """Return a paused task to the queued state."""
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if row is None:
+                raise AgentOSError(f"Unknown task: {task_id}")
+            if row["status"] != "paused":
+                raise AgentOSError(f"Task {task_id} is not paused")
+            connection.execute(
+                """
+                UPDATE tasks
+                SET status = 'queued', error = NULL, finished_at = NULL
+                WHERE id = ?
+                """,
+                (task_id,),
+            )
+            self._emit(
+                connection,
+                "task.resumed",
+                row["agent_name"],
+                task_id,
+                {"previous_status": row["status"]},
+            )
+        return self.get_task(task_id)
+
     def _run_assistant(
         self,
         manifest: AgentManifest,
@@ -318,6 +375,8 @@ class AgentOS:
             if current is None:
                 raise AgentOSError(f"Unknown task: {task_id}")
             if current["status"] in TERMINAL_TASK_STATES and current["status"] != status:
+                return False
+            if status == "running" and current["status"] != "queued":
                 return False
             if status == "running":
                 connection.execute(

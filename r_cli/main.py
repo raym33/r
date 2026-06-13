@@ -916,7 +916,7 @@ def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json
 @click.option("--limit", default=20, type=click.IntRange(min=1, max=1000))
 @click.option(
     "--status",
-    type=click.Choice(["queued", "running", "completed", "failed", "cancelled"]),
+    type=click.Choice(["queued", "paused", "running", "completed", "failed", "cancelled"]),
 )
 @click.option("--agent", "agent_name")
 @click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
@@ -961,6 +961,41 @@ def agent_os_cancel(task_id: str, reason: str, as_json: bool):
         click.echo(json.dumps(task, indent=2, default=str))
         return
     console.print(f"[yellow]Task {task_id} cancelled:[/yellow] {task['error']}")
+
+
+@agent_os_command.command("pause")
+@click.argument("task_id")
+@click.option("--reason", default="paused by user", help="Reason stored with the task")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_pause(task_id: str, reason: str, as_json: bool):
+    """Pause a queued Agent OS task before it starts."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        task = AgentOS(Config.load()).pause_task(task_id, reason=reason)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(task, indent=2, default=str))
+        return
+    console.print(f"[yellow]Task {task_id} paused:[/yellow] {task['error']}")
+
+
+@agent_os_command.command("resume")
+@click.argument("task_id")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_resume(task_id: str, as_json: bool):
+    """Return a paused Agent OS task to the queue."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        task = AgentOS(Config.load()).resume_task(task_id)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(task, indent=2, default=str))
+        return
+    console.print(f"[green]Task {task_id} resumed[/green]")
 
 
 @agent_os_command.command("events")

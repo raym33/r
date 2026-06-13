@@ -142,6 +142,61 @@ def test_completed_task_cannot_be_cancelled(tmp_path):
         runtime.cancel_task(task["id"])
 
 
+def test_pause_and_resume_queued_task(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, created_at)
+            VALUES ('task123', 'writer', 'Draft report', 'queued', 'now')
+            """
+        )
+
+    paused = runtime.pause_task("task123", reason="waiting for approval")
+    resumed = runtime.resume_task("task123")
+
+    assert paused["status"] == "paused"
+    assert paused["error"] == "waiting for approval"
+    assert resumed["status"] == "queued"
+    assert resumed["error"] is None
+    assert runtime.status()["tasks"]["queued"] == 1
+    assert [event["event_type"] for event in runtime.list_events(limit=3)[:2]] == [
+        "task.resumed",
+        "task.paused",
+    ]
+
+
+def test_running_task_cannot_be_paused(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, created_at, started_at)
+            VALUES ('task123', 'writer', 'Draft report', 'running', 'now', 'now')
+            """
+        )
+
+    with pytest.raises(AgentOSError, match="already running"):
+        runtime.pause_task("task123")
+
+
+def test_paused_task_cannot_start_accidentally(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, created_at)
+            VALUES ('task123', 'writer', 'Draft report', 'paused', 'now')
+            """
+        )
+
+    assert runtime._set_task_state("task123", "running") is False
+    assert runtime.get_task("task123")["status"] == "paused"
+
+
 def test_agent_with_task_history_cannot_be_removed(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))
