@@ -1,31 +1,57 @@
-# R CLI Troubleshooting Guide
+# R Troubleshooting
 
-## Common Issues
+Start every diagnosis with:
 
-### 1. Context Length Exceeded
-
-**Error:**
-```
-Error code: 400 - {'error': 'The number of tokens to keep from the initial prompt is greater than the context length'}
+```bash
+r doctor
+r os security
 ```
 
-**Cause:** R CLI sends tool definitions to the LLM. With 74 skills (~480 tools), this can exceed small context windows.
+Use `r doctor --json` when attaching sanitized diagnostics to an issue.
 
-**Solutions:**
+## Local Model Not Detected
 
-#### Option A: Use Lite Mode
+Confirm that the model server is running on loopback:
+
+```bash
+# Ollama
+curl http://127.0.0.1:11434/v1/models
+
+# LM Studio
+curl http://127.0.0.1:1234/v1/models
+```
+
+Then check `~/.r-cli/config.yaml`:
+
+```yaml
+llm:
+  backend: ollama
+  model: qwen2.5:7b
+  base_url: http://127.0.0.1:11434/v1
+```
+
+Do not use a LAN address or public hostname while `security.local_only` is enabled.
+
+## Remote LLM Endpoint Rejected
+
+R intentionally rejects non-loopback inference endpoints in local-only mode. Run the model
+on the same device, or place a locally controlled proxy on loopback.
+
+Disabling local-only enforcement weakens R's privacy boundary. Review
+[SECURITY_MODEL.md](SECURITY_MODEL.md) before changing it.
+
+## Context Length Exceeded
+
+R can expose many tool schemas. Small models may not have enough context for all of them.
+
+Use a smaller mode:
+
 ```bash
 r --skills-mode lite chat "Hello"
 ```
 
-#### Option B: Configure in config.yaml
-```yaml
-# ~/.r-cli/config.yaml
-skills:
-  mode: lite  # or: standard, auto
-```
+Or allow only required skills:
 
-#### Option C: Whitelist Specific Skills
 ```yaml
 skills:
   mode: whitelist
@@ -34,114 +60,126 @@ skills:
     - math
     - text
     - fs
-    - code
 ```
 
-#### Option D: Increase Context in LM Studio
-1. Open LM Studio
-2. Go to model settings
-3. Increase "Context Length" to 16k or 32k
+Increasing the model context window may also help, but a narrow capability set is easier to
+review and usually more reliable.
 
-### 2. LLM Server Not Connected
+## Outbound Network Access Denied
 
-**Error:**
-```
-No LLM server detected. Start LM Studio or Ollama.
-```
+Network access is denied by default. For an agent that genuinely needs it, declare both the
+permission and exact destination hosts:
 
-**Solutions:**
-
-1. **For LM Studio:**
-   - Open LM Studio
-   - Load a model
-   - Click "Start Server"
-   - Verify: `curl http://localhost:1234/v1/models`
-
-2. **For Ollama:**
-   - Start Ollama: `ollama serve`
-   - Pull a model: `ollama pull qwen2.5:7b`
-   - Verify: `curl http://localhost:11434/v1/models`
-
-### 3. Timeout Errors
-
-**Error:**
-```
-[WARNING] Attempt 1/4 failed: Request timed out.. Retrying in 1.0s...
+```yaml
+name: documentation-agent
+skills: [http]
+network_access: true
+network_hosts:
+  - docs.example.com
 ```
 
-**Cause:** The LLM is taking too long to respond.
+Avoid wildcard hosts. A deny rule always overrides an allow rule.
 
-**Solutions:**
+## Filesystem Access Denied
 
-1. **Use a smaller model** - 7B models are faster than 70B
-2. **Increase timeout in config:**
-   ```yaml
-   llm:
-     request_timeout: 120.0  # seconds
-   ```
-3. **Use lite mode** to send fewer tools
+An Agent OS identity can access only its declared roots:
 
-### 4. Missing Dependencies
-
-**Error:**
-```
-[yellow]Missing dependency for PDFSkill: weasyprint not found[/yellow]
+```yaml
+filesystem_roots:
+  - ./documents
+  - ./output
 ```
 
-**Solution:** Install optional dependencies:
+Use absolute paths when diagnosing path ambiguity. Symlinks and traversal outside allowed
+roots are rejected.
+
+## API Binding Refused
+
+The API binds to loopback by default:
+
 ```bash
-# PDF generation
-pip install weasyprint
-
-# Voice features
-pip install faster-whisper piper-tts
-
-# RAG features
-pip install sentence-transformers chromadb
-
-# All extras
-pip install r-cli-ai[all]
+r serve --port 8765
 ```
 
-### 5. Skill Loading Errors
+A non-loopback bind requires explicit acknowledgement:
 
-**Error:**
-```
-Configuration error in SkillName: __init__() takes 1 positional argument but 2 were given
-```
-
-**Solution:** Update to v0.3.2+
 ```bash
-pip install --upgrade r-cli-ai
+r serve --host 0.0.0.0 --port 8765 --expose
 ```
 
-### 6. API Server Issues
+Do not expose the API without authentication, TLS, and firewall restrictions.
 
-**Port already in use:**
+## Port Already in Use
+
+Choose another port:
+
 ```bash
-# Find process using port 8765
-lsof -i :8765
-
-# Kill it
-kill -9 <PID>
-
-# Or use a different port
 r serve --port 8766
 ```
 
-## Debug Mode
+On macOS or Linux, inspect port `8765` with:
 
-For more verbose output:
 ```bash
-# Show skill loading
-r skills
-
-# Check configuration
-r config
+lsof -i :8765
 ```
+
+## Timeout Errors
+
+Local inference can be slow on limited hardware.
+
+```yaml
+llm:
+  request_timeout: 120.0
+```
+
+Also try a smaller model, a shorter prompt, or `--skills-mode lite`.
+
+## Missing Optional Dependencies
+
+Install only the feature group you need when possible:
+
+```bash
+python -m pip install "r-cli-ai[all]"
+```
+
+For a development checkout:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run `r doctor` again after installation.
+
+## Skill Loading Errors
+
+Update to the latest source version:
+
+```bash
+python -m pip install --upgrade \
+  "r-cli-ai @ git+https://github.com/raym33/r.git"
+```
+
+Then inspect available skills:
+
+```bash
+r skills
+r skills --json
+```
+
+## Permission or Trace Investigation
+
+```bash
+r permissions explain <skill> <tool>
+r permissions audit
+r traces list
+r traces summary
+```
+
+Sanitize paths, prompts, tokens, and personal data before sharing output.
 
 ## Getting Help
 
-- [GitHub Issues](https://github.com/raym33/r/issues)
-- [Quick Start Guide](QUICKSTART.md)
-- [Full Documentation](COMPLETE_GUIDE.md)
+- [GitHub issues](https://github.com/raym33/r/issues)
+- [Quick start](QUICKSTART.md)
+- [Complete guide](COMPLETE_GUIDE.md)
+- [Security policy](../SECURITY.md)

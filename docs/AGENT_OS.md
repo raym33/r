@@ -65,10 +65,5 @@ The submitted task is available to the workflow as `{{ vars.task }}`.
 
 ## Roadmap
 
-1. Background scheduler and resumable workers.
-2. Message inboxes and agent-to-agent task delegation.
-3. Resource budgets for time, tokens, tools, CPU, and memory.
-4. Container and process sandbox providers.
-5. Human approval queues and task cancellation.
-6. Distributed workers across R nodes.
-7. Visual process manager in the R OS shell.
+The canonical project roadmap, phases, and exit criteria are maintained in
+[ROADMAP.md](../ROADMAP.md).

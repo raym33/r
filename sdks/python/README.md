@@ -20,7 +20,7 @@ pip install -e .
 from r_sdk import RClient
 
 # Connect to local R CLI server
-client = RClient(base_url="http://localhost:8000")
+client = RClient(base_url="http://127.0.0.1:8765")
 
 # Check server status
 status = client.status()
@@ -36,21 +36,21 @@ print(response.message)
 ### API Key (Recommended)
 ```python
 client = RClient(
-    base_url="http://localhost:8000",
+    base_url="http://127.0.0.1:8765",
     api_key="your-api-key"
 )
 ```
 
 ### Username/Password
 ```python
-client = RClient(base_url="http://localhost:8000")
+client = RClient(base_url="http://127.0.0.1:8765")
 client.login("admin", "password")
 ```
 
 ### JWT Token
 ```python
 client = RClient(
-    base_url="http://localhost:8000",
+    base_url="http://127.0.0.1:8765",
     token="your-jwt-token"
 )
 ```

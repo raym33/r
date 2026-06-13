@@ -66,7 +66,7 @@ pip install r-cli-ai[p2p]
 
 ```bash
 # On each R CLI instance
-r serve --host 0.0.0.0 --port 8765
+r serve --host 0.0.0.0 --port 8765 --expose
 ```
 
 ### 3. Discover Peers
@@ -435,4 +435,4 @@ ping peer-hostname
 
 - [Distributed AI Documentation](DISTRIBUTED_AI.md)
 - [R CLI Complete Guide](COMPLETE_GUIDE.md)
-- [Security Best Practices](SECURITY.md)
+- [Security Best Practices](../SECURITY.md)

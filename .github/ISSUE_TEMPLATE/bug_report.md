@@ -29,8 +29,10 @@ What actually happened.
 
 ## Error Output
 ```
-Paste any error messages or stack traces here
+Paste sanitized error messages or stack traces here
 ```
+
+Do not include API keys, tokens, private prompts, personal files, or unredacted audit logs.
 
 ## Additional Context
 Add any other context about the problem here.

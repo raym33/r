@@ -18,6 +18,9 @@ Any alternative solutions or features you've considered.
 ## Use Case
 Describe your use case and how this feature would help.
 
+## Security and Privacy Impact
+Describe any new network, filesystem, process, code execution, device, or secret access.
+
 ## Example Usage
 ```bash
 # How you envision using this feature

@@ -141,7 +141,7 @@ pip install git+https://github.com/raym33/r.git
 pip install mlx mlx-lm zeroconf cryptography httpx
 
 # Start server (use same port on all nodes)
-r serve --host 0.0.0.0 --port 8765
+r serve --host 0.0.0.0 --port 8765 --expose
 ```
 
 **On the coordinator Mac:**
@@ -232,10 +232,10 @@ python3 -c "import mlx.core as mx; print(f'MLX version: {mx.__version__}')"
 
 ```bash
 # Start R CLI server
-r serve --host 0.0.0.0 --port 8765
+r serve --host 0.0.0.0 --port 8765 --expose
 
 # Or run in background
-nohup r serve --host 0.0.0.0 --port 8765 > r-cli.log 2>&1 &
+nohup r serve --host 0.0.0.0 --port 8765 --expose > r-cli.log 2>&1 &
 ```
 
 ### Step 5: Build the Cluster
@@ -321,7 +321,7 @@ pip install git+https://github.com/raym33/r.git
 pip install mlx mlx-lm zeroconf cryptography httpx
 
 # Start server
-r serve --host 0.0.0.0 --port 8765
+r serve --host 0.0.0.0 --port 8765 --expose
 ```
 
 Or use a one-liner script on each Mac:
@@ -329,7 +329,7 @@ Or use a one-liner script on each Mac:
 ```bash
 pip install git+https://github.com/raym33/r.git && \
 pip install mlx mlx-lm zeroconf cryptography httpx && \
-r serve --host 0.0.0.0 --port 8765
+r serve --host 0.0.0.0 --port 8765 --expose
 ```
 
 ### Build Cluster and Load Model

@@ -1,120 +1,144 @@
-# R CLI Quick Start Guide
+# R Quick Start
 
-Get R CLI running in 5 minutes with your local LLM.
+Run a private AI agent with a local model in a few minutes.
 
-## 1. Install R CLI
+## 1. Install R
+
+Install the latest version from GitHub:
 
 ```bash
-pip install r-cli-ai
+python -m pip install "r-cli-ai @ git+https://github.com/raym33/r.git"
 ```
 
-## 2. Set Up Your Local LLM
+Verify the installation:
 
-### Option A: LM Studio (Recommended)
+```bash
+r --version
+r doctor
+```
 
-1. Download [LM Studio](https://lmstudio.ai/)
-2. Download a model (recommended: `Qwen 2.5 7B` or `Gemma 3 12B`)
-3. Click "Start Server" (default port: 1234)
-4. Verify it's running:
-   ```bash
-   curl http://localhost:1234/v1/models
-   ```
+## 2. Start a Local Model
 
-### Option B: Ollama
+### Ollama
 
-1. Install [Ollama](https://ollama.ai/)
-2. Pull a model:
-   ```bash
-   ollama pull qwen2.5:7b
-   ```
-3. Ollama runs automatically on port 11434
+```bash
+ollama pull qwen2.5:7b
+ollama serve
+```
 
-## 3. Configure R CLI
+### LM Studio
+
+1. Install [LM Studio](https://lmstudio.ai/).
+2. Download and load a model.
+3. Start its local API server on `127.0.0.1`.
+
+R rejects non-loopback model endpoints while local-only security is enabled.
+
+## 3. Configure R
 
 Create `~/.r-cli/config.yaml`:
 
-### For LM Studio:
-```yaml
-llm:
-  backend: auto
-  base_url: http://localhost:1234/v1
-  model: auto  # Will use the model loaded in LM Studio
-```
-
-### For Ollama:
 ```yaml
 llm:
   backend: ollama
-  base_url: http://localhost:11434/v1
   model: qwen2.5:7b
+  base_url: http://127.0.0.1:11434/v1
+
+security:
+  local_only: true
+  network_access: false
+  mode: ask
+
+skills:
+  mode: auto
 ```
 
-## 4. Run R CLI
+For LM Studio, use its loopback URL, usually
+`http://127.0.0.1:1234/v1`.
+
+## 4. Check Security
 
 ```bash
-# Interactive mode
-r
-
-# Direct chat
-r chat "What is Python?"
-
-# Use a skill directly
-r pdf "My document content"
+r doctor
+r os security
 ```
 
-## 5. Troubleshooting Context Overflow
+Review the output before enabling network access, plugins, MCP servers, code execution, or
+other broad host capabilities.
 
-If you get errors like "context length exceeded", use lite mode:
+## 5. Start Using R
 
 ```bash
-# Use minimal skills (7 skills, ~50 tools)
+r chat "Explain what this repository does"
+r skills --search pdf
+r tool math calculate --arg 'expression=sqrt(144)'
+r project inspect .
+```
+
+Generate a PDF from Markdown:
+
+```bash
+r pdf --file report.md --output report.pdf
+```
+
+## 6. Create an Agent
+
+Create `researcher.yaml`:
+
+```yaml
+name: private-researcher
+description: Analyze documents inside one project
+kind: assistant
+system_prompt: |
+  Use only the available local evidence.
+  State clearly when information is missing.
+skills: [fs, pdf, pdftools, rag, text]
+network_access: false
+filesystem_roots:
+  - ./documents
+```
+
+Install and run it:
+
+```bash
+r os agent install researcher.yaml
+r os run private-researcher "Summarize the documents"
+r os tasks --agent private-researcher
+```
+
+## 7. Handle Small Context Windows
+
+If a model cannot accept all tool schemas, use a smaller skill set:
+
+```bash
 r --skills-mode lite chat "Hello"
+```
 
-# Or configure in config.yaml:
+Or configure:
+
+```yaml
 skills:
   mode: lite
 ```
 
-**Skill Modes:**
-| Mode | Skills | Tools | Best For |
-|------|--------|-------|----------|
-| `lite` | 7 | ~50 | Small context (4k-8k) |
-| `standard` | 17 | ~120 | Medium context (8k-16k) |
-| `full` | 74 | ~480 | Large context (32k+) |
-| `auto` | varies | varies | Auto-detect |
+Use `whitelist` mode when an agent needs only specific skills.
 
-## 6. Available Skills
-
-```bash
-# List all skills
-r skills
-```
-
-Common skills:
-- `datetime` - Current time, date parsing
-- `math` - Calculations, statistics
-- `pdf` - Generate PDF documents
-- `sql` - Query CSV/databases
-- `code` - Generate and analyze code
-- `crypto` - Hashing, encoding
-- `git` - Git operations
-- `http` - API requests
-
-## 7. API Server
-
-Run R CLI as a REST API:
+## 8. Run the Local API
 
 ```bash
 r serve --port 8765
 ```
 
-Then access:
-- Swagger UI: http://localhost:8765/docs
-- Chat: POST http://localhost:8765/v1/chat
-- Skills: GET http://localhost:8765/v1/skills
+Open `http://127.0.0.1:8765/docs`.
 
-## Need Help?
+The server binds to loopback by default. Exposing it to other devices requires the explicit
+`--expose` flag and appropriate authentication, TLS, and firewall controls.
 
-- [Full Documentation](https://github.com/raym33/r#readme)
-- [Report Issues](https://github.com/raym33/r/issues)
-- [Changelog](https://github.com/raym33/r/blob/main/CHANGELOG.md)
+## Next Steps
+
+- [Complete guide](COMPLETE_GUIDE.md)
+- [Security model](SECURITY_MODEL.md)
+- [Agent OS architecture](AGENT_OS.md)
+- [Roadmap](../ROADMAP.md)
+- [Troubleshooting](troubleshooting.md)
+- [Contributing](../CONTRIBUTING.md)

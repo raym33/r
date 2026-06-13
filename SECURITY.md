@@ -1,131 +1,88 @@
 # Security Policy
 
-## Supported Versions
+Security and privacy are core product requirements for R.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.3.x   | :white_check_mark: |
-| 0.2.x   | :white_check_mark: |
-| 0.1.x   | :x:                |
+## Supported Version
 
-## Security Principles
-
-R CLI is designed with privacy and security in mind:
-
-1. **100% Local**: All processing happens on your machine. No data is sent to external servers.
-2. **No Telemetry**: We don't collect any usage data or analytics.
-3. **Open Source**: All code is open for inspection.
-4. **Local LLMs Only**: We only connect to local LLM servers (LM Studio, Ollama) that you control.
-
-## API Server Security
-
-When running R CLI in daemon mode (`r serve`):
-
-1. **Default Binding**: The API server binds to `127.0.0.1` (localhost only) by default
-2. **No Authentication**: The API currently has no authentication - only expose on trusted networks
-3. **CORS**: Configured to allow all origins by default - restrict in production
-4. **Network Exposure**: Only use `--host 0.0.0.0` on trusted networks
-
-### Recommendations for Production
-
-```yaml
-# If exposing the API:
-# 1. Use a reverse proxy (nginx, caddy) with TLS
-# 2. Add authentication at the proxy level
-# 3. Restrict CORS origins
-# 4. Use firewall rules to limit access
-```
+Security fixes are applied to the latest commit on `main`. The project is currently in
+beta and does not yet maintain multiple supported release branches.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it responsibly:
+Do not open a public issue for a suspected vulnerability.
 
-1. **Do NOT** open a public issue
-2. Email the maintainer at: learntouseai@gmail.com
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
+Email **learntouseai@gmail.com** with:
 
-We will:
-- Acknowledge receipt within 48 hours
-- Investigate and respond within 7 days
-- Credit you in the fix (unless you prefer anonymity)
+- a clear description of the issue;
+- affected commands, modules, and platforms;
+- reproduction steps or a proof of concept;
+- likely impact;
+- suggested mitigations, if available.
 
-## Security Best Practices
+Remove personal data, private prompts, credentials, and unrelated files from reports.
 
-When using R CLI:
+The maintainer will aim to acknowledge reports within 48 hours and provide an initial
+assessment within seven days. Timing may vary for complex cross-platform issues.
 
-1. **Keep dependencies updated**: Regularly run `pip install -U r-cli-ai`
-2. **Review skills before installing**: Third-party plugins may have security implications
-3. **Be careful with code execution**: The `code` skill can execute Python code
-4. **Protect your config files**: `~/.r-cli/config.yaml` may contain sensitive settings
-5. **Limit API exposure**: Don't expose the daemon API to untrusted networks
+## Security Scope
+
+High-priority reports include:
+
+- bypassing loopback-only LLM enforcement;
+- unauthorized outbound network access;
+- escaping declared filesystem roots;
+- permission policy or approval bypasses;
+- secret exposure in logs, traces, or errors;
+- authentication or authorization flaws in the API;
+- unsafe default API exposure;
+- malicious manifest, workflow, plugin, or MCP behavior;
+- task database corruption or privilege escalation;
+- arbitrary command execution without an explicitly granted broad capability.
+
+## Default Security Posture
+
+R defaults to:
+
+- local LLM endpoints on loopback;
+- denied outbound tool networking;
+- explicit agent host allowlists;
+- optional per-agent filesystem roots;
+- high-risk action confirmation;
+- critical-risk MCP calls;
+- disabled MCP auto-loading;
+- loopback API binding;
+- explicit `--expose` for non-loopback binds;
+- redacted permission audit arguments;
+- traceable governed tool execution.
+
+Run:
+
+```bash
+r doctor
+r os security
+r permissions audit
+r traces summary
+```
 
 ## Known Limitations
 
-- The `code` skill executes Python code directly - only use with trusted input
-- The `sql` skill can access any CSV/database file the user has access to
-- The `ssh` skill can execute remote commands - requires explicit confirmation
-- The `docker` skill can manage containers - requires explicit confirmation
-- The `openapi` skill can make HTTP requests to discovered services
-- Voice skill may save temporary audio files
+R currently provides application-level policy enforcement, not complete native process
+isolation. Code execution, Docker, plugins, SSH, system control, and other broad
+capabilities may act with the permissions of the current user after explicit approval.
 
-## Skill Confirmation
+Third-party dependencies, model runtimes, plugins, and MCP servers are separate trust
+boundaries. Review them before installation.
 
-High-risk skills require user confirmation by default:
-- `ssh` - Remote command execution
-- `docker` - Container management
-- `email` - Sending emails
+The complete guarantees, assumptions, and platform sandbox plan are documented in
+[docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md).
 
-Configure in `~/.r-cli/config.yaml`:
-```yaml
-skills:
-  require_confirmation:
-    - ssh
-    - docker
-    - email
-```
+## Safe Deployment
 
-## Dependency Security
-
-We regularly audit our dependencies. Key dependencies:
-
-| Package | Purpose | Security Note |
-|---------|---------|---------------|
-| `openai` | LLM communication | Connects only to configured local servers |
-| `fastapi` | REST API | Modern, secure web framework |
-| `uvicorn` | ASGI server | Production-ready server |
-| `click` | CLI framework | No network access |
-| `rich` | Terminal UI | No network access |
-| `pydantic` | Data validation | Input validation and sanitization |
-
-All dependencies are pinned with minimum versions in `pyproject.toml`.
-
-## File System Access
-
-R CLI has access to:
-- Files in the current working directory
-- Files explicitly referenced by the user
-- Output directory (`~/r-cli-output` by default)
-- Config directory (`~/.r-cli`)
-
-The agent cannot access files outside these paths unless explicitly requested.
-
-## Network Access
-
-R CLI makes network connections only to:
-- Local LLM servers (configurable base_url)
-- The API daemon (localhost by default)
-- URLs explicitly requested via `http` or `web` skills
-
-## Audit Log
-
-Consider enabling logging for audit purposes:
-```yaml
-# In config.yaml
-logging:
-  level: INFO
-  file: ~/.r-cli/r-cli.log
-```
+- Use a dedicated, non-administrator user when possible.
+- Keep `security.local_only: true`.
+- Keep `security.network_access: false` unless required.
+- Assign minimum skills and filesystem roots to each agent.
+- Keep `mcp.auto_load: false`.
+- Do not use `--expose` without authentication, TLS, and firewall restrictions.
+- Protect `~/.r-cli`, agent databases, configuration, and audit logs.
+- Keep R, local model runtimes, and dependencies updated.

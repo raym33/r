@@ -5,6 +5,8 @@ All notable changes to R CLI are documented here.
 ## [Unreleased]
 
 ### Added
+- English documentation overhaul with a security-first quick start, complete guide,
+  contribution guide, troubleshooting guide, and public roadmap
 - Local permission policy with risk classification, interactive approval, deny/allow lists, and redacted JSONL audit logs
 - `r permissions explain` and `r permissions audit`
 - Optional MCP client support over stdio with `r mcp add/list/tools/call/remove`

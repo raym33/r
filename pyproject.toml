@@ -1,10 +1,10 @@
 [project]
 name = "r-cli-ai"
 version = "0.3.2"
-description = "R CLI - Local AI Agent Runtime. Tool orchestrator connecting local LLMs to 74 system tools via function calling."
+description = "A secure, local-first operating layer for private AI agents and local LLMs."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Ramón Guillamón", email = "learntouseai@gmail.com" }
 ]

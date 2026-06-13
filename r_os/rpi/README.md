@@ -1,6 +1,9 @@
 # R OS for Raspberry Pi
 
-Build and deploy R CLI as a complete AI operating system for Raspberry Pi.
+Build and deploy R's experimental local agent runtime and device shell on Raspberry Pi.
+
+> This module does not replace Raspberry Pi OS. Hardware and system-control capabilities
+> are security-sensitive and should be granted only to trusted agents.
 
 ## Supported Hardware
 

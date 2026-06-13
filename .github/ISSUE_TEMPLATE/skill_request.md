@@ -33,6 +33,10 @@ r skill-name "input" --option value
 ## Dependencies
 Any external libraries or tools required?
 
+## Security and Privacy
+Does the skill need network, filesystem, process, code execution, device, or secret access?
+List the minimum required capabilities and how they should be constrained.
+
 ## Similar Tools/Services
 Are there existing tools that provide similar functionality?
 

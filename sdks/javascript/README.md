@@ -18,7 +18,7 @@ pnpm add r-sdk
 import { RClient } from 'r-sdk';
 
 // Connect to local R CLI server
-const client = new RClient({ baseUrl: 'http://localhost:8000' });
+const client = new RClient({ baseUrl: 'http://127.0.0.1:8765' });
 
 // Check server status
 const status = await client.status();
@@ -34,21 +34,21 @@ console.log(response.message);
 ### API Key (Recommended)
 ```typescript
 const client = new RClient({
-  baseUrl: 'http://localhost:8000',
+  baseUrl: 'http://127.0.0.1:8765',
   apiKey: 'your-api-key'
 });
 ```
 
 ### Username/Password
 ```typescript
-const client = new RClient({ baseUrl: 'http://localhost:8000' });
+const client = new RClient({ baseUrl: 'http://127.0.0.1:8765' });
 await client.login('admin', 'password');
 ```
 
 ### JWT Token
 ```typescript
 const client = new RClient({
-  baseUrl: 'http://localhost:8000',
+  baseUrl: 'http://127.0.0.1:8765',
   token: 'your-jwt-token'
 });
 ```
@@ -171,7 +171,7 @@ import type {
 } from 'r-sdk';
 
 const options: RClientOptions = {
-  baseUrl: 'http://localhost:8000',
+  baseUrl: 'http://127.0.0.1:8765',
   apiKey: 'your-key',
   timeout: 60000,
 };

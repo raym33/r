@@ -1,36 +1,44 @@
-## Description
-Brief description of the changes.
+## Problem
+What problem does this pull request solve?
+
+## Solution
+Describe the implementation and its user-visible behavior.
 
 ## Type of Change
 - [ ] Bug fix (non-breaking change that fixes an issue)
 - [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Breaking change
 - [ ] Documentation update
-- [ ] Code refactoring
+- [ ] Refactor
 - [ ] New skill
 
 ## Related Issues
 Fixes #(issue number)
 
-## Changes Made
-- Change 1
-- Change 2
-- Change 3
+## Security Impact
+Describe affected trust boundaries, permissions, filesystem access, network access, secret
+handling, or execution capabilities. Write `None` only when the change has no security
+impact.
 
-## Testing
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] All existing tests pass locally with my changes
-- [ ] I have tested with LM Studio / Ollama
+## Verification
+List the commands and manual checks you ran.
+
+```text
+pytest -q
+ruff check r_cli/ r_os/
+ruff format --check r_cli/ r_os/
+```
 
 ## Checklist
-- [ ] My code follows the project's code style
-- [ ] I have run `ruff check` and `ruff format`
-- [ ] I have updated the documentation (if applicable)
-- [ ] I have added docstrings to new functions/classes
-- [ ] My changes generate no new warnings
+- [ ] Tests cover new or changed behavior.
+- [ ] Denied and failure paths are tested where relevant.
+- [ ] Documentation is updated and written in English.
+- [ ] No secret, private prompt, personal file, or unredacted audit data is included.
+- [ ] New capabilities are narrow, explicit, and deny by default.
+- [ ] Breaking changes and migrations are documented.
 
-## Screenshots (if applicable)
-Add screenshots showing UI changes or new features.
+## Platform Notes
+List the operating systems and local model runtimes tested.
 
-## Additional Notes
-Any additional information for reviewers.
+## Screenshots
+Add screenshots only for user-interface changes.
