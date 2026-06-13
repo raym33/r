@@ -24,10 +24,10 @@ jobs:
           pip install ruff mypy
 
       - name: Run Ruff
-        run: ruff check r_cli/ r_os/
+        run: ruff check r_cli/ r_os/ tests/
 
       - name: Run Ruff format check
-        run: ruff format --check r_cli/ r_os/
+        run: ruff format --check r_cli/ r_os/ tests/
 
   test:
     name: Test (Python ${{ matrix.python-version }})

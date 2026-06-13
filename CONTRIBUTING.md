@@ -72,8 +72,8 @@ sdks/               API client SDKs
 
 ```bash
 pytest -q
-ruff check r_cli/ r_os/
-ruff format --check r_cli/ r_os/
+ruff check r_cli/ r_os/ tests/
+ruff format --check r_cli/ r_os/ tests/
 python -m build
 twine check dist/*
 ```

@@ -33,22 +33,27 @@ class TestROSSkillImports:
 
     def test_gpio_skill_import(self):
         from r_cli.skills.gpio_skill import GPIOSkill
+
         assert GPIOSkill is not None
 
     def test_bluetooth_skill_import(self):
         from r_cli.skills.bluetooth_skill import BluetoothSkill
+
         assert BluetoothSkill is not None
 
     def test_wifi_skill_import(self):
         from r_cli.skills.wifi_skill import WiFiSkill
+
         assert WiFiSkill is not None
 
     def test_power_skill_import(self):
         from r_cli.skills.power_skill import PowerSkill
+
         assert PowerSkill is not None
 
     def test_android_skill_import(self):
         from r_cli.skills.android_skill import AndroidSkill
+
         assert AndroidSkill is not None
 
 
@@ -62,30 +67,35 @@ class TestROSSkillInstantiation:
 
     def test_gpio_skill(self):
         from r_cli.skills.gpio_skill import GPIOSkill
+
         skill = GPIOSkill()
         assert skill is not None
         assert skill.name == "gpio"
 
     def test_bluetooth_skill(self):
         from r_cli.skills.bluetooth_skill import BluetoothSkill
+
         skill = BluetoothSkill()
         assert skill is not None
         assert skill.name == "bluetooth"
 
     def test_wifi_skill(self):
         from r_cli.skills.wifi_skill import WiFiSkill
+
         skill = WiFiSkill()
         assert skill is not None
         assert skill.name == "wifi"
 
     def test_power_skill(self):
         from r_cli.skills.power_skill import PowerSkill
+
         skill = PowerSkill()
         assert skill is not None
         assert skill.name == "power"
 
     def test_android_skill(self):
         from r_cli.skills.android_skill import AndroidSkill
+
         skill = AndroidSkill()
         assert skill is not None
         assert skill.name == "android"
@@ -101,30 +111,35 @@ class TestROSSkillTools:
 
     def test_gpio_skill_tools(self):
         from r_cli.skills.gpio_skill import GPIOSkill
+
         skill = GPIOSkill()
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_bluetooth_skill_tools(self):
         from r_cli.skills.bluetooth_skill import BluetoothSkill
+
         skill = BluetoothSkill()
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_wifi_skill_tools(self):
         from r_cli.skills.wifi_skill import WiFiSkill
+
         skill = WiFiSkill()
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_power_skill_tools(self):
         from r_cli.skills.power_skill import PowerSkill
+
         skill = PowerSkill()
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_android_skill_tools(self):
         from r_cli.skills.android_skill import AndroidSkill
+
         skill = AndroidSkill()
         tools = skill.get_tools()
         assert len(tools) > 0
@@ -137,6 +152,7 @@ class TestROSSkillTools:
 # Check if textual is available
 try:
     import textual
+
     HAS_TEXTUAL = True
 except ImportError:
     HAS_TEXTUAL = False
@@ -149,11 +165,13 @@ class TestROSSimulator:
     def test_import_app(self):
         """Test simulator app can be imported."""
         from r_os.simulator.app import ROSSimulator
+
         assert ROSSimulator is not None
 
     def test_import_themes(self):
         """Test themes are defined."""
         from r_os.simulator.app import THEMES
+
         assert "material" in THEMES
         assert "amoled" in THEMES
         assert "light" in THEMES
@@ -161,11 +179,13 @@ class TestROSSimulator:
     def test_import_apps(self):
         """Test apps are defined."""
         from r_os.simulator.app import APPS
+
         assert len(APPS) > 0
 
     def test_app_has_required_fields(self):
         """Test each app has required fields."""
         from r_os.simulator.app import APPS
+
         for app in APPS:
             assert "id" in app
             assert "icon" in app
@@ -175,6 +195,7 @@ class TestROSSimulator:
     def test_themes_have_required_colors(self):
         """Test each theme has required colors."""
         from r_os.simulator.app import THEMES
+
         required_colors = ["background", "surface", "primary", "text"]
         for theme_name, theme in THEMES.items():
             for color in required_colors:
@@ -183,21 +204,25 @@ class TestROSSimulator:
     def test_status_bar_widget(self):
         """Test StatusBar widget can be imported."""
         from r_os.simulator.app import StatusBar
+
         assert StatusBar is not None
 
     def test_app_icon_widget(self):
         """Test AppIcon widget can be imported."""
         from r_os.simulator.app import AppIcon
+
         assert AppIcon is not None
 
     def test_home_screen(self):
         """Test HomeScreen can be imported."""
         from r_os.simulator.app import HomeScreen
+
         assert HomeScreen is not None
 
     def test_run_simulator_function(self):
         """Test run_simulator function exists."""
         from r_os.simulator.app import run_simulator
+
         assert callable(run_simulator)
 
 
@@ -212,9 +237,11 @@ class TestVoiceInterface:
     def test_import(self):
         """Test voice interface can be imported."""
         from r_cli.core.voice_interface import VoiceInterface
+
         assert VoiceInterface is not None
 
     def test_create_voice_interface_import(self):
         """Test create_voice_interface can be imported."""
         from r_cli.core.voice_interface import create_voice_interface
+
         assert create_voice_interface is not None

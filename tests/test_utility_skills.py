@@ -34,46 +34,57 @@ class TestSkillImports:
 
     def test_datetime_skill_import(self):
         from r_cli.skills.datetime_skill import DateTimeSkill
+
         assert DateTimeSkill is not None
 
     def test_json_skill_import(self):
         from r_cli.skills.json_skill import JSONSkill
+
         assert JSONSkill is not None
 
     def test_yaml_skill_import(self):
         from r_cli.skills.yaml_skill import YAMLSkill
+
         assert YAMLSkill is not None
 
     def test_text_skill_import(self):
         from r_cli.skills.text_skill import TextSkill
+
         assert TextSkill is not None
 
     def test_math_skill_import(self):
         from r_cli.skills.math_skill import MathSkill
+
         assert MathSkill is not None
 
     def test_archive_skill_import(self):
         from r_cli.skills.archive_skill import ArchiveSkill
+
         assert ArchiveSkill is not None
 
     def test_regex_skill_import(self):
         from r_cli.skills.regex_skill import RegexSkill
+
         assert RegexSkill is not None
 
     def test_crypto_skill_import(self):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         assert CryptoSkill is not None
 
     def test_csv_skill_import(self):
         from r_cli.skills.csv_skill import CSVSkill
+
         assert CSVSkill is not None
 
     def test_diff_skill_import(self):
         from r_cli.skills.diff_skill import DiffSkill
+
         assert DiffSkill is not None
 
     def test_git_skill_import(self):
         from r_cli.skills.git_skill import GitSkill
+
         assert GitSkill is not None
 
 
@@ -87,54 +98,63 @@ class TestSkillInstantiation:
 
     def test_datetime_skill(self, config):
         from r_cli.skills.datetime_skill import DateTimeSkill
+
         skill = DateTimeSkill(config)
         assert skill is not None
         assert skill.name == "datetime"
 
     def test_json_skill(self, config):
         from r_cli.skills.json_skill import JSONSkill
+
         skill = JSONSkill(config)
         assert skill is not None
         assert skill.name == "json"
 
     def test_yaml_skill(self, config):
         from r_cli.skills.yaml_skill import YAMLSkill
+
         skill = YAMLSkill(config)
         assert skill is not None
         assert skill.name == "yaml"
 
     def test_text_skill(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         assert skill is not None
         assert skill.name == "text"
 
     def test_math_skill(self, config):
         from r_cli.skills.math_skill import MathSkill
+
         skill = MathSkill(config)
         assert skill is not None
         assert skill.name == "math"
 
     def test_archive_skill(self, config):
         from r_cli.skills.archive_skill import ArchiveSkill
+
         skill = ArchiveSkill(config)
         assert skill is not None
         assert skill.name == "archive"
 
     def test_regex_skill(self, config):
         from r_cli.skills.regex_skill import RegexSkill
+
         skill = RegexSkill(config)
         assert skill is not None
         assert skill.name == "regex"
 
     def test_crypto_skill(self, config):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         skill = CryptoSkill(config)
         assert skill is not None
         assert skill.name == "crypto"
 
     def test_csv_skill(self, config):
         from r_cli.skills.csv_skill import CSVSkill
+
         skill = CSVSkill(config)
         assert skill is not None
         assert skill.name == "csv"
@@ -150,49 +170,57 @@ class TestSkillTools:
 
     def test_datetime_skill_tools(self, config):
         from r_cli.skills.datetime_skill import DateTimeSkill
+
         skill = DateTimeSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
-        assert all(hasattr(t, 'name') for t in tools)
+        assert all(hasattr(t, "name") for t in tools)
 
     def test_json_skill_tools(self, config):
         from r_cli.skills.json_skill import JSONSkill
+
         skill = JSONSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_yaml_skill_tools(self, config):
         from r_cli.skills.yaml_skill import YAMLSkill
+
         skill = YAMLSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_text_skill_tools(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_math_skill_tools(self, config):
         from r_cli.skills.math_skill import MathSkill
+
         skill = MathSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_archive_skill_tools(self, config):
         from r_cli.skills.archive_skill import ArchiveSkill
+
         skill = ArchiveSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_regex_skill_tools(self, config):
         from r_cli.skills.regex_skill import RegexSkill
+
         skill = RegexSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
 
     def test_crypto_skill_tools(self, config):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         skill = CryptoSkill(config)
         tools = skill.get_tools()
         assert len(tools) > 0
@@ -208,6 +236,7 @@ class TestDateTimeSkillFunctional:
 
     def test_datetime_now(self, config):
         from r_cli.skills.datetime_skill import DateTimeSkill
+
         skill = DateTimeSkill(config)
         result = skill.datetime_now()
         assert len(result) > 0
@@ -215,6 +244,7 @@ class TestDateTimeSkillFunctional:
 
     def test_datetime_now_with_format(self, config):
         from r_cli.skills.datetime_skill import DateTimeSkill
+
         skill = DateTimeSkill(config)
         result = skill.datetime_now(format="%Y-%m-%d")
         assert len(result) == 10
@@ -222,6 +252,7 @@ class TestDateTimeSkillFunctional:
 
     def test_datetime_parse(self, config):
         from r_cli.skills.datetime_skill import DateTimeSkill
+
         skill = DateTimeSkill(config)
         result = skill.datetime_parse("2024-12-17")
         assert "2024" in result
@@ -237,6 +268,7 @@ class TestJSONSkillFunctional:
 
     def test_json_parse(self, config):
         from r_cli.skills.json_skill import JSONSkill
+
         skill = JSONSkill(config)
         result = skill.json_parse('{"name": "test", "value": 123}')
         assert "name" in result
@@ -244,12 +276,14 @@ class TestJSONSkillFunctional:
 
     def test_json_format(self, config):
         from r_cli.skills.json_skill import JSONSkill
+
         skill = JSONSkill(config)
         result = skill.json_format('{"a":1,"b":2}')
         assert "\n" in result  # Pretty printed
 
     def test_json_to_yaml(self, config):
         from r_cli.skills.json_skill import JSONSkill
+
         skill = JSONSkill(config)
         result = skill.json_to_yaml('{"name": "test"}')
         assert "name" in result
@@ -265,6 +299,7 @@ class TestTextSkillFunctional:
 
     def test_text_count(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         result = skill.text_count("hello world foo bar")
         # Contains word count info
@@ -272,24 +307,28 @@ class TestTextSkillFunctional:
 
     def test_text_case_upper(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         result = skill.text_case("hello world", "upper")
         assert "HELLO WORLD" in result
 
     def test_text_case_lower(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         result = skill.text_case("HELLO WORLD", "lower")
         assert "hello world" in result
 
     def test_text_slug(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         result = skill.text_slug("Hello World Test")
         assert "hello-world-test" in result.lower()
 
     def test_text_reverse(self, config):
         from r_cli.skills.text_skill import TextSkill
+
         skill = TextSkill(config)
         result = skill.text_reverse("hello")
         assert "olleh" in result
@@ -305,18 +344,21 @@ class TestMathSkillFunctional:
 
     def test_math_calculate(self, config):
         from r_cli.skills.math_skill import MathSkill
+
         skill = MathSkill(config)
         result = skill.calculate("2 + 2")
         assert "4" in result
 
     def test_math_calculate_complex(self, config):
         from r_cli.skills.math_skill import MathSkill
+
         skill = MathSkill(config)
         result = skill.calculate("(10 + 5) * 2")
         assert "30" in result
 
     def test_math_factorial(self, config):
         from r_cli.skills.math_skill import MathSkill
+
         skill = MathSkill(config)
         result = skill.factorial(5)
         assert "120" in result
@@ -332,24 +374,28 @@ class TestCryptoSkillFunctional:
 
     def test_hash_md5(self, config):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         skill = CryptoSkill(config)
         result = skill.hash_text("hello", algorithm="md5")
         assert "5d41402abc4b2a76b9719d911017c592" in result.lower()
 
     def test_hash_sha256(self, config):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         skill = CryptoSkill(config)
         result = skill.hash_text("hello", algorithm="sha256")
         assert "2cf24dba" in result.lower()
 
     def test_base64_encode(self, config):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         skill = CryptoSkill(config)
         result = skill.base64_encode("hello")
         assert "aGVsbG8=" in result
 
     def test_base64_decode(self, config):
         from r_cli.skills.crypto_skill import CryptoSkill
+
         skill = CryptoSkill(config)
         result = skill.base64_decode("aGVsbG8=")
         assert "hello" in result
@@ -365,6 +411,7 @@ class TestArchiveSkillFunctional:
 
     def test_list_archive(self, temp_dir, config):
         import zipfile
+
         from r_cli.skills.archive_skill import ArchiveSkill
 
         skill = ArchiveSkill(config)

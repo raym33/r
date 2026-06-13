@@ -25,8 +25,8 @@ List the commands and manual checks you ran.
 
 ```text
 pytest -q
-ruff check r_cli/ r_os/
-ruff format --check r_cli/ r_os/
+ruff check r_cli/ r_os/ tests/
+ruff format --check r_cli/ r_os/ tests/
 ```
 
 ## Checklist
