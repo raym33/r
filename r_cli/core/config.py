@@ -73,6 +73,16 @@ class RAGConfig(BaseModel):
     persist_directory: str = "~/.r-cli/vectordb"
 
 
+class MemoryConfig(BaseModel):
+    """Conversation and long-term memory configuration."""
+
+    provider: str = "local"  # local, gbrain
+    gbrain_command: str = "gbrain"
+    gbrain_retrieval_command: str = "query"  # query, think, search
+    gbrain_source: Optional[str] = None
+    gbrain_timeout_seconds: float = 8.0
+
+
 class UIConfig(BaseModel):
     """Terminal interface configuration."""
 
@@ -211,6 +221,7 @@ class Config(BaseModel):
 
     llm: LLMConfig = LLMConfig()
     rag: RAGConfig = RAGConfig()
+    memory: MemoryConfig = MemoryConfig()
     ui: UIConfig = UIConfig()
     skills: SkillsConfig = SkillsConfig()
     security: SecurityConfig = SecurityConfig()

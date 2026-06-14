@@ -148,6 +148,23 @@ process metadata, lifecycle events, and a security summary, while redacting prom
 inputs, outputs, hosts, and filesystem paths by default. Use `--include-content` only
 when you intentionally want a full local debug export.
 
+For continuous memory across sessions, R can delegate long-term recall to
+[GBrain](https://github.com/garrytan/gbrain). When enabled, R keeps local session files,
+captures new conversation turns into GBrain with timeouts and source pinning, and reads
+brain context back through `gbrain query`, `gbrain think`, or `gbrain search`.
+
+```yaml
+memory:
+  provider: gbrain
+  gbrain_command: gbrain
+  gbrain_retrieval_command: query
+  gbrain_source: default
+  gbrain_timeout_seconds: 8.0
+```
+
+R falls back to local session and RAG storage if GBrain is unavailable, so the agent keeps
+working even when the external brain is not installed yet.
+
 See [Agent OS architecture](docs/AGENT_OS.md).
 
 ## Workflows

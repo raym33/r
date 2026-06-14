@@ -12,7 +12,8 @@ Available today:
 
 - local LLM connectivity with loopback enforcement;
 - 82 skills and approximately 560 tools;
-- persistent agent identities, tasks, events, and isolated session memory;
+- persistent agent identities, tasks, events, isolated session memory, and optional
+  GBrain-backed continuous recall;
 - deterministic YAML workflows;
 - capability declarations and broad-capability acknowledgement;
 - deny-by-default tool networking and host allowlists;

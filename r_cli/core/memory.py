@@ -9,13 +9,18 @@ Implementa memoria jerárquica:
 
 import hashlib
 import json
+import logging
 import os
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from r_cli.core.config import Config
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -58,6 +63,7 @@ class Memory:
     def __init__(self, config: Optional[Config] = None, namespace: str | None = None):
         self.config = config or Config()
         self.config.ensure_directories()
+        self.namespace = namespace
 
         # Short-term memory (conversación actual)
         self.short_term: list[MemoryEntry] = []
@@ -67,6 +73,7 @@ class Memory:
         session_dir = self.home_dir / "agents" / namespace if namespace else self.home_dir
         session_dir.mkdir(parents=True, exist_ok=True)
         self.session_file = session_dir / "session.json"
+        self.gbrain_state_file = session_dir / "gbrain-sync.json"
         self.long_term_dir = Path(os.path.expanduser(self.config.rag.persist_directory))
 
         # ChromaDB para long-term (lazy loading)
@@ -146,6 +153,9 @@ class Memory:
         with open(self.session_file, "w") as f:
             json.dump(session_data, f, indent=2, ensure_ascii=False)
 
+        if self._gbrain_enabled():
+            self._sync_short_term_to_gbrain()
+
     def load_session(self) -> bool:
         """Carga sesión anterior si existe."""
         if not self.session_file.exists():
@@ -199,6 +209,11 @@ class Memory:
 
         Returns: ID del documento
         """
+        if self._gbrain_enabled():
+            gbrain_id = self._add_document_gbrain(content, doc_id, metadata)
+            if gbrain_id is not None:
+                return gbrain_id
+
         if self.collection is None:
             # Fallback sin ChromaDB: guardar en archivo
             return self._add_document_fallback(content, doc_id, metadata)
@@ -290,6 +305,11 @@ class Memory:
 
         Returns: Lista de resultados con content, metadata, y distance.
         """
+        if self._gbrain_enabled():
+            results = self._search_gbrain(query)
+            if results:
+                return results
+
         if self.collection is None:
             return self._search_fallback(query, n_results)
 
@@ -359,7 +379,9 @@ class Memory:
         # Long-term search
         search_results = self.search(query, n_results=3)
         if search_results:
-            docs_context = "\n\n".join([f"[Doc] {r['content'][:500]}..." for r in search_results])
+            docs_context = "\n\n".join(
+                [self._format_search_result(result) for result in search_results]
+            )
             context_parts.append(f"Documentos relevantes:\n{docs_context}")
 
         full_context = "\n\n---\n\n".join(context_parts)
@@ -369,3 +391,149 @@ class Memory:
             full_context = full_context[:max_chars] + "..."
 
         return full_context
+
+    def _gbrain_enabled(self) -> bool:
+        return self.config.memory.provider == "gbrain"
+
+    def _gbrain_available(self) -> bool:
+        return shutil.which(self.config.memory.gbrain_command) is not None
+
+    def _run_gbrain(
+        self,
+        command: list[str],
+        *,
+        input_text: str | None = None,
+    ) -> subprocess.CompletedProcess[str] | None:
+        if not self._gbrain_available():
+            return None
+
+        try:
+            return subprocess.run(
+                [self.config.memory.gbrain_command, *command],
+                input=input_text,
+                text=True,
+                capture_output=True,
+                timeout=self.config.memory.gbrain_timeout_seconds,
+                check=False,
+            )
+        except OSError as exc:
+            logger.warning("GBrain command failed to start: %s", exc)
+            return None
+        except subprocess.TimeoutExpired:
+            logger.warning("GBrain command timed out: %s", " ".join(command))
+            return None
+
+    def _gbrain_source_args(self) -> list[str]:
+        if self.config.memory.gbrain_source:
+            return ["--source", self.config.memory.gbrain_source]
+        return []
+
+    def _load_gbrain_state(self) -> dict[str, int]:
+        if not self.gbrain_state_file.exists():
+            return {"last_synced_count": 0}
+        try:
+            with open(self.gbrain_state_file) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return {"last_synced_count": 0}
+        count = data.get("last_synced_count", 0)
+        if not isinstance(count, int) or count < 0:
+            count = 0
+        return {"last_synced_count": count}
+
+    def _save_gbrain_state(self, count: int) -> None:
+        with open(self.gbrain_state_file, "w") as f:
+            json.dump({"last_synced_count": count}, f, indent=2)
+
+    def _sync_short_term_to_gbrain(self) -> None:
+        state = self._load_gbrain_state()
+        start_index = state["last_synced_count"]
+        if start_index > len(self.short_term):
+            start_index = 0
+        pending_entries = self.short_term[start_index:]
+        if not pending_entries:
+            return
+
+        next_index = start_index
+        for entry in pending_entries:
+            payload = self._format_gbrain_entry(entry)
+            result = self._run_gbrain(
+                ["capture", "--stdin", *self._gbrain_source_args()],
+                input_text=payload,
+            )
+            if result is None or result.returncode != 0:
+                stderr = (
+                    result.stderr.strip() if result is not None and result.stderr else "unknown"
+                )
+                logger.warning("GBrain capture failed: %s", stderr)
+                return
+            next_index += 1
+
+        self._save_gbrain_state(next_index)
+
+    def _format_gbrain_entry(self, entry: MemoryEntry) -> str:
+        namespace = self.namespace or "default"
+        return (
+            "# R CLI Session Memory\n\n"
+            f"- namespace: {namespace}\n"
+            f"- entry_type: {entry.entry_type}\n"
+            f"- timestamp: {entry.timestamp.isoformat()}\n\n"
+            f"{entry.content}\n"
+        )
+
+    def _add_document_gbrain(
+        self,
+        content: str,
+        doc_id: Optional[str],
+        metadata: Optional[dict],
+    ) -> str | None:
+        if doc_id is None:
+            doc_id = hashlib.md5(content.encode()).hexdigest()[:12]
+
+        metadata_block = json.dumps(metadata or {}, ensure_ascii=False, sort_keys=True)
+        payload = (
+            "# R CLI Document Memory\n\n"
+            f"- doc_id: {doc_id}\n"
+            f"- namespace: {self.namespace or 'default'}\n"
+            f"- metadata: {metadata_block}\n\n"
+            f"{content}\n"
+        )
+        result = self._run_gbrain(
+            ["capture", "--stdin", *self._gbrain_source_args()],
+            input_text=payload,
+        )
+        if result is None or result.returncode != 0:
+            stderr = result.stderr.strip() if result is not None and result.stderr else "unknown"
+            logger.warning("GBrain document capture failed: %s", stderr)
+            return None
+        return doc_id
+
+    def _search_gbrain(self, query: str) -> list[dict]:
+        retrieval_command = self.config.memory.gbrain_retrieval_command
+        result = self._run_gbrain([retrieval_command, query, *self._gbrain_source_args()])
+        if result is None or result.returncode != 0:
+            stderr = result.stderr.strip() if result is not None and result.stderr else "unknown"
+            logger.warning("GBrain retrieval failed: %s", stderr)
+            return []
+
+        output = result.stdout.strip()
+        if not output:
+            return []
+
+        return [
+            {
+                "content": output,
+                "metadata": {
+                    "provider": "gbrain",
+                    "command": retrieval_command,
+                },
+                "distance": None,
+            }
+        ]
+
+    def _format_search_result(self, result: dict) -> str:
+        provider = result.get("metadata", {}).get("provider")
+        prefix = "[Brain]" if provider == "gbrain" else "[Doc]"
+        content = result["content"][:500]
+        suffix = "" if provider == "gbrain" else "..."
+        return f"{prefix} {content}{suffix}"

@@ -10,7 +10,8 @@ persistent processes on top of the host operating system.
 - **Processes:** Tasks move through `queued`, `paused`, `running`, `completed`, `failed`,
   and `cancelled`.
 - **Persistence:** SQLite stores identities, task history, and events.
-- **Memory:** Every agent receives an isolated session namespace.
+- **Memory:** Every agent receives an isolated session namespace, with optional GBrain
+  backing for continuous recall across sessions.
 - **Capabilities:** Skills are explicitly assigned to assistant agents.
 - **Execution:** Agents can use an LLM or deterministic R workflows.
 - **Security:** Existing permission policy, approvals, redaction, and audit traces remain active.

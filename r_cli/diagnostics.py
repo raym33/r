@@ -2,6 +2,7 @@
 
 import os
 import platform
+import shutil
 import sys
 from dataclasses import asdict, dataclass
 from importlib.util import find_spec
@@ -160,6 +161,28 @@ def collect_diagnostics(config_path: str | None = None) -> list[Diagnostic]:
     else:
         model = details.get("model") or config.llm.model
         checks.append(Diagnostic("LLM backend", "ok", f"{detected} ({model})"))
+
+    if config.memory.provider == "gbrain":
+        if shutil.which(config.memory.gbrain_command) is None:
+            checks.append(
+                Diagnostic(
+                    "Memory backend",
+                    "warning",
+                    f"GBrain is configured but `{config.memory.gbrain_command}` is not installed",
+                    "Install GBrain or switch memory.provider back to local",
+                )
+            )
+        else:
+            source = config.memory.gbrain_source or "default brain"
+            checks.append(
+                Diagnostic(
+                    "Memory backend",
+                    "ok",
+                    f"GBrain via `{config.memory.gbrain_command}` ({config.memory.gbrain_retrieval_command}, source={source})",
+                )
+            )
+    else:
+        checks.append(Diagnostic("Memory backend", "ok", "Local session + RAG storage"))
 
     checks.append(
         Diagnostic(

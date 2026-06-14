@@ -1378,6 +1378,13 @@ def show_config(as_json: bool = False):
     console.print(f"LLM URL: {cfg.llm.base_url}")
     console.print(f"Model: {cfg.llm.model}")
     console.print(f"Theme: {cfg.ui.theme}")
+    if cfg.memory.provider == "gbrain":
+        console.print(
+            "Memory: "
+            f"GBrain via {cfg.memory.gbrain_command} ({cfg.memory.gbrain_retrieval_command})"
+        )
+    else:
+        console.print("Memory: Local session + RAG")
     console.print("\nDirectories:")
     console.print(f"  Home: {cfg.home_dir}")
     console.print(f"  Output: {cfg.output_dir}")

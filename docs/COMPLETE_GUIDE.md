@@ -200,6 +200,42 @@ flight recorder: lifecycle events and security posture are visible, while prompt
 content, results, hosts, and filesystem paths are hidden unless `--include-content` is
 provided explicitly.
 
+## Continuous Memory with GBrain
+
+R can use [GBrain](https://github.com/garrytan/gbrain) as its continuous memory layer
+between sessions. This keeps the short-term local session file, but upgrades long-term
+recall from "recent conversation + local vector store" to "recent conversation + external
+brain query" with a clean fallback if GBrain is offline.
+
+```yaml
+memory:
+  provider: gbrain
+  gbrain_command: gbrain
+  gbrain_retrieval_command: query
+  gbrain_source: default
+  gbrain_timeout_seconds: 8.0
+```
+
+Recommended setup:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+bun install -g github:garrytan/gbrain
+gbrain init
+gbrain doctor
+```
+
+Behavior:
+
+- `save_session()` still writes the local session JSON, then syncs only new conversation
+  turns to GBrain through `gbrain capture --stdin`.
+- Context recall goes through `gbrain query`, `gbrain think`, or `gbrain search`,
+  depending on `memory.gbrain_retrieval_command`.
+- `memory.gbrain_source` is passed explicitly so multi-source brains do not depend on
+  ambient shell state.
+- If the GBrain binary is missing, times out, or returns an error, R falls back to the
+  built-in local memory backend instead of failing the agent turn.
+
 Broad capabilities require an explicit acknowledgement:
 
 ```yaml

@@ -161,6 +161,28 @@ def test_agent_os_security_outputs_json(tmp_path):
     assert payload["checks"][0]["name"] == "Local LLM endpoint"
 
 
+def test_doctor_reports_gbrain_memory_backend(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"home_dir: {tmp_path / 'home'}\nmemory:\n  provider: gbrain\n",
+        encoding="utf-8",
+    )
+
+    with patch("r_cli.diagnostics.shutil.which", return_value="/usr/bin/gbrain"):
+        result = runner.invoke(
+            cli,
+            ["doctor", "--json"],
+            env={"R_CLI_CONFIG": str(config_path)},
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    memory_checks = [check for check in payload["checks"] if check["name"] == "Memory backend"]
+    assert memory_checks[0]["status"] == "ok"
+    assert "GBrain" in memory_checks[0]["message"]
+
+
 def test_agent_os_cancel_marks_running_task(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"
