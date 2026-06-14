@@ -25,9 +25,34 @@ export default function VoiceButton({
   const audioChunksRef = useRef<Blob[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const stopRecording = useCallback(() => {
+    // Clear timers
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Stop media recorder
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+
+    // Stop all tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    setAudioLevel(0);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -37,7 +62,53 @@ export default function VoiceButton({
         audioContextRef.current.close();
       }
     };
-  }, []);
+  }, [stopRecording]);
+
+  const processAudio = useCallback(async () => {
+    setState('processing');
+
+    try {
+      // Convert webm to wav using AudioContext
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Decode audio
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      // Convert to WAV
+      const wavBlob = audioBufferToWav(audioBuffer);
+      onAudioResponse?.(wavBlob);
+
+      // Send to transcription API
+      const response = await fetch(`${apiBase}/v1/voice/transcribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'audio/wav',
+        },
+        body: wavBlob,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Transcription failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.text) {
+        onTranscript(result.text);
+      } else if (result.error) {
+        throw new Error(result.error);
+      }
+
+      audioContext.close();
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process audio');
+    } finally {
+      setState('idle');
+    }
+  }, [apiBase, onAudioResponse, onTranscript]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -73,25 +144,21 @@ export default function VoiceButton({
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         setAudioLevel(average / 255);
 
-        // Check for silence
         if (average > 10) {
           lastSoundTime = Date.now();
-          // Clear silence timer if sound detected
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
             silenceTimerRef.current = null;
           }
         } else if (Date.now() - lastSoundTime > silenceTimeout && !silenceTimerRef.current) {
-          // Start silence timer
           silenceTimerRef.current = setTimeout(() => {
             stopRecording();
-          }, 500); // Additional 500ms buffer
+          }, 500);
         }
 
         animationFrameRef.current = requestAnimationFrame(checkAudioLevel);
       };
 
-      // Start MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
       });
@@ -104,16 +171,14 @@ export default function VoiceButton({
       };
 
       mediaRecorder.onstop = async () => {
-        // Process recorded audio
         if (audioChunksRef.current.length > 0) {
           await processAudio();
         }
       };
 
-      mediaRecorder.start(100); // Collect data every 100ms
+      mediaRecorder.start(100);
       checkAudioLevel();
 
-      // Auto-stop after 30 seconds max
       setTimeout(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
           stopRecording();
@@ -124,77 +189,7 @@ export default function VoiceButton({
       setError(err instanceof Error ? err.message : 'Failed to start recording');
       setState('idle');
     }
-  }, [silenceTimeout, state]);
-
-  const stopRecording = useCallback(() => {
-    // Clear timers
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    // Stop media recorder
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-
-    // Stop all tracks
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-
-    setAudioLevel(0);
-  }, []);
-
-  const processAudio = async () => {
-    setState('processing');
-
-    try {
-      // Convert webm to wav using AudioContext
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      const arrayBuffer = await audioBlob.arrayBuffer();
-
-      // Decode audio
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-      // Convert to WAV
-      const wavBlob = audioBufferToWav(audioBuffer);
-
-      // Send to transcription API
-      const response = await fetch(`${apiBase}/v1/voice/transcribe`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'audio/wav',
-        },
-        body: wavBlob,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Transcription failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      if (result.text) {
-        onTranscript(result.text);
-      } else if (result.error) {
-        throw new Error(result.error);
-      }
-
-      audioContext.close();
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process audio');
-    } finally {
-      setState('idle');
-    }
-  };
+  }, [processAudio, silenceTimeout, state, stopRecording]);
 
   // Convert AudioBuffer to WAV blob
   const audioBufferToWav = (buffer: AudioBuffer): Blob => {

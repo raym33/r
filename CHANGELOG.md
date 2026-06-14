@@ -7,6 +7,8 @@ All notable changes to R CLI are documented here.
 ### Added
 - English documentation overhaul with a security-first quick start, complete guide,
   contribution guide, troubleshooting guide, and public roadmap
+- Hermes-style local Control Center web UI at `/ui` with live runtime, Agent OS, memory,
+  capability, and security summaries
 - Local permission policy with risk classification, interactive approval, deny/allow lists, and redacted JSONL audit logs
 - `r permissions explain` and `r permissions audit`
 - Optional MCP client support over stdio with `r mcp add/list/tools/call/remove`
@@ -39,6 +41,7 @@ All notable changes to R CLI are documented here.
 - Tool calls initiated by the LLM, CLI, MCP, and REST API now share the same local permission boundary
 - Direct commands load only the skill they need
 - PDF generation accepts Markdown files and stdin
+- The bundled web frontend now ships through the API static assets for one-command local use
 
 ## [0.3.2] - 2024-12-17
 

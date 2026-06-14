@@ -17,6 +17,8 @@ persistent processes on top of the host operating system.
 - **Security:** Existing permission policy, approvals, redaction, and audit traces remain active.
 - **Privacy:** LLM inference is restricted to loopback endpoints under local-only mode.
 - **Isolation:** Agents declare network allowlists and filesystem roots.
+- **Operator console:** the local Control Center at `/ui` exposes runtime, memory, security,
+  capability, and agent summaries for humans supervising the system.
 - **Observability:** Tasks emit lifecycle events, tool calls appear in `r traces`, and
   task capsules export a redacted local flight recorder for one execution.
 
@@ -65,6 +67,24 @@ Tasks can be paused while they are still queued. A paused task will not be moved
 `running` until it is resumed, which gives operators a simple approval checkpoint before
 background workers pick up queued work. Running tasks cannot be paused yet; cancel them
 instead.
+
+## Control Center
+
+When the local API is running, Agent OS is also available through a web Control Center:
+
+```bash
+r serve --port 8765
+```
+
+Then open `http://127.0.0.1:8765/ui`.
+
+The Control Center is intended as the operator-facing shell for R. It surfaces:
+
+- queue and runtime status;
+- installed agents and task counts;
+- capability domains across the available skill set;
+- memory backend state, including GBrain integration;
+- security posture and network restrictions.
 
 `r os submit` makes the queue explicit: tasks can be enqueued first, reviewed in the
 process table, paused or resumed, reprioritized as urgency changes, and then launched with

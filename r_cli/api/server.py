@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from r_cli import __version__
+from r_cli.agent_os import AgentOS
 from r_cli.api.audit import (
     AuditAction,
     AuditSeverity,
@@ -42,6 +43,9 @@ from r_cli.api.auth import (
     require_scopes,
 )
 from r_cli.api.models import (
+    AgentOSStatus,
+    AgentTaskSummary,
+    CapabilityDomainSummary,
     ChatChoice,
     ChatMessage,
     ChatRequest,
@@ -50,8 +54,12 @@ from r_cli.api.models import (
     ChatStreamDelta,
     ChatStreamResponse,
     ChatUsage,
+    ControlCenterResponse,
     HealthStatus,
+    InstalledAgentSummary,
     LLMStatus,
+    MemoryOverview,
+    SecurityOverview,
     SkillInfo,
     SkillsResponse,
     StatusResponse,
@@ -77,6 +85,106 @@ _config: Optional[Config] = None
 
 # Auth mode: "none", "optional", "required"
 AUTH_MODE = os.getenv("R_AUTH_MODE", "optional")
+CAPABILITY_DOMAINS = {
+    "Knowledge & Docs": {
+        "icon": "📚",
+        "skills": {
+            "pdf",
+            "pdftools",
+            "markdown",
+            "latex",
+            "template",
+            "resume",
+            "ocr",
+            "rag",
+            "text",
+        },
+    },
+    "Code & Data": {
+        "icon": "💻",
+        "skills": {
+            "code",
+            "sql",
+            "json",
+            "yaml",
+            "csv",
+            "schema",
+            "diff",
+            "regex",
+            "semver",
+            "faker",
+        },
+    },
+    "Automation & OS": {
+        "icon": "⚙️",
+        "skills": {
+            "fs",
+            "archive",
+            "git",
+            "system",
+            "docker",
+            "ssh",
+            "cron",
+            "env",
+            "metrics",
+            "logs",
+        },
+    },
+    "Web & Network": {
+        "icon": "🌐",
+        "skills": {
+            "web",
+            "http",
+            "network",
+            "url",
+            "ip",
+            "rss",
+            "sitemap",
+            "openapi",
+            "weather",
+            "currency",
+        },
+    },
+    "Media & Voice": {
+        "icon": "🎙️",
+        "skills": {
+            "voice",
+            "realtime_voice",
+            "image",
+            "imagegen",
+            "screenshot",
+            "audio",
+            "video",
+            "qr",
+            "barcode",
+            "color",
+        },
+    },
+    "Communication": {
+        "icon": "📨",
+        "skills": {
+            "email",
+            "calendar",
+            "ical",
+            "vcard",
+            "social",
+            "autoresponder",
+        },
+    },
+    "Agent Systems": {
+        "icon": "🧠",
+        "skills": {
+            "multiagent",
+            "distributed_ai",
+            "p2p",
+            "agimemory",
+            "agimemory_pg",
+            "plugin",
+            "manifest",
+            "msoffice",
+        },
+    },
+}
 
 
 def get_agent() -> Agent:
@@ -84,6 +192,36 @@ def get_agent() -> Agent:
     if _agent is None:
         raise HTTPException(status_code=503, detail="Agent not initialized")
     return _agent
+
+
+def _build_status_response() -> StatusResponse:
+    """Build the shared runtime status response."""
+    agent = get_agent()
+    uptime = time.time() - _start_time
+    llm_connected = agent.check_connection()
+    llm_status = LLMStatus(
+        connected=llm_connected,
+        backend=_config.llm.provider if _config else None,
+        model=_config.llm.model if _config else None,
+        base_url=_config.llm.base_url if _config else None,
+    )
+    health_status = HealthStatus.HEALTHY if llm_connected else HealthStatus.DEGRADED
+    return StatusResponse(
+        status=health_status,
+        version=__version__,
+        uptime_seconds=uptime,
+        llm=llm_status,
+        skills_loaded=len(agent.skills),
+        timestamp=datetime.now(),
+    )
+
+
+def _resolve_capability_domain(skill_name: str) -> str:
+    """Map a raw skill name to a product-level capability domain."""
+    for domain_name, metadata in CAPABILITY_DOMAINS.items():
+        if skill_name in metadata["skills"]:
+            return domain_name
+    return "Utilities"
 
 
 @asynccontextmanager
@@ -229,27 +367,94 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/v1/status", response_model=StatusResponse, tags=["Status"])
     async def get_status(auth: AuthResult = Depends(get_current_auth)):
         """Get detailed server status."""
+        return _build_status_response()
+
+    @app.get("/v1/control-center", response_model=ControlCenterResponse, tags=["Status"])
+    async def get_control_center(auth: AuthResult = Depends(get_current_auth)):
+        """Get a product-level overview for the web Control Center."""
         agent = get_agent()
-        uptime = time.time() - _start_time
+        status_response = _build_status_response()
+        checker = PermissionChecker(auth.scopes) if auth.authenticated else None
 
-        # Check LLM connection
-        llm_connected = agent.check_connection()
-        llm_status = LLMStatus(
-            connected=llm_connected,
-            backend=_config.llm.provider if _config else None,
-            model=_config.llm.model if _config else None,
-            base_url=_config.llm.base_url if _config else None,
-        )
+        visible_skills = []
+        for name, skill in agent.skills.items():
+            if checker and not checker.can_use_skill(name):
+                continue
+            visible_skills.append((name, skill))
 
-        health_status = HealthStatus.HEALTHY if llm_connected else HealthStatus.DEGRADED
+        runtime = AgentOS(_config or Config.load())
+        runtime_status = runtime.status()
+        installed_agents = runtime.list_agents()
 
-        return StatusResponse(
-            status=health_status,
-            version=__version__,
-            uptime_seconds=uptime,
-            llm=llm_status,
-            skills_loaded=len(agent.skills),
-            timestamp=datetime.now(),
+        domains: dict[str, dict[str, object]] = {}
+        for domain_name, metadata in CAPABILITY_DOMAINS.items():
+            domains[domain_name] = {
+                "name": domain_name,
+                "icon": metadata["icon"],
+                "skills": 0,
+                "tools": 0,
+                "highlights": [],
+            }
+
+        for skill_name, skill in visible_skills:
+            domain_name = _resolve_capability_domain(skill_name)
+            if domain_name not in domains:
+                domains[domain_name] = {
+                    "name": domain_name,
+                    "icon": "🛠️",
+                    "skills": 0,
+                    "tools": 0,
+                    "highlights": [],
+                }
+            domain = domains[domain_name]
+            domain["skills"] = int(domain["skills"]) + 1
+            domain["tools"] = int(domain["tools"]) + len(skill.get_tools())
+            highlights = list(domain["highlights"])
+            if len(highlights) < 4:
+                highlights.append(skill_name)
+                domain["highlights"] = highlights
+
+        capability_domains = [
+            CapabilityDomainSummary(**domain)
+            for domain in domains.values()
+            if int(domain["skills"]) > 0
+        ]
+        capability_domains.sort(key=lambda item: item.skills, reverse=True)
+
+        return ControlCenterResponse(
+            status=status_response,
+            agent_os=AgentOSStatus(
+                database=runtime_status["database"],
+                agents=runtime_status["agents"],
+                events=runtime_status["events"],
+                tasks=AgentTaskSummary(**runtime_status["tasks"]),
+            ),
+            installed_agents=[
+                InstalledAgentSummary(
+                    name=item["name"],
+                    description=item["description"],
+                    kind=item["kind"],
+                    task_count=item["task_count"],
+                    completed=item["completed"],
+                    skills=len(item.get("skills") or []),
+                    network_access=bool(item.get("network_access", False)),
+                )
+                for item in installed_agents[:8]
+            ],
+            capability_domains=capability_domains,
+            memory=MemoryOverview(
+                provider=_config.memory.provider if _config else "local",
+                continuous=(_config.memory.provider == "gbrain") if _config else False,
+            ),
+            security=SecurityOverview(
+                mode=_config.security.mode if _config else "ask",
+                local_only=_config.security.local_only if _config else True,
+                network_access=_config.security.network_access if _config else False,
+                audit_enabled=_config.security.audit_enabled if _config else True,
+                filesystem_roots_enforced=(
+                    _config.security.enforce_filesystem_roots if _config else False
+                ),
+            ),
         )
 
     # ========================================================================
@@ -857,6 +1062,7 @@ def register_routes(app: FastAPI) -> None:
                     name=name,
                     description=skill.description,
                     tools=tools,
+                    category=_resolve_capability_domain(name),
                 )
             )
 
@@ -907,6 +1113,7 @@ def register_routes(app: FastAPI) -> None:
             name=skill_name,
             description=skill.description,
             tools=tools,
+            category=_resolve_capability_domain(skill_name),
         )
 
     @app.post("/v1/skills/call", response_model=ToolCallResponse, tags=["Skills"])

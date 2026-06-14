@@ -6,27 +6,32 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/chat', label: 'Chat', icon: '💬' },
-  { path: '/skills', label: 'Skills', icon: '🛠️' },
-  { path: '/logs', label: 'Logs', icon: '📋' },
-  { path: '/settings', label: 'Settings', icon: '⚙️' },
+  { path: '/', label: 'Control Center', icon: '🧭' },
+  { path: '/chat', label: 'Agent Chat', icon: '💬' },
+  { path: '/skills', label: 'Capability Explorer', icon: '🛠️' },
+  { path: '/logs', label: 'Audit Trail', icon: '📋' },
+  { path: '/settings', label: 'Runtime Settings', icon: '⚙️' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen bg-slate-900">
+    <div className="flex h-screen bg-slate-950">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+      <aside className="w-72 bg-slate-900 border-r border-slate-800 flex flex-col">
         {/* Logo */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-5 border-b border-slate-800">
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-2xl">🤖</span>
-            R CLI Dashboard
+            <span className="text-2xl">🧠</span>
+            R Agent OS
           </h1>
-          <p className="text-sm text-slate-400 mt-1">Local AI Agent Runtime</p>
+          <p className="text-sm text-slate-400 mt-2">
+            Local-first agents, memory, workflows, and governed tools.
+          </p>
+          <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-xs text-cyan-100">
+            Private by default. Visible by design.
+          </div>
         </div>
 
         {/* Navigation */}
@@ -40,8 +45,8 @@ export default function Layout({ children }: LayoutProps) {
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        ? 'bg-cyan-500/15 text-white border border-cyan-500/30'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white border border-transparent'
                     }`}
                   >
                     <span>{item.icon}</span>
@@ -54,15 +59,15 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-slate-800">
           <div className="text-xs text-slate-500">
-            100% Local • 100% Private
+            100% local • audit-ready • operator-first
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-slate-950">
         <div className="p-6">
           {children}
         </div>

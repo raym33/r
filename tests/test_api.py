@@ -804,6 +804,20 @@ class TestAPIEndpoints:
             data = response.json()
             assert "skills" in data
             assert isinstance(data["skills"], list)
+            if data["skills"]:
+                assert "category" in data["skills"][0]
+
+    def test_control_center_endpoint(self, client):
+        """Test control center overview endpoint."""
+        response = client.get("/v1/control-center")
+        assert response.status_code in [200, 500, 503]
+        if response.status_code == 200:
+            data = response.json()
+            assert "status" in data
+            assert "agent_os" in data
+            assert "capability_domains" in data
+            assert "memory" in data
+            assert "security" in data
 
     def test_rate_limit_headers(self, client):
         """Test rate limit headers are present."""

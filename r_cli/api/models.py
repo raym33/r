@@ -42,6 +42,76 @@ class StatusResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
 
 
+class AgentTaskSummary(BaseModel):
+    """Task counts for Agent OS."""
+
+    queued: int = 0
+    paused: int = 0
+    running: int = 0
+    completed: int = 0
+    failed: int = 0
+    cancelled: int = 0
+
+
+class AgentOSStatus(BaseModel):
+    """Overview of the local Agent OS runtime."""
+
+    database: str
+    agents: int
+    events: int
+    tasks: AgentTaskSummary
+
+
+class InstalledAgentSummary(BaseModel):
+    """Compact summary of one installed agent."""
+
+    name: str
+    description: str
+    kind: str
+    task_count: int
+    completed: int
+    skills: int
+    network_access: bool
+
+
+class CapabilityDomainSummary(BaseModel):
+    """Visible capability group in the Control Center."""
+
+    name: str
+    icon: str
+    skills: int
+    tools: int
+    highlights: list[str] = []
+
+
+class MemoryOverview(BaseModel):
+    """Memory backend summary."""
+
+    provider: str
+    continuous: bool = False
+
+
+class SecurityOverview(BaseModel):
+    """Security posture summary."""
+
+    mode: str
+    local_only: bool
+    network_access: bool
+    audit_enabled: bool
+    filesystem_roots_enforced: bool
+
+
+class ControlCenterResponse(BaseModel):
+    """Overview payload for the web Control Center."""
+
+    status: StatusResponse
+    agent_os: AgentOSStatus
+    installed_agents: list[InstalledAgentSummary]
+    capability_domains: list[CapabilityDomainSummary]
+    memory: MemoryOverview
+    security: SecurityOverview
+
+
 # ============================================================================
 # Chat Models
 # ============================================================================

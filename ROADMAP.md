@@ -20,6 +20,8 @@ Available today:
 - filesystem root policy checks;
 - permission audit logs and execution traces;
 - local REST API with explicit network exposure;
+- local Control Center web UI for operator visibility into runtime, memory, security, and
+  capabilities;
 - optional MCP, P2P, distributed AI, voice, and edge-device modules.
 
 ## Phase 1: Secure Local Runtime
@@ -134,6 +136,7 @@ Exit criteria:
 Planned:
 
 - guided setup and model selection;
+- richer Control Center views for approvals, traces, topology, and task drill-down;
 - visual process, permission, and trace manager;
 - accessible desktop and terminal interfaces;
 - security posture explanations in plain language;

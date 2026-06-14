@@ -2,6 +2,7 @@
 
 import type {
   StatusResponse,
+  ControlCenterResponse,
   SkillsResponse,
   SkillInfo,
   ChatRequest,
@@ -79,6 +80,10 @@ class APIClient {
   // Status
   async getStatus(): Promise<StatusResponse> {
     return this.request<StatusResponse>('/v1/status');
+  }
+
+  async getControlCenter(): Promise<ControlCenterResponse> {
+    return this.request<ControlCenterResponse>('/v1/control-center');
   }
 
   async getHealth(): Promise<{ status: string }> {

@@ -3,14 +3,14 @@ import api from '../api/client';
 import type { SkillInfo } from '../types';
 
 const categoryIcons: Record<string, string> = {
-  documents: '📄',
-  code: '💻',
-  data: '📊',
-  system: '⚙️',
-  web: '🌐',
-  ai: '🤖',
-  media: '🎨',
-  communication: '📧',
+  'Knowledge & Docs': '📚',
+  'Code & Data': '💻',
+  'Automation & OS': '⚙️',
+  'Web & Network': '🌐',
+  'Media & Voice': '🎙️',
+  Communication: '📨',
+  'Agent Systems': '🧠',
+  Utilities: '🛠️',
   default: '🛠️',
 };
 

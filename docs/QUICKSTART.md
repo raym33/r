@@ -132,7 +132,14 @@ Use `whitelist` mode when an agent needs only specific skills.
 r serve --port 8765
 ```
 
-Open `http://127.0.0.1:8765/docs`.
+Open:
+
+- `http://127.0.0.1:8765/ui` for the Control Center
+- `http://127.0.0.1:8765/docs` for the API reference
+
+The Control Center is the fastest way to see what R can do on one machine. It surfaces
+runtime health, agent activity, capability domains, memory status, and security posture
+without requiring users to learn the full CLI first.
 
 The server binds to loopback by default. Exposing it to other devices requires the explicit
 `--expose` flag and appropriate authentication, TLS, and firewall controls.

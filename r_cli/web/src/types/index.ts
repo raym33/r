@@ -16,6 +16,62 @@ export interface StatusResponse {
   timestamp: string;
 }
 
+export interface AgentTaskSummary {
+  queued: number;
+  paused: number;
+  running: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface AgentOSStatus {
+  database: string;
+  agents: number;
+  events: number;
+  tasks: AgentTaskSummary;
+}
+
+export interface InstalledAgentSummary {
+  name: string;
+  description: string;
+  kind: string;
+  task_count: number;
+  completed: number;
+  skills: number;
+  network_access: boolean;
+}
+
+export interface CapabilityDomainSummary {
+  name: string;
+  icon: string;
+  skills: number;
+  tools: number;
+  highlights: string[];
+}
+
+export interface MemoryOverview {
+  provider: string;
+  continuous: boolean;
+}
+
+export interface SecurityOverview {
+  mode: string;
+  local_only: boolean;
+  network_access: boolean;
+  audit_enabled: boolean;
+  filesystem_roots_enforced: boolean;
+}
+
+export interface ControlCenterResponse {
+  status: StatusResponse;
+  agent_os: AgentOSStatus;
+  installed_agents: InstalledAgentSummary[];
+  capability_domains: CapabilityDomainSummary[];
+  memory: MemoryOverview;
+  security: SecurityOverview;
+}
+
 export interface SkillTool {
   name: string;
   description: string;

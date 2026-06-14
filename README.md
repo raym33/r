@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-[Quick start](#quick-start) · [Security](#security-first) · [Agent OS](#agent-os) ·
+[Quick start](#quick-start) · [Control Center](#control-center) · [Security](#security-first) · [Agent OS](#agent-os) ·
 [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
@@ -34,6 +34,8 @@ such as Ollama, LM Studio, MLX, llama.cpp, and LocalAI remain under the user's c
   variables, retries, conditions, and dry runs.
 - **Human control:** high-risk actions require approval and explicit deny rules always win.
 - **Observable execution:** tool calls include trace IDs, sources, outcomes, and latency.
+- **Operator-visible UI:** a local Control Center at `/ui` shows runtime health, agents,
+  capabilities, memory, and security posture in one place.
 - **Portable foundation:** Python 3.10+ and local model APIs work across major desktop
   platforms and Termux.
 
@@ -96,6 +98,25 @@ r tool math calculate --arg 'expression=sqrt(144)'
 r project inspect .
 r skills --search pdf
 ```
+
+## Control Center
+
+R also ships with a local web interface designed as an operator console for Agent OS.
+It helps users discover what R can do without memorizing commands.
+
+```bash
+r serve --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000/ui`.
+
+The Control Center shows:
+
+- local model and API runtime status;
+- queue health, completed tasks, and installed agents;
+- capability domains and skill discovery;
+- memory backend status, including GBrain when configured;
+- security posture, approvals mode, and network policy.
 
 Machine-readable output is available across core commands:
 
