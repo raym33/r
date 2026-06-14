@@ -183,6 +183,98 @@ def test_doctor_reports_gbrain_memory_backend(tmp_path):
     assert "GBrain" in memory_checks[0]["message"]
 
 
+def test_memory_status_reports_local_backend(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"home_dir: {tmp_path / 'home'}\n", encoding="utf-8")
+
+    result = runner.invoke(
+        cli,
+        ["memory", "status", "--json"],
+        env={"R_CLI_CONFIG": str(config_path)},
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["provider"] == "local"
+    assert payload["namespace"] == "default"
+
+
+def test_memory_remember_and_search_round_trip(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"home_dir: {tmp_path / 'home'}\nrag:\n  enabled: false\n",
+        encoding="utf-8",
+    )
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    remembered = runner.invoke(
+        cli,
+        ["memory", "remember", "persistent", "fact", "--json"],
+        env=environment,
+    )
+    searched = runner.invoke(
+        cli,
+        ["memory", "search", "persistent", "--json"],
+        env=environment,
+    )
+
+    assert remembered.exit_code == 0
+    assert json.loads(remembered.output)["id"]
+    results = json.loads(searched.output)
+    assert searched.exit_code == 0
+    assert results[0]["content"] == "persistent fact"
+
+
+def test_memory_sync_reports_uploaded_entries_for_gbrain(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(
+        f"home_dir: {home}\nmemory:\n  provider: gbrain\n",
+        encoding="utf-8",
+    )
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    session_dir = home / "agents" / "demo"
+    session_dir.mkdir(parents=True, exist_ok=True)
+    (session_dir / "session.json").write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-01-01T00:00:00",
+                "entries": [
+                    {
+                        "content": "hello",
+                        "timestamp": "2026-01-01T00:00:00",
+                        "entry_type": "user_input",
+                        "metadata": {},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with (
+        patch("r_cli.core.memory.shutil.which", return_value="/usr/bin/gbrain"),
+        patch("r_cli.core.memory.subprocess.run") as run,
+    ):
+        import subprocess
+
+        run.return_value = subprocess.CompletedProcess(["gbrain"], 0, "ok", "")
+        result = runner.invoke(
+            cli,
+            ["memory", "sync", "--namespace", "demo", "--json"],
+            env=environment,
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["entries_uploaded"] == 1
+    assert payload["gbrain_enabled"] is True
+
+
 def test_agent_os_cancel_marks_running_task(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

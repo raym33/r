@@ -165,6 +165,15 @@ memory:
 R falls back to local session and RAG storage if GBrain is unavailable, so the agent keeps
 working even when the external brain is not installed yet.
 
+You can inspect and operate the memory layer directly:
+
+```bash
+r memory status
+r memory remember "Meeting notes about the PDF ingestion roadmap"
+r memory search "PDF ingestion roadmap"
+r memory sync
+```
+
 See [Agent OS architecture](docs/AGENT_OS.md).
 
 ## Workflows

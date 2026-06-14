@@ -177,6 +177,36 @@ class Memory:
             # Error de lectura de archivo
             return False
 
+    def status(self) -> dict:
+        """Return backend and storage status for this namespace."""
+        state = self._load_gbrain_state()
+        return {
+            "provider": self.config.memory.provider,
+            "namespace": self.namespace or "default",
+            "session_file": str(self.session_file),
+            "entries": len(self.short_term),
+            "rag_directory": str(self.long_term_dir),
+            "gbrain_enabled": self._gbrain_enabled(),
+            "gbrain_available": self._gbrain_available() if self._gbrain_enabled() else False,
+            "gbrain_command": self.config.memory.gbrain_command,
+            "gbrain_retrieval_command": self.config.memory.gbrain_retrieval_command,
+            "gbrain_source": self.config.memory.gbrain_source,
+            "gbrain_synced_entries": state["last_synced_count"],
+        }
+
+    def sync(self) -> dict:
+        """Persist the session and, when enabled, flush new entries to GBrain."""
+        if not self.short_term:
+            self.load_session()
+        before = self._load_gbrain_state()["last_synced_count"] if self._gbrain_enabled() else 0
+        self.save_session()
+        after = self._load_gbrain_state()["last_synced_count"] if self._gbrain_enabled() else 0
+        return {
+            **self.status(),
+            "session_saved": True,
+            "entries_uploaded": max(0, after - before),
+        }
+
     def get_session_summary(self) -> str:
         """Genera un resumen de la sesión para contexto."""
         if not self.short_term:

@@ -1115,6 +1115,106 @@ def agent_os_security(as_json: bool):
     console.print(table)
 
 
+@cli.group("memory")
+def memory_command():
+    """Inspect and operate the agent memory layer."""
+
+
+@memory_command.command("status")
+@click.option("--namespace")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def memory_status(namespace: str | None, as_json: bool):
+    """Show the current memory backend and storage state."""
+    from r_cli.core.memory import Memory
+
+    status = Memory(Config.load(), namespace=namespace).status()
+    if as_json:
+        click.echo(json.dumps(status, indent=2))
+        return
+
+    table = Table(show_header=False, box=None)
+    table.add_column("Field", style="cyan")
+    table.add_column("Value")
+    table.add_row("Provider", status["provider"])
+    table.add_row("Namespace", status["namespace"])
+    table.add_row("Entries", str(status["entries"]))
+    table.add_row("Session file", status["session_file"])
+    table.add_row("RAG directory", status["rag_directory"])
+    if status["gbrain_enabled"]:
+        table.add_row("GBrain command", status["gbrain_command"])
+        table.add_row("GBrain available", "yes" if status["gbrain_available"] else "no")
+        table.add_row("Retrieval", status["gbrain_retrieval_command"])
+        table.add_row("Source", status["gbrain_source"] or "default")
+        table.add_row("Synced entries", str(status["gbrain_synced_entries"]))
+    console.print(Panel(table, title="Memory"))
+
+
+@memory_command.command("sync")
+@click.option("--namespace")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def memory_sync(namespace: str | None, as_json: bool):
+    """Persist the session and flush pending entries to the active backend."""
+    from r_cli.core.memory import Memory
+
+    result = Memory(Config.load(), namespace=namespace).sync()
+    if as_json:
+        click.echo(json.dumps(result, indent=2))
+        return
+    console.print(
+        f"[green]Memory synced[/green] "
+        f"({result['entries']} entries, uploaded {result['entries_uploaded']})"
+    )
+
+
+@memory_command.command("search")
+@click.argument("query", nargs=-1, required=True)
+@click.option("--namespace")
+@click.option("--limit", default=5, type=click.IntRange(min=1, max=50))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def memory_search(query: tuple[str, ...], namespace: str | None, limit: int, as_json: bool):
+    """Search the active memory backend."""
+    from r_cli.core.memory import Memory
+
+    results = Memory(Config.load(), namespace=namespace).search(" ".join(query), n_results=limit)
+    if as_json:
+        click.echo(json.dumps(results, indent=2, default=str))
+        return
+    table = Table(title=f"Memory results ({len(results)})")
+    table.add_column("Source", style="cyan")
+    table.add_column("Content")
+    for result in results:
+        source = result.get("metadata", {}).get("provider", "local")
+        table.add_row(source, result["content"][:120])
+    console.print(table)
+
+
+@memory_command.command("remember")
+@click.argument("content", nargs=-1, required=True)
+@click.option("--namespace")
+@click.option("--doc-id")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def memory_remember(
+    content: tuple[str, ...],
+    namespace: str | None,
+    doc_id: str | None,
+    as_json: bool,
+):
+    """Write a note into the long-term memory backend."""
+    from r_cli.core.memory import Memory
+
+    memory = Memory(Config.load(), namespace=namespace)
+    stored_id = memory.add_document(" ".join(content), doc_id=doc_id)
+    payload = {
+        "id": stored_id,
+        "namespace": namespace or "default",
+        "provider": memory.status()["provider"],
+    }
+    if as_json:
+        click.echo(json.dumps(payload, indent=2))
+        return
+    console.print(f"[green]Stored memory[/green] {stored_id}")
+
+
 @cli.group("mcp")
 def mcp_command():
     """Manage Model Context Protocol servers and tools."""

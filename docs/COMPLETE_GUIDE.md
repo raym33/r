@@ -236,6 +236,16 @@ Behavior:
 - If the GBrain binary is missing, times out, or returns an error, R falls back to the
   built-in local memory backend instead of failing the agent turn.
 
+Useful commands:
+
+```bash
+r memory status
+r memory status --namespace researcher
+r memory remember "Alice asked for a stricter sandbox on macOS"
+r memory search "sandbox macOS"
+r memory sync
+```
+
 Broad capabilities require an explicit acknowledgement:
 
 ```yaml
