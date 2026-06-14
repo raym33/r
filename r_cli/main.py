@@ -883,10 +883,18 @@ def agent_os_agent_remove(name: str):
 @agent_os_command.command("run")
 @click.argument("agent_name")
 @click.argument("task", nargs=-1, required=True)
+@click.option(
+    "--priority",
+    default="normal",
+    type=click.Choice(["low", "normal", "high", "critical"]),
+    help="Queue priority for the task",
+)
 @click.option("--yes", is_flag=True, help="Approve risky actions without prompting")
 @click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
 @click.pass_context
-def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json: bool):
+def agent_os_run(
+    ctx, agent_name: str, task: tuple[str, ...], priority: str, yes: bool, as_json: bool
+):
     """Submit and supervise one task for an installed agent."""
     from r_cli.agent_os import AgentOS, AgentOSError
 
@@ -896,6 +904,7 @@ def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json
         result = AgentOS(Config.load()).run(
             agent_name,
             " ".join(task),
+            priority=priority,
             approval_callback=callback,
             auto_approve=auto_approve,
         )
@@ -915,13 +924,19 @@ def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json
 @agent_os_command.command("submit")
 @click.argument("agent_name")
 @click.argument("task", nargs=-1, required=True)
+@click.option(
+    "--priority",
+    default="normal",
+    type=click.Choice(["low", "normal", "high", "critical"]),
+    help="Queue priority for the task",
+)
 @click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
-def agent_os_submit(agent_name: str, task: tuple[str, ...], as_json: bool):
+def agent_os_submit(agent_name: str, task: tuple[str, ...], priority: str, as_json: bool):
     """Queue one task without starting it."""
     from r_cli.agent_os import AgentOS, AgentOSError
 
     try:
-        queued = AgentOS(Config.load()).create_task(agent_name, " ".join(task))
+        queued = AgentOS(Config.load()).create_task(agent_name, " ".join(task), priority=priority)
     except AgentOSError as exc:
         raise click.ClickException(str(exc)) from exc
     if as_json:
@@ -981,6 +996,7 @@ def agent_os_tasks(limit: int, status: str | None, agent_name: str | None, as_js
     table.add_column("ID", style="cyan")
     table.add_column("Agent")
     table.add_column("Status")
+    table.add_column("Priority")
     table.add_column("Created")
     table.add_column("Input")
     for task in tasks:
@@ -988,6 +1004,7 @@ def agent_os_tasks(limit: int, status: str | None, agent_name: str | None, as_js
             task["id"],
             task["agent_name"],
             task["status"],
+            task["priority"],
             task["created_at"],
             task["input"][:60],
         )
@@ -1045,6 +1062,24 @@ def agent_os_resume(task_id: str, as_json: bool):
         click.echo(json.dumps(task, indent=2, default=str))
         return
     console.print(f"[green]Task {task_id} resumed[/green]")
+
+
+@agent_os_command.command("reprioritize")
+@click.argument("task_id")
+@click.argument("priority", type=click.Choice(["low", "normal", "high", "critical"]))
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_reprioritize(task_id: str, priority: str, as_json: bool):
+    """Change task priority inside the queue."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        task = AgentOS(Config.load()).set_task_priority(task_id, priority)
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(task, indent=2, default=str))
+        return
+    console.print(f"[green]Task {task_id} priority set to {task['priority']}[/green]")
 
 
 @agent_os_command.command("events")

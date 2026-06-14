@@ -129,7 +129,8 @@ Install and run the agent:
 ```bash
 r os agent install researcher.yaml
 r os agent list
-r os submit private-researcher "Compare the PDF reports"
+r os submit private-researcher "Compare the PDF reports" --priority high
+r os reprioritize <task-id> critical
 r os start <task-id>
 r os run private-researcher "Compare the PDF reports"
 r os tasks --agent private-researcher
@@ -146,7 +147,9 @@ Agent tasks move through `queued`, `paused`, `running`, `completed`, `failed`, a
 `unsafe_capabilities: true`.
 
 `r os submit` and `r os start` expose the queue as a first-class primitive, so tasks can
-be created, inspected, paused, resumed, approved, and only then executed.
+be created, inspected, paused, resumed, reprioritized, approved, and only then executed.
+The scheduler orders work by `critical`, `high`, `normal`, and `low`, which makes the
+queue behave more like a local process manager than a synchronous helper command.
 
 Task capsules are privacy-preserving audit bundles for one execution. They include
 process metadata, lifecycle events, and a security summary, while redacting prompts,

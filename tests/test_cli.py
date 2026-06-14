@@ -379,6 +379,53 @@ def test_agent_os_submit_and_start_task(tmp_path):
     assert json.loads(started.output)["result"] == "done"
 
 
+def test_agent_os_reprioritize_updates_priority_and_queue_order(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Does work"))
+
+    baseline = runner.invoke(
+        cli,
+        ["os", "submit", "worker", "baseline", "--priority", "normal", "--json"],
+        env=environment,
+    )
+    submitted = runner.invoke(
+        cli,
+        ["os", "submit", "worker", "urgent", "--priority", "low", "--json"],
+        env=environment,
+    )
+    task_id = json.loads(submitted.output)["id"]
+
+    reprioritized = runner.invoke(
+        cli,
+        ["os", "reprioritize", task_id, "critical", "--json"],
+        env=environment,
+    )
+    listed = runner.invoke(
+        cli,
+        ["os", "tasks", "--json"],
+        env=environment,
+    )
+
+    assert baseline.exit_code == 0
+    assert submitted.exit_code == 0
+    assert json.loads(submitted.output)["priority"] == "low"
+    assert reprioritized.exit_code == 0
+    assert json.loads(reprioritized.output)["priority"] == "critical"
+    tasks = json.loads(listed.output)
+    assert listed.exit_code == 0
+    assert tasks[0]["id"] == task_id
+    assert tasks[0]["priority"] == "critical"
+
+
 def test_agent_os_capsule_writes_redacted_task_export(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

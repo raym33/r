@@ -102,6 +102,9 @@ Install and run it:
 
 ```bash
 r os agent install researcher.yaml
+r os submit private-researcher "Summarize the documents" --priority high
+r os start <task-id>
+r os reprioritize <task-id> critical
 r os run private-researcher "Summarize the documents"
 r os tasks --agent private-researcher
 ```

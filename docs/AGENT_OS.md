@@ -46,7 +46,8 @@ r os init researcher.yaml
 r os agent install researcher.yaml
 r os agent list
 r os agent show researcher
-r os submit researcher "Analyze this project"
+r os submit researcher "Analyze this project" --priority high
+r os reprioritize <task-id> critical
 r os start <task-id>
 r os run researcher "Analyze this project"
 r os tasks --status completed
@@ -65,8 +66,12 @@ future background workers pick up queued work. Running tasks cannot be paused ye
 them instead.
 
 `r os submit` makes the queue explicit: tasks can be enqueued first, reviewed in the
-process table, paused or resumed, and then launched with `r os start`. This is the first
-kernel-style separation between admission and execution.
+process table, paused or resumed, reprioritized as urgency changes, and then launched with
+`r os start`. This is the first kernel-style separation between admission and execution.
+
+Queue order is deterministic: `critical`, `high`, `normal`, and then `low`. Priority can
+be changed while a task is still `queued` or `paused`, which gives operators a clean way
+to escalate work without recreating jobs.
 
 Task capsules are local audit bundles for a single execution:
 

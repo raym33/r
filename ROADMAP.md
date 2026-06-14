@@ -72,7 +72,8 @@ Planned:
 
 - background workers and resumable queues;
 - cancellation and queued-task pause controls (initial CLI support is available);
-- retry, timeout, and priority controls;
+- retry and timeout controls;
+- scheduler priority controls across `low`, `normal`, `high`, and `critical`;
 - token, tool, and cost budgets;
 - task checkpoints and recovery after restart;
 - human approval inboxes;

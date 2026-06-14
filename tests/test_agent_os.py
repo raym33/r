@@ -92,18 +92,19 @@ def test_run_records_completed_task_and_events(tmp_path):
         "task.queued",
         "agent.installed",
     ]
-    assert runtime.list_events()[2]["payload"] == {"input_length": 14}
+    assert runtime.list_events()[2]["payload"] == {"input_length": 14, "priority": "normal"}
 
 
 def test_create_and_start_task_separately(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))
-    queued = runtime.create_task("writer", "Write a report")
+    queued = runtime.create_task("writer", "Write a report", priority="high")
 
     with patch.object(runtime, "_run_assistant", return_value="finished"):
         task = runtime.run_task(queued["id"])
 
     assert queued["status"] == "queued"
+    assert queued["priority"] == "high"
     assert task["status"] == "completed"
     assert task["result"] == "finished"
 
@@ -208,6 +209,51 @@ def test_only_queued_tasks_can_start(tmp_path):
 
     with pytest.raises(AgentOSError, match="is not queued"):
         runtime.run_task("task123")
+
+
+def test_list_tasks_orders_by_priority(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    low = runtime.create_task("writer", "Low", priority="low")
+    critical = runtime.create_task("writer", "Critical", priority="critical")
+    high = runtime.create_task("writer", "High", priority="high")
+
+    tasks = runtime.list_tasks(limit=10)
+
+    assert [task["id"] for task in tasks[:3]] == [
+        critical["id"],
+        high["id"],
+        low["id"],
+    ]
+
+
+def test_reprioritize_task_updates_queue_order(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    first = runtime.create_task("writer", "First", priority="normal")
+    second = runtime.create_task("writer", "Second", priority="low")
+
+    updated = runtime.set_task_priority(second["id"], "critical")
+    tasks = runtime.list_tasks(limit=10)
+
+    assert updated["priority"] == "critical"
+    assert tasks[0]["id"] == second["id"]
+    assert tasks[1]["id"] == first["id"]
+
+
+def test_running_task_cannot_be_reprioritized(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, priority, created_at, started_at)
+            VALUES ('task123', 'writer', 'Draft report', 'running', 'normal', 'now', 'now')
+            """
+        )
+
+    with pytest.raises(AgentOSError, match="queued or paused"):
+        runtime.set_task_priority("task123", "critical")
 
 
 def test_paused_task_cannot_start_accidentally(tmp_path):

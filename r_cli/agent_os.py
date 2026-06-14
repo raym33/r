@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 AGENT_KINDS = {"assistant", "workflow"}
 TASK_STATES = {"queued", "paused", "running", "completed", "failed", "cancelled"}
 TERMINAL_TASK_STATES = {"completed", "failed", "cancelled"}
+TASK_PRIORITIES = ("low", "normal", "high", "critical")
 REDACTED = "[redacted]"
 
 
@@ -78,6 +79,7 @@ class AgentOS:
                     agent_name TEXT NOT NULL,
                     input TEXT NOT NULL,
                     status TEXT NOT NULL,
+                    priority TEXT NOT NULL DEFAULT 'normal',
                     result TEXT,
                     error TEXT,
                     created_at TEXT NOT NULL,
@@ -97,6 +99,13 @@ class AgentOS:
                 CREATE INDEX IF NOT EXISTS idx_events_task ON events(task_id);
                 """
             )
+            columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(tasks)").fetchall()
+            }
+            if "priority" not in columns:
+                connection.execute(
+                    "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'normal'"
+                )
 
     def install(self, manifest: AgentManifest, replace: bool = False) -> None:
         """Install an agent identity from a validated manifest."""
@@ -177,37 +186,44 @@ class AgentOS:
         self,
         name: str,
         task_input: str,
+        priority: str = "normal",
         approval_callback: ApprovalCallback | None = None,
         auto_approve: bool = False,
     ) -> dict[str, Any]:
         """Create and synchronously supervise one task."""
-        task = self.create_task(name, task_input)
+        task = self.create_task(name, task_input, priority=priority)
         return self.run_task(
             task["id"],
             approval_callback=approval_callback,
             auto_approve=auto_approve,
         )
 
-    def create_task(self, name: str, task_input: str) -> dict[str, Any]:
+    def create_task(
+        self,
+        name: str,
+        task_input: str,
+        priority: str = "normal",
+    ) -> dict[str, Any]:
         """Create a queued task without starting execution."""
         self.get_agent(name)
         if not task_input.strip():
             raise AgentOSError("Task input must be non-empty")
+        priority = _normalize_task_priority(priority)
         task_id = uuid.uuid4().hex[:12]
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO tasks(id, agent_name, input, status, created_at)
-                VALUES (?, ?, ?, 'queued', ?)
+                INSERT INTO tasks(id, agent_name, input, status, priority, created_at)
+                VALUES (?, ?, ?, 'queued', ?, ?)
                 """,
-                (task_id, name, task_input, _now()),
+                (task_id, name, task_input, priority, _now()),
             )
             self._emit(
                 connection,
                 "task.queued",
                 name,
                 task_id,
-                {"input_length": len(task_input)},
+                {"input_length": len(task_input), "priority": priority},
             )
         return self.get_task(task_id)
 
@@ -325,6 +341,32 @@ class AgentOS:
                 row["agent_name"],
                 task_id,
                 {"previous_status": row["status"]},
+            )
+        return self.get_task(task_id)
+
+    def set_task_priority(self, task_id: str, priority: str) -> dict[str, Any]:
+        """Update task priority for scheduling."""
+        priority = _normalize_task_priority(priority)
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+            if row is None:
+                raise AgentOSError(f"Unknown task: {task_id}")
+            if row["status"] not in {"queued", "paused"}:
+                raise AgentOSError(
+                    f"Task {task_id} priority can only be changed while queued or paused"
+                )
+            if row["priority"] == priority:
+                return self.get_task(task_id)
+            connection.execute(
+                "UPDATE tasks SET priority = ? WHERE id = ?",
+                (priority, task_id),
+            )
+            self._emit(
+                connection,
+                "task.reprioritized",
+                row["agent_name"],
+                task_id,
+                {"priority": priority, "previous_priority": row["priority"]},
             )
         return self.get_task(task_id)
 
@@ -455,7 +497,11 @@ class AgentOS:
         values.append(limit)
         with self._connect() as connection:
             rows = connection.execute(
-                f"SELECT * FROM tasks {where} ORDER BY created_at DESC LIMIT ?",
+                f"""
+                SELECT * FROM tasks {where}
+                ORDER BY {_task_priority_case_sql()} DESC, created_at DESC
+                LIMIT ?
+                """,
                 values,
             ).fetchall()
         return [_task_dict(row) for row in rows]
@@ -711,6 +757,7 @@ def _task_dict(row: sqlite3.Row) -> dict[str, Any]:
         "agent_name": row["agent_name"],
         "input": row["input"],
         "status": row["status"],
+        "priority": row["priority"],
         "result": result,
         "error": row["error"],
         "created_at": row["created_at"],
@@ -773,6 +820,23 @@ def _capsule_security_summary(manifest: dict[str, Any]) -> dict[str, Any]:
         "filesystem_roots_count": len(filesystem_roots),
         "unsafe_capabilities": bool(manifest.get("unsafe_capabilities", False)),
     }
+
+
+def _normalize_task_priority(priority: str) -> str:
+    value = priority.strip().lower()
+    if value not in TASK_PRIORITIES:
+        raise AgentOSError(f"Task priority must be one of: {', '.join(TASK_PRIORITIES)}")
+    return value
+
+
+def _task_priority_case_sql() -> str:
+    return (
+        "CASE priority "
+        "WHEN 'critical' THEN 3 "
+        "WHEN 'high' THEN 2 "
+        "WHEN 'normal' THEN 1 "
+        "ELSE 0 END"
+    )
 
 
 def _now() -> str:

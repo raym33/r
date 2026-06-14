@@ -179,7 +179,8 @@ Install and run:
 r os agent install researcher.yaml
 r os agent list
 r os agent show researcher
-r os submit researcher "Compare the local reports"
+r os submit researcher "Compare the local reports" --priority high
+r os reprioritize <task-id> critical
 r os start <task-id>
 r os run researcher "Compare the local reports"
 ```
@@ -205,6 +206,11 @@ provided explicitly.
 `r os submit` and `r os start` let you separate admission from execution. That makes the
 queue visible and governable, which is much closer to an operating-system model than an
 all-in-one synchronous `run`.
+
+Each task also carries a scheduler priority: `low`, `normal`, `high`, or `critical`.
+`r os tasks` shows that field, and the queue is sorted so urgent work rises to the top.
+`r os reprioritize <task-id> <priority>` lets you change urgency without losing task
+history or the local audit trail.
 
 ## Continuous Memory with GBrain
 
