@@ -108,7 +108,7 @@ class TestAPIIntegration:
         from r_cli.api.server import create_app
 
         app = create_app()
-        routes = [route.path for route in app.routes]
+        routes = [route.path for route in app.routes if hasattr(route, "path")]
 
         assert any("/chat" in r for r in routes)
         assert any("/skills" in r for r in routes)
