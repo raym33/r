@@ -129,6 +129,8 @@ Install and run the agent:
 ```bash
 r os agent install researcher.yaml
 r os agent list
+r os submit private-researcher "Compare the PDF reports"
+r os start <task-id>
 r os run private-researcher "Compare the PDF reports"
 r os tasks --agent private-researcher
 r os pause <task-id>
@@ -142,6 +144,9 @@ Agent tasks move through `queued`, `paused`, `running`, `completed`, `failed`, a
 `cancelled`. Each identity has separate session memory. Broad host capabilities such as
 `code`, `docker`, `ssh`, `system`, and plugins require the manifest to acknowledge
 `unsafe_capabilities: true`.
+
+`r os submit` and `r os start` expose the queue as a first-class primitive, so tasks can
+be created, inspected, paused, resumed, approved, and only then executed.
 
 Task capsules are privacy-preserving audit bundles for one execution. They include
 process metadata, lifecycle events, and a security summary, while redacting prompts,

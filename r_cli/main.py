@@ -912,6 +912,55 @@ def agent_os_run(ctx, agent_name: str, task: tuple[str, ...], yes: bool, as_json
         ctx.exit(1)
 
 
+@agent_os_command.command("submit")
+@click.argument("agent_name")
+@click.argument("task", nargs=-1, required=True)
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+def agent_os_submit(agent_name: str, task: tuple[str, ...], as_json: bool):
+    """Queue one task without starting it."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    try:
+        queued = AgentOS(Config.load()).create_task(agent_name, " ".join(task))
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(queued, indent=2, default=str))
+        return
+    console.print(f"[green]Task {queued['id']} queued[/green]")
+
+
+@agent_os_command.command("start")
+@click.argument("task_id")
+@click.option("--yes", is_flag=True, help="Approve risky actions without prompting")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+@click.pass_context
+def agent_os_start(ctx, task_id: str, yes: bool, as_json: bool):
+    """Run one queued task by ID."""
+    from r_cli.agent_os import AgentOS, AgentOSError
+
+    auto_approve = yes or ctx.obj.get("yes", False)
+    callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+    try:
+        result = AgentOS(Config.load()).run_task(
+            task_id,
+            approval_callback=callback,
+            auto_approve=auto_approve,
+        )
+    except AgentOSError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(result, indent=2, default=str))
+        return
+    if result["status"] == "completed":
+        console.print(result["result"])
+        console.print(f"[dim]Task {result['id']} completed[/dim]")
+    else:
+        console.print(f"[red]Task {result['id']} failed:[/red] {result['error']}")
+    if result["status"] == "failed":
+        ctx.exit(1)
+
+
 @agent_os_command.command("tasks")
 @click.option("--limit", default=20, type=click.IntRange(min=1, max=1000))
 @click.option(

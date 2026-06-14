@@ -95,6 +95,19 @@ def test_run_records_completed_task_and_events(tmp_path):
     assert runtime.list_events()[2]["payload"] == {"input_length": 14}
 
 
+def test_create_and_start_task_separately(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    queued = runtime.create_task("writer", "Write a report")
+
+    with patch.object(runtime, "_run_assistant", return_value="finished"):
+        task = runtime.run_task(queued["id"])
+
+    assert queued["status"] == "queued"
+    assert task["status"] == "completed"
+    assert task["result"] == "finished"
+
+
 def test_run_persists_failures(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))
@@ -180,6 +193,21 @@ def test_running_task_cannot_be_paused(tmp_path):
 
     with pytest.raises(AgentOSError, match="already running"):
         runtime.pause_task("task123")
+
+
+def test_only_queued_tasks_can_start(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    with runtime._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO tasks(id, agent_name, input, status, created_at)
+            VALUES ('task123', 'writer', 'Draft report', 'paused', 'now')
+            """
+        )
+
+    with pytest.raises(AgentOSError, match="is not queued"):
+        runtime.run_task("task123")
 
 
 def test_paused_task_cannot_start_accidentally(tmp_path):

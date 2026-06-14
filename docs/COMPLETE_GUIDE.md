@@ -179,6 +179,8 @@ Install and run:
 r os agent install researcher.yaml
 r os agent list
 r os agent show researcher
+r os submit researcher "Compare the local reports"
+r os start <task-id>
 r os run researcher "Compare the local reports"
 ```
 
@@ -199,6 +201,10 @@ r os status
 flight recorder: lifecycle events and security posture are visible, while prompts, task
 content, results, hosts, and filesystem paths are hidden unless `--include-content` is
 provided explicitly.
+
+`r os submit` and `r os start` let you separate admission from execution. That makes the
+queue visible and governable, which is much closer to an operating-system model than an
+all-in-one synchronous `run`.
 
 ## Continuous Memory with GBrain
 

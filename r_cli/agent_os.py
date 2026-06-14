@@ -181,7 +181,16 @@ class AgentOS:
         auto_approve: bool = False,
     ) -> dict[str, Any]:
         """Create and synchronously supervise one task."""
-        manifest = self.get_agent(name)
+        task = self.create_task(name, task_input)
+        return self.run_task(
+            task["id"],
+            approval_callback=approval_callback,
+            auto_approve=auto_approve,
+        )
+
+    def create_task(self, name: str, task_input: str) -> dict[str, Any]:
+        """Create a queued task without starting execution."""
+        self.get_agent(name)
         if not task_input.strip():
             raise AgentOSError("Task input must be non-empty")
         task_id = uuid.uuid4().hex[:12]
@@ -200,20 +209,33 @@ class AgentOS:
                 task_id,
                 {"input_length": len(task_input)},
             )
+        return self.get_task(task_id)
 
-        self._set_task_state(task_id, "running")
+    def run_task(
+        self,
+        task_id: str,
+        approval_callback: ApprovalCallback | None = None,
+        auto_approve: bool = False,
+    ) -> dict[str, Any]:
+        """Run one existing queued task synchronously."""
+        task = self.get_task(task_id)
+        if task["status"] != "queued":
+            raise AgentOSError(f"Task {task_id} is not queued")
+        manifest = self.get_agent(task["agent_name"])
+        if not self._set_task_state(task_id, "running"):
+            raise AgentOSError(f"Task {task_id} could not enter the running state")
         try:
             if manifest.kind == "workflow":
                 result = self._run_workflow_agent(
                     manifest,
-                    task_input,
+                    task["input"],
                     approval_callback,
                     auto_approve,
                 )
             else:
                 result = self._run_assistant(
                     manifest,
-                    task_input,
+                    task["input"],
                     approval_callback,
                     auto_approve,
                 )

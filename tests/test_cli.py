@@ -345,6 +345,40 @@ def test_agent_os_pause_and_resume_task(tmp_path):
     assert json.loads(resumed.output)["status"] == "queued"
 
 
+def test_agent_os_submit_and_start_task(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Does work"))
+
+    submitted = runner.invoke(
+        cli,
+        ["os", "submit", "worker", "work", "--json"],
+        env=environment,
+    )
+    task_id = json.loads(submitted.output)["id"]
+
+    with patch("r_cli.agent_os.AgentOS._run_assistant", return_value="done"):
+        started = runner.invoke(
+            cli,
+            ["os", "start", task_id, "--json"],
+            env=environment,
+        )
+
+    assert submitted.exit_code == 0
+    assert json.loads(submitted.output)["status"] == "queued"
+    assert started.exit_code == 0
+    assert json.loads(started.output)["status"] == "completed"
+    assert json.loads(started.output)["result"] == "done"
+
+
 def test_agent_os_capsule_writes_redacted_task_export(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

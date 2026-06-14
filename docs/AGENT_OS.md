@@ -46,6 +46,8 @@ r os init researcher.yaml
 r os agent install researcher.yaml
 r os agent list
 r os agent show researcher
+r os submit researcher "Analyze this project"
+r os start <task-id>
 r os run researcher "Analyze this project"
 r os tasks --status completed
 r os pause <task-id>
@@ -61,6 +63,10 @@ Tasks can be paused while they are still queued. A paused task will not be moved
 `running` until it is resumed, which gives operators a simple approval checkpoint before
 future background workers pick up queued work. Running tasks cannot be paused yet; cancel
 them instead.
+
+`r os submit` makes the queue explicit: tasks can be enqueued first, reviewed in the
+process table, paused or resumed, and then launched with `r os start`. This is the first
+kernel-style separation between admission and execution.
 
 Task capsules are local audit bundles for a single execution:
 
