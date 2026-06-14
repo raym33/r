@@ -181,6 +181,7 @@ r os agent list
 r os agent show researcher
 r os submit researcher "Compare the local reports" --priority high
 r os reprioritize <task-id> critical
+r os worker --max-tasks 10
 r os start <task-id>
 r os run researcher "Compare the local reports"
 ```
@@ -211,6 +212,10 @@ Each task also carries a scheduler priority: `low`, `normal`, `high`, or `critic
 `r os tasks` shows that field, and the queue is sorted so urgent work rises to the top.
 `r os reprioritize <task-id> <priority>` lets you change urgency without losing task
 history or the local audit trail.
+
+`r os worker` is the first persistent scheduler surface. Use `--once` for single-shot
+automation, `--max-tasks` for bounded batches, or no limit to keep polling and executing
+queued work in local-first Agent OS order.
 
 ## Continuous Memory with GBrain
 

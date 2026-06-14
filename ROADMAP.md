@@ -70,7 +70,7 @@ Exit criteria:
 
 Planned:
 
-- background workers and resumable queues;
+- background workers and resumable queues (initial CLI worker support is available);
 - cancellation and queued-task pause controls (initial CLI support is available);
 - retry and timeout controls;
 - scheduler priority controls across `low`, `normal`, `high`, and `critical`;

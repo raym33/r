@@ -241,6 +241,33 @@ def test_reprioritize_task_updates_queue_order(tmp_path):
     assert tasks[1]["id"] == first["id"]
 
 
+def test_run_next_task_uses_priority_order(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+    runtime.create_task("writer", "Low", priority="low")
+    runtime.create_task("writer", "Critical", priority="critical")
+
+    with patch.object(
+        runtime,
+        "_run_assistant",
+        side_effect=lambda _manifest, task_input, *_args: f"done:{task_input}",
+    ):
+        first = runtime.run_next_task()
+        second = runtime.run_next_task()
+
+    assert first["status"] == "completed"
+    assert first["input"] == "Critical"
+    assert first["result"] == "done:Critical"
+    assert second["input"] == "Low"
+
+
+def test_run_next_task_returns_none_when_queue_is_empty(tmp_path):
+    runtime = AgentOS(os_config(tmp_path))
+    runtime.install(AgentManifest("writer", "Writes things"))
+
+    assert runtime.run_next_task() is None
+
+
 def test_running_task_cannot_be_reprioritized(tmp_path):
     runtime = AgentOS(os_config(tmp_path))
     runtime.install(AgentManifest("writer", "Writes things"))

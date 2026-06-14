@@ -426,6 +426,65 @@ def test_agent_os_reprioritize_updates_priority_and_queue_order(tmp_path):
     assert tasks[0]["priority"] == "critical"
 
 
+def test_agent_os_worker_processes_priority_queue(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+    environment = {"R_CLI_CONFIG": str(config_path)}
+
+    from r_cli.agent_os import AgentManifest, AgentOS
+    from r_cli.core.config import Config
+
+    runtime = AgentOS(Config(home_dir=str(home)))
+    runtime.install(AgentManifest("worker", "Does work"))
+    runner.invoke(
+        cli,
+        ["os", "submit", "worker", "background", "--priority", "low", "--json"],
+        env=environment,
+    )
+    runner.invoke(
+        cli,
+        ["os", "submit", "worker", "urgent", "--priority", "critical", "--json"],
+        env=environment,
+    )
+
+    with patch(
+        "r_cli.agent_os.AgentOS._run_assistant",
+        side_effect=lambda _manifest, task_input, *_args: f"done:{task_input}",
+    ):
+        result = runner.invoke(
+            cli,
+            ["os", "worker", "--max-tasks", "2", "--json"],
+            env=environment,
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["processed"] == 2
+    assert payload["completed"] == 2
+    assert [task["input"] for task in payload["tasks"]] == ["urgent", "background"]
+    assert payload["tasks"][0]["result"] == "done:urgent"
+
+
+def test_agent_os_worker_once_returns_empty_summary_without_tasks(tmp_path):
+    runner = CliRunner()
+    config_path = tmp_path / "config.yaml"
+    home = tmp_path / "home"
+    config_path.write_text(f"home_dir: {home}\n", encoding="utf-8")
+
+    result = runner.invoke(
+        cli,
+        ["os", "worker", "--once", "--json"],
+        env={"R_CLI_CONFIG": str(config_path)},
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["processed"] == 0
+    assert payload["tasks"] == []
+
+
 def test_agent_os_capsule_writes_redacted_task_export(tmp_path):
     runner = CliRunner()
     config_path = tmp_path / "config.yaml"

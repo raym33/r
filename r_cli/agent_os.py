@@ -262,6 +262,29 @@ class AgentOS:
         self._set_task_state(task_id, "completed", result=result)
         return self.get_task(task_id)
 
+    def run_next_task(
+        self,
+        agent_name: str | None = None,
+        approval_callback: ApprovalCallback | None = None,
+        auto_approve: bool = False,
+    ) -> dict[str, Any] | None:
+        """Run the next queued task according to scheduler order."""
+        while True:
+            queued = self.list_tasks(limit=1, status="queued", agent_name=agent_name)
+            if not queued:
+                return None
+            task_id = queued[0]["id"]
+            try:
+                return self.run_task(
+                    task_id,
+                    approval_callback=approval_callback,
+                    auto_approve=auto_approve,
+                )
+            except AgentOSError as exc:
+                if str(exc) == f"Task {task_id} is not queued":
+                    continue
+                raise
+
     def cancel_task(self, task_id: str, reason: str = "cancelled by user") -> dict[str, Any]:
         """Mark a queued or running task as cancelled."""
         reason = reason.strip() or "cancelled by user"

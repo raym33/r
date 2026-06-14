@@ -48,6 +48,7 @@ r os agent list
 r os agent show researcher
 r os submit researcher "Analyze this project" --priority high
 r os reprioritize <task-id> critical
+r os worker --max-tasks 10
 r os start <task-id>
 r os run researcher "Analyze this project"
 r os tasks --status completed
@@ -62,8 +63,8 @@ r os security
 
 Tasks can be paused while they are still queued. A paused task will not be moved to
 `running` until it is resumed, which gives operators a simple approval checkpoint before
-future background workers pick up queued work. Running tasks cannot be paused yet; cancel
-them instead.
+background workers pick up queued work. Running tasks cannot be paused yet; cancel them
+instead.
 
 `r os submit` makes the queue explicit: tasks can be enqueued first, reviewed in the
 process table, paused or resumed, reprioritized as urgency changes, and then launched with
@@ -72,6 +73,10 @@ process table, paused or resumed, reprioritized as urgency changes, and then lau
 Queue order is deterministic: `critical`, `high`, `normal`, and then `low`. Priority can
 be changed while a task is still `queued` or `paused`, which gives operators a clean way
 to escalate work without recreating jobs.
+
+`r os worker` turns that queue into a long-lived execution loop. It can drain a bounded
+batch with `--max-tasks`, process a single item with `--once`, or keep polling the queue
+as a local daemon.
 
 Task capsules are local audit bundles for a single execution:
 

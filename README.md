@@ -131,6 +131,7 @@ r os agent install researcher.yaml
 r os agent list
 r os submit private-researcher "Compare the PDF reports" --priority high
 r os reprioritize <task-id> critical
+r os worker --max-tasks 10
 r os start <task-id>
 r os run private-researcher "Compare the PDF reports"
 r os tasks --agent private-researcher
@@ -150,6 +151,9 @@ Agent tasks move through `queued`, `paused`, `running`, `completed`, `failed`, a
 be created, inspected, paused, resumed, reprioritized, approved, and only then executed.
 The scheduler orders work by `critical`, `high`, `normal`, and `low`, which makes the
 queue behave more like a local process manager than a synchronous helper command.
+
+`r os worker` can now sit on top of that queue and execute tasks continuously, which is a
+meaningful step from "CLI with agents" toward "local operating layer for agents".
 
 Task capsules are privacy-preserving audit bundles for one execution. They include
 process metadata, lifecycle events, and a security summary, while redacting prompts,

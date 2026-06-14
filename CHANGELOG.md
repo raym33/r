@@ -27,6 +27,7 @@ All notable changes to R CLI are documented here.
 - `r memory status`, `r memory sync`, `r memory search`, and `r memory remember`
 - `r os submit` and `r os start` for explicit task queue admission and execution
 - Task priorities plus `r os reprioritize` for queue-aware local scheduling
+- `r os worker` for bounded or continuous queue execution
 - Local-only LLM endpoint enforcement and deny-by-default outbound tool networking
 - Per-agent filesystem roots, network host allowlists, and `r os security`
 - Explicit `--expose` requirement for non-loopback API binds

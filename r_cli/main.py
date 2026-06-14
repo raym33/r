@@ -12,6 +12,7 @@ import contextlib
 import io
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -1080,6 +1081,100 @@ def agent_os_reprioritize(task_id: str, priority: str, as_json: bool):
         click.echo(json.dumps(task, indent=2, default=str))
         return
     console.print(f"[green]Task {task_id} priority set to {task['priority']}[/green]")
+
+
+@agent_os_command.command("worker")
+@click.option("--agent", "agent_name", help="Only process tasks for one installed agent")
+@click.option(
+    "--poll-interval",
+    default=2.0,
+    show_default=True,
+    type=click.FloatRange(min=0.1),
+    help="Seconds to wait when the queue is empty",
+)
+@click.option("--max-tasks", type=click.IntRange(min=1), help="Exit after processing N tasks")
+@click.option("--once", is_flag=True, help="Process at most one queued task and exit")
+@click.option("--yes", is_flag=True, help="Approve risky actions without prompting")
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON")
+@click.pass_context
+def agent_os_worker(
+    ctx,
+    agent_name: str | None,
+    poll_interval: float,
+    max_tasks: int | None,
+    once: bool,
+    yes: bool,
+    as_json: bool,
+):
+    """Run queued Agent OS tasks in scheduler order."""
+    from r_cli.agent_os import AgentOS
+
+    if as_json and not once and max_tasks is None:
+        raise click.ClickException("--json requires --once or --max-tasks")
+
+    runtime = AgentOS(Config.load())
+    auto_approve = yes or ctx.obj.get("yes", False)
+    callback = approval_prompt if sys.stdin.isatty() and not auto_approve else None
+    processed: list[dict[str, object]] = []
+    waiting_announced = False
+
+    try:
+        while True:
+            task = runtime.run_next_task(
+                agent_name=agent_name,
+                approval_callback=callback,
+                auto_approve=auto_approve,
+            )
+            if task is None:
+                if once or max_tasks is not None:
+                    break
+                if not waiting_announced:
+                    scope = f" for agent {agent_name}" if agent_name else ""
+                    console.print(
+                        f"[dim]Worker idle{scope}; polling every {poll_interval:.1f}s[/dim]"
+                    )
+                    waiting_announced = True
+                time.sleep(poll_interval)
+                continue
+
+            waiting_announced = False
+            processed.append(task)
+            if not as_json:
+                if task["status"] == "completed":
+                    console.print(
+                        f"[green]Completed {task['id']}[/green] "
+                        f"({task['priority']}, {task['agent_name']})"
+                    )
+                else:
+                    console.print(
+                        f"[red]Task {task['id']} ended as {task['status']}:[/red] {task['error']}"
+                    )
+            if once or (max_tasks is not None and len(processed) >= max_tasks):
+                break
+    except KeyboardInterrupt:
+        if not as_json:
+            console.print("[yellow]Worker interrupted[/yellow]")
+
+    summary = {
+        "agent_name": agent_name,
+        "processed": len(processed),
+        "completed": sum(1 for task in processed if task["status"] == "completed"),
+        "failed": sum(1 for task in processed if task["status"] == "failed"),
+        "cancelled": sum(1 for task in processed if task["status"] == "cancelled"),
+        "tasks": processed,
+    }
+    if as_json:
+        click.echo(json.dumps(summary, indent=2, default=str))
+    else:
+        console.print(
+            "[bold cyan]Worker summary:[/bold cyan] "
+            f"{summary['processed']} processed, "
+            f"{summary['completed']} completed, "
+            f"{summary['failed']} failed, "
+            f"{summary['cancelled']} cancelled"
+        )
+    if summary["failed"] > 0:
+        ctx.exit(1)
 
 
 @agent_os_command.command("events")
