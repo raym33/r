@@ -256,17 +256,29 @@ class PDFToolsSkill(Skill):
 
         try:
             files = [f.strip() for f in input_paths.split(",")]
-            merger = pypdf.PdfMerger()
-
-            for f in files:
-                path = Path(f).expanduser()
-                if not path.exists():
-                    return f"File not found: {f}"
-                merger.append(str(path))
-
             output = Path(output_path).expanduser()
-            merger.write(str(output))
-            merger.close()
+            output.parent.mkdir(parents=True, exist_ok=True)
+
+            if hasattr(pypdf, "PdfMerger"):
+                merger = pypdf.PdfMerger()
+                try:
+                    for f in files:
+                        path = Path(f).expanduser()
+                        if not path.exists():
+                            return f"File not found: {f}"
+                        merger.append(str(path))
+                    merger.write(str(output))
+                finally:
+                    merger.close()
+            else:
+                writer = pypdf.PdfWriter()
+                for f in files:
+                    path = Path(f).expanduser()
+                    if not path.exists():
+                        return f"File not found: {f}"
+                    writer.append(str(path))
+                with open(output, "wb") as out:
+                    writer.write(out)
 
             return f"Merged {len(files)} PDFs to {output_path}"
 

@@ -94,6 +94,13 @@ class PDFSkill(Skill):
         },
     }
 
+    @staticmethod
+    def _write_multiline(pdf, height: float, text: str) -> None:
+        """Write wrapped text and reset the cursor to the left margin."""
+        from fpdf.enums import XPos, YPos
+
+        pdf.multi_cell(pdf.epw, height, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
     def get_tools(self) -> list[Tool]:
         return [
             Tool(
@@ -227,23 +234,23 @@ class PDFSkill(Skill):
                 if line.startswith("# "):
                     pdf.set_font(tpl["font_family"], "B", size=tpl["font_size"] + 4)
                     pdf.ln(5)
-                    pdf.multi_cell(0, 8, line[2:])
+                    self._write_multiline(pdf, 8, line[2:])
                     pdf.ln(3)
                     pdf.set_font(tpl["font_family"], size=tpl["font_size"])
                 elif line.startswith("## "):
                     pdf.set_font(tpl["font_family"], "B", size=tpl["font_size"] + 2)
                     pdf.ln(3)
-                    pdf.multi_cell(0, 7, line[3:])
+                    self._write_multiline(pdf, 7, line[3:])
                     pdf.ln(2)
                     pdf.set_font(tpl["font_family"], size=tpl["font_size"])
                 elif line.startswith("### "):
                     pdf.set_font(tpl["font_family"], "B", size=tpl["font_size"])
-                    pdf.multi_cell(0, 6, line[4:])
+                    self._write_multiline(pdf, 6, line[4:])
                     pdf.ln(1)
                     pdf.set_font(tpl["font_family"], size=tpl["font_size"])
                 elif line.startswith("- ") or line.startswith("* "):
                     # Bullet point with indentation
-                    pdf.multi_cell(0, 6, f"  - {line[2:]}")
+                    self._write_multiline(pdf, 6, f"  - {line[2:]}")
                 elif line.startswith("```"):
                     # Code: change font
                     pdf.set_font("Courier", size=tpl["font_size"] - 1)
@@ -253,7 +260,7 @@ class PDFSkill(Skill):
                     if "**" in line:
                         # Simplification: remove ** for now
                         line = line.replace("**", "")
-                    pdf.multi_cell(0, 6, line)
+                    self._write_multiline(pdf, 6, line)
 
             # Footer with page number
             if tpl["footer"]:

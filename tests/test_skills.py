@@ -15,6 +15,7 @@ from r_cli.skills.latex_skill import LaTeXSkill
 from r_cli.skills.multiagent_skill import MultiAgentSkill
 from r_cli.skills.ocr_skill import OCRSkill
 from r_cli.skills.pdf_skill import PDFSkill
+from r_cli.skills.pdftools_skill import PDFToolsSkill
 from r_cli.skills.plugin_skill import PluginSkill
 from r_cli.skills.rag_skill import RAGSkill
 from r_cli.skills.resume_skill import ResumeSkill
@@ -106,6 +107,28 @@ class TestPDFSkill:
         assert "PDF generated" in result
         assert Path(temp_dir, "test.pdf").exists()
 
+    def test_generate_pdf_handles_consecutive_markdown_blocks(self, temp_dir, config):
+        """Test PDF generation keeps writing after wrapped Markdown blocks."""
+        skill = PDFSkill(config)
+        output_path = Path(temp_dir, "markdown-blocks.pdf")
+
+        result = skill.generate_pdf(
+            content=(
+                "# Smoke Test\n\n"
+                "This paragraph is followed by another block.\n\n"
+                "- First bullet\n"
+                "- Second bullet\n\n"
+                "Final paragraph."
+            ),
+            title="Markdown Blocks",
+            output_path=str(output_path),
+            template="report",
+        )
+
+        assert "PDF generated" in result
+        assert output_path.exists()
+        assert output_path.stat().st_size > 0
+
     def test_list_templates(self, config):
         """Test listar templates."""
         skill = PDFSkill(config)
@@ -115,6 +138,26 @@ class TestPDFSkill:
         assert "minimal" in result
         assert "business" in result
         assert "academic" in result
+
+
+class TestPDFToolsSkill:
+    """Tests para PDFToolsSkill."""
+
+    def test_pdf_merge(self, temp_dir, config):
+        """Test merge PDFs with the installed pypdf version."""
+        pdf_skill = PDFSkill(config)
+        first = Path(temp_dir, "first.pdf")
+        second = Path(temp_dir, "second.pdf")
+        merged = Path(temp_dir, "merged.pdf")
+
+        assert "PDF generated" in pdf_skill.generate_pdf("First document", output_path=str(first))
+        assert "PDF generated" in pdf_skill.generate_pdf("Second document", output_path=str(second))
+
+        result = PDFToolsSkill(config).pdf_merge(f"{first},{second}", str(merged))
+
+        assert "Merged 2 PDFs" in result
+        assert merged.exists()
+        assert merged.stat().st_size > 0
 
 
 class TestCodeSkill:
